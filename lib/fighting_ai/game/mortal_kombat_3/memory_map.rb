@@ -49,12 +49,12 @@ module FightingAI
         FATALITY_TIMER_ADDR = 0x3BE0
 
         # --- Player 1 ---
-        P1_HEALTH_ADDR    = 0x36D4
+        P1_HEALTH_ADDR    = 0x3634
         P1_ROUNDS_WON     = 0x36E0
         P1_WIN_STREAK     = 0x3AA2
 
         # --- Player 2 ---
-        P2_HEALTH_ADDR    = 0x3898
+        P2_HEALTH_ADDR    = 0x37F6
         P2_ROUNDS_WON     = 0x38A4
         P2_WIN_STREAK     = 0x3AA4
 

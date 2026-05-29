@@ -61,4 +61,3 @@ provision:
   - xhost +local:docker
   - dip compose build
   - dip compose run --rm --no-deps app bundle install
-  - dip compose run --rm --no-deps app mkdir -p data/recordings/mk3

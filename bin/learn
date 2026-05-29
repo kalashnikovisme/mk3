@@ -12,6 +12,13 @@ ROM_PATH       = ENV.fetch("ROM_PATH",  File.expand_path("../mk3.sfc", __dir__))
 CORE_PATH      = ENV.fetch("CORE_PATH", "/usr/lib/x86_64-linux-gnu/libretro/snes9x_libretro.so")
 RECORDINGS_DIR = File.expand_path("../data/recordings/mk3", __dir__)
 MATCHES_DIR    = File.expand_path("../data/matches", __dir__)
+MEMORY_DIR     = File.expand_path("../data/memory", __dir__)
+WRAM_DEBUG     = ARGV.include?("debug")
+
+if WRAM_DEBUG
+  FileUtils.mkdir_p(MEMORY_DIR)
+  FileUtils.rm_f(Dir.glob("#{MEMORY_DIR}/*"))
+end
 
 # --- Parse match state files ---
 
@@ -74,7 +81,8 @@ match_states.cycle do |ms|
     game_adapter:     game,
     agents:           { 1 => agent1, 2 => agent2 },
     recorder:         recorder,
-    logger:           FightingAI::CLI.logger("learn")
+    logger:           FightingAI::CLI.logger("learn"),
+    wram_dump:        WRAM_DEBUG
   )
   match  = runner.run(player1_character: ms[:p1], player2_character: ms[:p2])
   result = game.collect_match_result(match)

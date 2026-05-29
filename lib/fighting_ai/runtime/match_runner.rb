@@ -1,3 +1,4 @@
+require "fileutils"
 require_relative "../core/match"
 require_relative "../core/round"
 
@@ -7,12 +8,17 @@ module FightingAI
     # Coordinates the emulator adapter, game adapter, agents, and recorder.
     # Does not know which game is being played or which emulator is used.
     class MatchRunner
-      def initialize(emulator_adapter:, game_adapter:, agents:, recorder: nil, logger: nil)
-        @emulator   = emulator_adapter
-        @game       = game_adapter
-        @agents     = agents   # Hash { 1 => Agent, 2 => Agent }
-        @recorder   = recorder
-        @logger     = logger || method(:default_log)
+      WRAM_DUMP_DIR = File.expand_path("../../../data/memory", __dir__).freeze
+
+      def initialize(emulator_adapter:, game_adapter:, agents:, recorder: nil, logger: nil, wram_dump: false)
+        @emulator        = emulator_adapter
+        @game            = game_adapter
+        @agents          = agents   # Hash { 1 => Agent, 2 => Agent }
+        @recorder        = recorder
+        @logger          = logger || method(:default_log)
+        @wram_dump       = wram_dump
+        @wram_dump_index = 0
+        FileUtils.mkdir_p(WRAM_DUMP_DIR) if @wram_dump
       end
 
       # Run a full match and return the completed Core::Match.
@@ -68,6 +74,12 @@ module FightingAI
                     else                              "idle"
                     end
             log "#{@game.describe_snapshot(snapshot)}  [#{state}]"
+            if @wram_dump
+              @wram_dump_index += 1
+              filename = File.join(WRAM_DUMP_DIR, "%03d" % @wram_dump_index)
+              File.write(filename, @emulator.wram_hex_dump)
+              log "Saved WRAM dump → #{filename}"
+            end
             last_status_at = Time.now
           end
 

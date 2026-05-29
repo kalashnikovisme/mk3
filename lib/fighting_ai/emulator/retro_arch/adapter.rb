@@ -11,12 +11,12 @@ module FightingAI
     module RetroArch
       class Adapter < FightingAI::Emulator::Adapter
         # 6 SNES frames at 60 fps ≈ 100 ms per agent decision step.
-        STEP_DURATION      = 1.0 / 60.0 * 6
-        FRAME_DURATION     = 1.0 / 60.0
-        STARTUP_WAIT       = 6.0
-        WRAM_RETRY_WAIT    = 1.0
-        LOAD_STATE_WAIT    = 1.0
-        LOAD_STATE_RETRIES = 3
+        STEP_DURATION   = 1.0 / 60.0 * 6
+        FRAME_DURATION  = 1.0 / 60.0
+        STARTUP_WAIT    = 6.0
+        WRAM_RETRY_WAIT = 1.0
+        LOAD_STATE_WAIT = 1.0
+        WRAM_READ_SLOT  = 9   # dedicated slot for reads; never used by install_match_state
 
         attr_reader :pid
 
@@ -78,7 +78,7 @@ module FightingAI
                     "RetroArch log (#{RetroArch::Process::LOG_PATH}):\n" \
                     "#{@process.last_log_lines(40)}"
             end
-            NetworkCommands.save_state
+            NetworkCommands.save_state(slot: WRAM_READ_SLOT)
             sleep(WRAM_RETRY_WAIT)
             @save_state_reader.try_locate_any
             print "." unless @save_state_reader.wram_located?
@@ -118,30 +118,10 @@ module FightingAI
         def install_match_state(src_path)
           dest = slot0_state_path
           FileUtils.mkdir_p(File.dirname(dest))
-
-          LOAD_STATE_RETRIES.times do |attempt|
-            puts "[state] Loading slot 0 from #{File.basename(src_path)} (attempt #{attempt + 1}/#{LOAD_STATE_RETRIES})"
-            FileUtils.cp(src_path, dest)
-            NetworkCommands.load_state(slot: 0)
-            sleep(LOAD_STATE_WAIT)
-
-            # Ask RetroArch to save so we can read its freshly-written file.
-            NetworkCommands.save_state
-            sleep(0.3)
-
-            files = Dir.glob(File.join(ConfigBuilder::STATES_DIR, "*.state*"))
-                       .map { |f| "#{File.basename(f)}@#{File.mtime(f).strftime('%H:%M:%S.%3N')}" }
-            puts "[state] states dir: #{files.join('  ')}"
-
-            wram = @save_state_reader.read_current
-            puts "[state] wram_offset=#{@save_state_reader.wram_offset}"
-
-            hits = (0x0000..0x1FFFF).select { |a| wram.read_u8(a) == 0xA6 }
-            puts "[state] All addresses with value 0xA6 (full health): #{hits.map { |a| '0x%04X' % a }.join(' ')}"
-            return
-          end
-
-          raise "Failed to load match state after #{LOAD_STATE_RETRIES} attempts: #{src_path}"
+          puts "[state] Loading #{File.basename(src_path)}"
+          FileUtils.cp(src_path, dest)
+          NetworkCommands.load_state(slot: 0)
+          sleep(LOAD_STATE_WAIT)
         end
 
         def slot0_state_path
@@ -157,6 +137,18 @@ module FightingAI
           (from..to).map { |addr| snapshot.read_u8(addr) }
         end
 
+        def wram_hex_dump
+          snapshot = capture_state_snapshot
+          lines = []
+          (0x0000..0x1FFFF).step(16) do |base|
+            row = (0..15).map { |i| snapshot.read_u8(base + i) }
+            next if row.all?(&:zero?)
+            values = row.map { |b| "%02X" % b }.join(" ")
+            lines << "%04X: %s" % [base, values]
+          end
+          lines.join("\n")
+        end
+
         def read_memory(address, byte_count: 1)
           wram = capture_state_snapshot
           if byte_count == 1
@@ -170,16 +162,10 @@ module FightingAI
 
         private
 
-        def dump_wram_region(wram, from, to, label: nil)
-          bytes = (from..to).map { |a| wram.read_u8(a) }
-          hex   = bytes.each_slice(8).map { |row| row.map { |b| "%02X" % b }.join(" ") }.join("  ")
-          puts "[state] #{label} 0x#{from.to_s(16)}-0x#{to.to_s(16)}: #{hex}"
-        end
-
         def capture_state_snapshot
-          NetworkCommands.save_state
-          sleep(FRAME_DURATION)
-          @save_state_reader.read_current
+          before = @save_state_reader.current_state_snapshot
+          NetworkCommands.save_state(slot: WRAM_READ_SLOT)
+          @save_state_reader.read_after_update(before)
         end
 
         def build_mk3_snapshot(frame_num, wram)
@@ -191,7 +177,7 @@ module FightingAI
             "timer"   => wram.read_u8(0x3BD4),
             "players" => {
               "1" => {
-                "health"     => wram.read_u8(0x36D4),
+                "health"     => wram.read_u8(0x3634),
                 "max_health" => 0xA6,
                 "rounds_won" => wram.read_u8(0x36E0),
                 "x"          => 0,
@@ -202,7 +188,7 @@ module FightingAI
                 "state"      => 0
               },
               "2" => {
-                "health"     => wram.read_u8(0x3898),
+                "health"     => wram.read_u8(0x37F6),
                 "max_health" => 0xA6,
                 "rounds_won" => wram.read_u8(0x38A4),
                 "x"          => 0,

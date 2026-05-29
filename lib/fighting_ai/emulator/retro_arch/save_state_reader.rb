@@ -29,6 +29,12 @@ module FightingAI
         def current_state_snapshot = snapshot_state_files
         def read_next(before: nil) = read_current
 
+        def read_after_update(before)
+          data = wait_for_update(before)
+          locate_wram(data) unless @wram_offset
+          Snapshot.new(decompress(data).bytes, @wram_offset)
+        end
+
 
         def read_current
           data = latest_state_file_data
@@ -162,8 +168,8 @@ module FightingAI
 
         def mk3_signature?(bytes, base)
           return false if base + 0x3B00 > bytes.length
-          p1_health = bytes[base + 0x36D4]
-          p2_health = bytes[base + 0x3898]
+          p1_health = bytes[base + 0x3634]
+          p2_health = bytes[base + 0x37F6]
           screen    = bytes[base + 0x3A7E]
           valid_screens = [*(0x00..0x09), 0x0B, 0x0C, 0x0D, 0x0F, 0x11, 0x13]
           (0..0xA6).include?(p1_health) &&
