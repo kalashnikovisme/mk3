@@ -11,10 +11,12 @@ module FightingAI
     module RetroArch
       class Adapter < FightingAI::Emulator::Adapter
         # 6 SNES frames at 60 fps ≈ 100 ms per agent decision step.
-        STEP_DURATION   = 1.0 / 60.0 * 6
-        FRAME_DURATION  = 1.0 / 60.0
-        STARTUP_WAIT    = 6.0
-        WRAM_RETRY_WAIT = 1.0
+        STEP_DURATION      = 1.0 / 60.0 * 6
+        FRAME_DURATION     = 1.0 / 60.0
+        STARTUP_WAIT       = 6.0
+        WRAM_RETRY_WAIT    = 1.0
+        LOAD_STATE_WAIT    = 1.0
+        LOAD_STATE_RETRIES = 3
 
         attr_reader :pid
 
@@ -116,9 +118,30 @@ module FightingAI
         def install_match_state(src_path)
           dest = slot0_state_path
           FileUtils.mkdir_p(File.dirname(dest))
-          FileUtils.cp(src_path, dest)
-          @keyboard.load_state
-          sleep(1.0)
+
+          LOAD_STATE_RETRIES.times do |attempt|
+            puts "[state] Loading slot 0 from #{File.basename(src_path)} (attempt #{attempt + 1}/#{LOAD_STATE_RETRIES})"
+            FileUtils.cp(src_path, dest)
+            NetworkCommands.load_state(slot: 0)
+            sleep(LOAD_STATE_WAIT)
+
+            # Ask RetroArch to save so we can read its freshly-written file.
+            NetworkCommands.save_state
+            sleep(0.3)
+
+            files = Dir.glob(File.join(ConfigBuilder::STATES_DIR, "*.state*"))
+                       .map { |f| "#{File.basename(f)}@#{File.mtime(f).strftime('%H:%M:%S.%3N')}" }
+            puts "[state] states dir: #{files.join('  ')}"
+
+            wram = @save_state_reader.read_current
+            puts "[state] wram_offset=#{@save_state_reader.wram_offset}"
+
+            hits = (0x0000..0x1FFFF).select { |a| wram.read_u8(a) == 0xA6 }
+            puts "[state] All addresses with value 0xA6 (full health): #{hits.map { |a| '0x%04X' % a }.join(' ')}"
+            return
+          end
+
+          raise "Failed to load match state after #{LOAD_STATE_RETRIES} attempts: #{src_path}"
         end
 
         def slot0_state_path
@@ -146,6 +169,12 @@ module FightingAI
         end
 
         private
+
+        def dump_wram_region(wram, from, to, label: nil)
+          bytes = (from..to).map { |a| wram.read_u8(a) }
+          hex   = bytes.each_slice(8).map { |row| row.map { |b| "%02X" % b }.join(" ") }.join("  ")
+          puts "[state] #{label} 0x#{from.to_s(16)}-0x#{to.to_s(16)}: #{hex}"
+        end
 
         def capture_state_snapshot
           NetworkCommands.save_state

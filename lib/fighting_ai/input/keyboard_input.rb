@@ -65,11 +65,11 @@ module FightingAI
           was_pressed = current[logical]
 
           if pressed && !was_pressed
-            $stderr.puts "[keys] P#{player_index} DOWN  #{logical}=#{key}  (window #{@window_id})"
+            puts "[keys] P#{player_index} ▼ #{logical}"
             system("xdotool keydown --window #{@window_id} #{key} 2>/dev/null")
             current[logical] = true
           elsif !pressed && was_pressed
-            $stderr.puts "[keys] P#{player_index} UP    #{logical}=#{key}  (window #{@window_id})"
+            puts "[keys] P#{player_index} ▲ #{logical}"
             system("xdotool keyup --window #{@window_id} #{key} 2>/dev/null")
             current[logical] = false
           end

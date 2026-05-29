@@ -22,6 +22,14 @@ module FightingAI
           @navigator       = MenuNavigator.new(emulator_adapter)
         end
 
+        def describe_snapshot(raw_snapshot)
+          screen = raw_snapshot["screen"].to_i
+          timer  = raw_snapshot["timer"].to_i
+          hp1    = raw_snapshot.dig("players", "1", "health").to_i
+          hp2    = raw_snapshot.dig("players", "2", "health").to_i
+          "#{MemoryMap.stage_name(screen)}  timer=#{timer}  hp1=#{hp1} hp2=#{hp2}"
+        end
+
         def extract_game_state(raw_snapshot)
           StateExtractor.extract(raw_snapshot)
         end

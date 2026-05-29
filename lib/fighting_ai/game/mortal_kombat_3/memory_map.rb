@@ -23,6 +23,27 @@ module FightingAI
         # Fight screens: 0x00–0x09 (arena levels during active play)
         FIGHT_SCREENS = (0x00..0x09).freeze
 
+        STAGE_NAMES = {
+          0x00 => "The Rooftop",
+          0x01 => "Jade's Desert",
+          0x02 => "Scorpion's Lair",
+          0x03 => "Kahn's Kave",
+          0x04 => "The Waterfront",
+          0x05 => "The Portal",
+          0x06 => "The Pit III",
+          0x09 => "The Pit III",
+          0x0B => "Versus",
+          0x0C => "Title Screen",
+          0x0D => "Character Select",
+          0x0F => "Continue",
+          0x11 => "Destiny",
+          0x13 => "Main Menu"
+        }.freeze
+
+        def self.stage_name(screen)
+          STAGE_NAMES.fetch(screen, "Unknown (0x#{screen.to_s(16).rjust(2, '0')})")
+        end
+
         # --- Timers ---
         LEVEL_TIMER_ADDR    = 0x3BD4
         FATALITY_TIMER_ADDR = 0x3BE0
@@ -39,6 +60,11 @@ module FightingAI
 
         # --- Health constant ---
         MAX_HEALTH = 0xA6  # 166 — same for both players
+
+        # --- Normalization ranges ---
+        TIMER_MAX = 99    # MK3 round timer counts down from 99
+        X_MAX     = 255   # placeholder until P1/P2 x addresses are located
+        Y_MAX     = 255   # placeholder until P1/P2 y addresses are located
 
         # --- Not yet located (need RAM search) ---
         # P1_X_ADDR, P1_Y_ADDR, P1_FACING_ADDR, P1_ANIM_ADDR

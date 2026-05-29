@@ -18,7 +18,7 @@ module FightingAI
         # Older snes9x text format fallback.
         TEXT_RAM_MARKERS = [":RAM\n".b, ":WRAM\n".b].freeze
 
-        attr_reader :watch_dirs
+        attr_reader :watch_dirs, :wram_offset
 
         def initialize(watch_dirs:, rom_basename:)
           @watch_dirs   = Array(watch_dirs)
@@ -28,6 +28,7 @@ module FightingAI
 
         def current_state_snapshot = snapshot_state_files
         def read_next(before: nil) = read_current
+
 
         def read_current
           data = latest_state_file_data

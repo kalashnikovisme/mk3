@@ -55,11 +55,21 @@ module FightingAI
 
       def run_round(match, round)
         prev_game_state = nil
-        fight_seen = false
+        fight_seen      = false
+        last_status_at  = Time.now - 1
 
         loop do
           snapshot   = @emulator.next_frame_snapshot
           game_state = @game.extract_game_state(snapshot)
+
+          if Time.now - last_status_at >= 1.0
+            state = if game_state.fight_active?  then "fight"
+                    elsif game_state.round_over? then "round_over"
+                    else                              "idle"
+                    end
+            log "#{@game.describe_snapshot(snapshot)}  [#{state}]"
+            last_status_at = Time.now
+          end
 
           frame = Core::Frame.from_snapshot(
             number:     game_state.frame_number,
@@ -87,6 +97,8 @@ module FightingAI
       end
 
       def step_agents(game_state, prev_game_state, match_id)
+        button_log = {}
+
         @agents.each do |player_index, agent|
           observation = @game.build_observation(game_state, player_index: player_index)
           action      = agent.act(observation)
@@ -107,7 +119,12 @@ module FightingAI
           input_seq = @game.action_to_input_sequence(action, player_index: player_index, game_state: game_state)
           buttons   = @game.input_sequence_to_buttons(input_seq, player_index: player_index)
           @emulator.send_input(player_index, buttons)
+
+          pressed = buttons.select { |_, v| v }.keys
+          button_log[player_index] = "P#{player_index}:#{pressed.empty? ? ' —' : " [#{pressed.join(', ')}]"}"
         end
+
+        log button_log.values.join("   ")
       end
 
       def determine_round_winner(game_state)
