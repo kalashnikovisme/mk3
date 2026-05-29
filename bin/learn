@@ -1,0 +1,59 @@
+#!/usr/bin/env ruby
+# Record AI vs AI gameplay to data/recordings/mk3/ for imitation learning.
+# Run indefinitely until Ctrl+C.
+
+$LOAD_PATH.unshift File.expand_path("../lib", __dir__)
+require "fighting_ai/cli/bootstrap"
+require_relative "../config/mk3"
+
+RECORDINGS_DIR = File.expand_path("../data/recordings/mk3", __dir__)
+
+puts FightingAI::CLI::BANNER
+puts "Mode: Learn (AI self-play recording)\n\n"
+puts "Recordings → #{RECORDINGS_DIR}\n\n"
+
+recorder = nil
+FightingAI::CLI.trap_sigint(cleanup: -> { recorder&.stop })
+
+emulator = FightingAI::CLI.connect
+game     = FightingAI.build_mk3_adapter(emulator_adapter: emulator)
+agent1   = FightingAI::Agent::RuleBased.new(player_index: 1)
+agent2   = FightingAI::Agent::RuleBased.new(player_index: 2)
+
+total_frames  = 0
+match_number  = 0
+
+game.start_game
+
+loop do
+  match_number += 1
+  timestamp = Time.now.strftime("%Y%m%d_%H%M%S")
+  rec_path  = File.join(RECORDINGS_DIR, "match_#{timestamp}_#{match_number}.jsonl")
+
+  recorder = FightingAI::Training::Recorder.new(path: rec_path)
+
+  p1 = game.characters.keys.sample
+  p2 = game.characters.keys.sample
+  puts "── Match #{match_number}: #{p1} vs #{p2} → #{File.basename(rec_path)}"
+
+  game.open_player_vs_player_mode
+  game.select_characters(player1_character: p1, player2_character: p2)
+  game.wait_for_fight_start
+
+  runner = FightingAI::Runtime::MatchRunner.new(
+    emulator_adapter: emulator,
+    game_adapter:     game,
+    agents:           { 1 => agent1, 2 => agent2 },
+    recorder:         recorder,
+    logger:           FightingAI::CLI.logger("learn")
+  )
+  match  = runner.run(player1_character: p1, player2_character: p2)
+  result = game.collect_match_result(match)
+
+  total_frames += match.total_frames
+  FightingAI::CLI.print_result(match, result)
+  puts "  Frames recorded: #{recorder.frame_count}  (total: #{total_frames})\n\n"
+
+  recorder.stop
+  game.reset_for_next_match
+end
