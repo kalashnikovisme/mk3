@@ -34,7 +34,7 @@ require_relative "fighting_ai/emulator/retro_arch/config_builder"
 require_relative "fighting_ai/emulator/retro_arch/network_commands"
 require_relative "fighting_ai/emulator/retro_arch/process"
 require_relative "fighting_ai/emulator/retro_arch/frame_grabber"
-require_relative "fighting_ai/emulator/retro_arch/wram_reader"
+require_relative "fighting_ai/emulator/retro_arch/save_state_reader"
 require_relative "fighting_ai/emulator/retro_arch/adapter"
 
 # Game adapters
@@ -93,19 +93,26 @@ module FightingAI
     end
 
     def build_retro_arch_adapter(rom_path:, core_path:, display: ":1")
-      config_path   = Emulator::RetroArch::ConfigBuilder.build
-      keyboard      = Input::KeyboardInput.new
-      frame_grabber = Emulator::RetroArch::FrameGrabber.new
-      wram_reader   = Emulator::RetroArch::WramReader.new
+      config_path       = Emulator::RetroArch::ConfigBuilder.build
+      keyboard          = Input::KeyboardInput.new
+      frame_grabber     = Emulator::RetroArch::FrameGrabber.new
+      save_state_reader = Emulator::RetroArch::SaveStateReader.new(
+        watch_dirs:   [
+          Emulator::RetroArch::ConfigBuilder.states_dir,
+          File.dirname(File.expand_path(rom_path)),
+          File.expand_path("~/.config/retroarch/states")
+        ],
+        rom_basename: File.basename(rom_path, ".*")
+      )
 
       Emulator::RetroArch::Adapter.new(
-        rom_path:      rom_path,
-        core_path:     core_path,
-        config_path:   config_path,
-        keyboard:      keyboard,
-        frame_grabber: frame_grabber,
-        wram_reader:   wram_reader,
-        display:       display
+        rom_path:          rom_path,
+        core_path:         core_path,
+        config_path:       config_path,
+        keyboard:          keyboard,
+        frame_grabber:     frame_grabber,
+        save_state_reader: save_state_reader,
+        display:           display
       )
     end
 

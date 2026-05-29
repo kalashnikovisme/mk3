@@ -1,46 +1,78 @@
 #!/usr/bin/env ruby
 # Record AI vs AI gameplay to data/recordings/mk3/ for imitation learning.
+# Loads match save states from data/matches/<p1>-vs-<p2>.state.
+# Each state is captured right after "FIGHT!" — no menu navigation needed.
 # Run indefinitely until Ctrl+C.
 
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 require "fighting_ai/cli/bootstrap"
 require_relative "../config/mk3"
 
-ROM_PATH  = ENV.fetch("ROM_PATH",  File.expand_path("../mk3.sfc", __dir__))
-CORE_PATH = ENV.fetch("CORE_PATH", File.expand_path("~/.config/retroarch/cores/snes9x_libretro.so"))
+ROM_PATH       = ENV.fetch("ROM_PATH",  File.expand_path("../mk3.sfc", __dir__))
+CORE_PATH      = ENV.fetch("CORE_PATH", "/usr/lib/x86_64-linux-gnu/libretro/snes9x_libretro.so")
 RECORDINGS_DIR = File.expand_path("../data/recordings/mk3", __dir__)
+MATCHES_DIR    = File.expand_path("../data/matches", __dir__)
+
+# --- Parse match state files ---
+
+def parse_match_file(path)
+  basename  = File.basename(path, ".state")           # "sub-zero-vs-sindel"
+  p1_str, p2_str = basename.split("-vs-", 2)
+  p1 = p1_str.tr("-", "_").to_sym                     # :sub_zero
+  p2 = p2_str.tr("-", "_").to_sym                     # :sindel
+  { path: path, p1: p1, p2: p2 }
+end
+
+match_states = Dir.glob(File.join(MATCHES_DIR, "*.state")).sort.map { |f| parse_match_file(f) }
+raise "No .state files found in #{MATCHES_DIR}" if match_states.empty?
 
 puts FightingAI::CLI::BANNER
 puts "Mode: Learn (AI self-play recording)\n\n"
-puts "Recordings → #{RECORDINGS_DIR}\n\n"
+puts "Recordings → #{RECORDINGS_DIR}"
+puts "Match states: #{match_states.map { |m| File.basename(m[:path]) }.join(', ')}\n\n"
+
+# Stage the first match state into slot 0 before RetroArch starts so that
+# savestate_auto_load picks it up immediately — no title screen on boot.
+first_state = match_states.first
+states_dir = FightingAI::Emulator::RetroArch::ConfigBuilder::STATES_DIR
+rom_base   = File.basename(ROM_PATH, ".*")
+FileUtils.mkdir_p(states_dir)
+
+# RetroArch saves under a core subdirectory (e.g. Snes9x/).
+# Use the existing location if we've run before; otherwise fall back to the base dir.
+candidates = Dir.glob(File.join(states_dir, "**", "#{rom_base}.state"))
+slot0_path = candidates.max_by { |f| File.mtime(f) rescue Time.at(0) } ||
+             File.join(states_dir, "#{rom_base}.state")
+FileUtils.mkdir_p(File.dirname(slot0_path))
+FileUtils.cp(first_state[:path], slot0_path)
+puts "Staged #{File.basename(first_state[:path])} → #{slot0_path}\n\n"
 
 recorder = nil
 FightingAI::CLI.trap_sigint(cleanup: -> { recorder&.stop })
 
-emulator = FightingAI::CLI.start_retro_arch(rom_path: ROM_PATH, core_path: CORE_PATH)
-game     = FightingAI.build_mk3_adapter(emulator_adapter: emulator)
-agent1   = FightingAI::Agent::RuleBased.new(player_index: 1)
-agent2   = FightingAI::Agent::RuleBased.new(player_index: 2)
+emulator = FightingAI::CLI.start_retro_arch(
+  rom_path:         ROM_PATH,
+  core_path:        CORE_PATH,
+  extra_watch_dirs: [MATCHES_DIR]
+)
+game   = FightingAI.build_mk3_adapter(emulator_adapter: emulator)
+agent1 = FightingAI::Agent::RuleBased.new(player_index: 1)
+agent2 = FightingAI::Agent::RuleBased.new(player_index: 2)
 
 total_frames = 0
 match_number = 0
 
-game.start_game
-
-loop do
+# Cycle through available match states indefinitely
+match_states.cycle do |ms|
   match_number += 1
   timestamp = Time.now.strftime("%Y%m%d_%H%M%S")
   rec_path  = File.join(RECORDINGS_DIR, "match_#{timestamp}_#{match_number}.jsonl")
 
   recorder = FightingAI::Training::Recorder.new(path: rec_path)
 
-  p1 = game.characters.keys.sample
-  p2 = game.characters.keys.sample
-  puts "── Match #{match_number}: #{p1} vs #{p2} → #{File.basename(rec_path)}"
+  puts "── Match #{match_number}: #{ms[:p1]} vs #{ms[:p2]} → #{File.basename(rec_path)}"
 
-  game.open_player_vs_player_mode
-  game.select_characters(player1_character: p1, player2_character: p2)
-  game.wait_for_fight_start
+  emulator.install_match_state(ms[:path])
 
   runner = FightingAI::Runtime::MatchRunner.new(
     emulator_adapter: emulator,
@@ -49,7 +81,7 @@ loop do
     recorder:         recorder,
     logger:           FightingAI::CLI.logger("learn")
   )
-  match  = runner.run(player1_character: p1, player2_character: p2)
+  match  = runner.run(player1_character: ms[:p1], player2_character: ms[:p2])
   result = game.collect_match_result(match)
 
   total_frames += match.total_frames
@@ -57,5 +89,5 @@ loop do
   puts "  Frames recorded: #{recorder.frame_count}  (total: #{total_frames})\n\n"
 
   recorder.stop
-  game.reset_for_next_match
+  emulator.install_match_state(ms[:path])
 end

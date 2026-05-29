@@ -1,74 +1,55 @@
 module FightingAI
   module Game
     module MortalKombat3
-      # SNES memory addresses for Mortal Kombat 3.
-      # All offsets are in the WRAM address space as seen by BizHawk.
-      # These are the canonical addresses used by the Lua bridge.
       module MemoryMap
-        # --- Game flow ---
-        GAME_STATE_ADDR   = 0x0101  # 0 = menu, 1 = char select, 2 = fighting, 3 = round over
-        ROUND_NUMBER_ADDR = 0x018A
-        ROUND_TIMER_ADDR  = 0x01A0  # BCD encoded, 2 bytes
+        # --- Screen / navigation state (7E3A7E) ---
+        SCREEN_ADDR       = 0x3A7E
+
+        SCREEN_ROOFTOP        = 0x00
+        SCREEN_JADES_DESERT   = 0x01
+        SCREEN_SCORPIONS_LAIR = 0x02
+        SCREEN_KAHNS_KAVE     = 0x03
+        SCREEN_WATERFRONT     = 0x04
+        SCREEN_THE_PORTAL     = 0x05
+        SCREEN_PIT3_UMK3      = 0x06
+        SCREEN_PIT3_MK3       = 0x09
+        SCREEN_VERSUS         = 0x0B
+        SCREEN_TITLE          = 0x0C
+        SCREEN_CHAR_SELECT    = 0x0D
+        SCREEN_CONTINUE       = 0x0F
+        SCREEN_DESTINY        = 0x11
+        SCREEN_MAIN_MENU      = 0x13
+
+        # Fight screens: 0x00–0x09 (arena levels during active play)
+        FIGHT_SCREENS = (0x00..0x09).freeze
+
+        # --- Timers ---
+        LEVEL_TIMER_ADDR    = 0x3BD4
+        FATALITY_TIMER_ADDR = 0x3BE0
 
         # --- Player 1 ---
-        P1_HEALTH_ADDR    = 0x011A  # current health
-        P1_MAX_HEALTH     = 0x011C  # max health (usually 0x90 = 144)
-        P1_X_ADDR         = 0x0120  # X position (2 bytes, big-endian)
-        P1_Y_ADDR         = 0x0122  # Y position (2 bytes)
-        P1_FACING_ADDR    = 0x0126  # 0 = right, 1 = left
-        P1_ANIM_ADDR      = 0x012A  # current animation ID
-        P1_ANIM_FRAME     = 0x012C  # frame within current animation
-        P1_STATE_ADDR     = 0x0130  # bitfield: hitstun, blockstun, knockdown, airborne
+        P1_HEALTH_ADDR    = 0x36D4
+        P1_ROUNDS_WON     = 0x36E0
+        P1_WIN_STREAK     = 0x3AA2
 
         # --- Player 2 ---
-        P2_HEALTH_ADDR    = 0x014A
-        P2_MAX_HEALTH     = 0x014C
-        P2_X_ADDR         = 0x0150
-        P2_Y_ADDR         = 0x0152
-        P2_FACING_ADDR    = 0x0156
-        P2_ANIM_ADDR      = 0x015A
-        P2_ANIM_FRAME     = 0x015C
-        P2_STATE_ADDR     = 0x0160
+        P2_HEALTH_ADDR    = 0x3898
+        P2_ROUNDS_WON     = 0x38A4
+        P2_WIN_STREAK     = 0x3AA4
 
-        # --- State bitfield masks (P1_STATE_ADDR / P2_STATE_ADDR) ---
-        STATE_HITSTUN   = 0x01
-        STATE_BLOCKSTUN = 0x02
-        STATE_KNOCKDOWN = 0x04
-        STATE_AIRBORNE  = 0x08
+        # --- Health constant ---
+        MAX_HEALTH = 0xA6  # 166 — same for both players
 
-        # --- Screen bounds (SNES pixels) ---
-        X_MIN = 0
-        X_MAX = 383
-        Y_MIN = 0
-        Y_MAX = 223
-
-        # --- Max timer value (99 seconds in BCD) ---
-        TIMER_MAX = 99
+        # --- Not yet located (need RAM search) ---
+        # P1_X_ADDR, P1_Y_ADDR, P1_FACING_ADDR, P1_ANIM_ADDR
+        # P2_X_ADDR, P2_Y_ADDR, P2_FACING_ADDR, P2_ANIM_ADDR
 
         def self.player_addresses(player_index)
           case player_index
           when 1
-            {
-              health:     P1_HEALTH_ADDR,
-              max_health: P1_MAX_HEALTH,
-              x:          P1_X_ADDR,
-              y:          P1_Y_ADDR,
-              facing:     P1_FACING_ADDR,
-              anim:       P1_ANIM_ADDR,
-              anim_frame: P1_ANIM_FRAME,
-              state:      P1_STATE_ADDR
-            }
+            { health: P1_HEALTH_ADDR, rounds_won: P1_ROUNDS_WON }
           when 2
-            {
-              health:     P2_HEALTH_ADDR,
-              max_health: P2_MAX_HEALTH,
-              x:          P2_X_ADDR,
-              y:          P2_Y_ADDR,
-              facing:     P2_FACING_ADDR,
-              anim:       P2_ANIM_ADDR,
-              anim_frame: P2_ANIM_FRAME,
-              state:      P2_STATE_ADDR
-            }
+            { health: P2_HEALTH_ADDR, rounds_won: P2_ROUNDS_WON }
           else
             raise ArgumentError, "player_index must be 1 or 2"
           end

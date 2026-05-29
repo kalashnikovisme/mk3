@@ -5,15 +5,17 @@ module FightingAI
   module Emulator
     module RetroArch
       module ConfigBuilder
-        SCREENSHOT_DIR = "/tmp/fighting_ai/screenshots"
+        SCREENSHOT_DIR  = "/tmp/fighting_ai/screenshots"
+        STATES_DIR      = "/tmp/fighting_ai/states"
 
         CONFIG_TEMPLATE = <<~CFG
           network_cmd_enable = "true"
           network_cmd_port = "55355"
           video_fullscreen = "false"
-          savestate_auto_load = "false"
+          savestate_auto_load = "true"
           savestate_auto_save = "false"
           screenshot_directory = "#{SCREENSHOT_DIR}"
+          savestate_directory = "#{STATES_DIR}"
           input_player1_a = "z"
           input_player1_b = "x"
           input_player1_x = "a"
@@ -42,9 +44,14 @@ module FightingAI
 
         def self.build
           FileUtils.mkdir_p(SCREENSHOT_DIR)
+          FileUtils.mkdir_p(STATES_DIR)
           path = File.join(Dir.tmpdir, "fighting_ai_retroarch_#{SecureRandom.hex(4)}.cfg")
           File.write(path, CONFIG_TEMPLATE)
           path
+        end
+
+        def self.states_dir
+          STATES_DIR
         end
       end
     end

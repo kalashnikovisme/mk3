@@ -1,0 +1,69 @@
+#!/usr/bin/env ruby
+# Interactive RAM search: takes two WRAM snapshots and reports changed addresses.
+# Usage:
+#   ROM_PATH=... CORE_PATH=... bundle exec ruby bin/ram_search
+#
+# Workflow:
+#   1. Script boots RetroArch and takes snapshot A.
+#   2. You do something in the game (change screen, take a hit, etc.).
+#   3. Press Enter — script takes snapshot B and shows what changed.
+#   Repeat steps 2-3 to narrow down candidates.
+
+$LOAD_PATH.unshift File.expand_path("../lib", __dir__)
+require "fighting_ai/cli/bootstrap"
+
+ROM_PATH  = ENV.fetch("ROM_PATH",  File.expand_path("../mk3.sfc", __dir__))
+CORE_PATH = ENV.fetch("CORE_PATH", "/usr/lib/x86_64-linux-gnu/libretro/snes9x_libretro.so")
+
+# How much WRAM to scan (first 8 KB covers all typical game-state variables).
+SCAN_FROM = 0x0000
+SCAN_TO   = 0x1FFF
+
+emulator = FightingAI::CLI.start_retro_arch(rom_path: ROM_PATH, core_path: CORE_PATH)
+
+candidates = nil  # nil = all addresses are candidates
+
+loop do
+  print "\nPress Enter to snapshot (or q+Enter to quit): "
+  input = $stdin.gets.chomp
+  break if input == "q"
+
+  bytes = emulator.wram_dump(from: SCAN_FROM, to: SCAN_TO)
+
+  if candidates.nil?
+    # First snapshot — record baseline and treat every address as a candidate.
+    candidates = (SCAN_FROM..SCAN_TO).each_with_object({}) do |addr, h|
+      h[addr] = bytes[addr - SCAN_FROM]
+    end
+    puts "Snapshot A taken. #{candidates.size} addresses tracked."
+    puts "Now do something in the game, then press Enter to snapshot B."
+    next
+  end
+
+  # Subsequent snapshot — find what changed.
+  changed = {}
+  candidates.each do |addr, old_val|
+    new_val = bytes[addr - SCAN_FROM]
+    changed[addr] = { old: old_val, new: new_val } if new_val != old_val
+  end
+
+  if changed.empty?
+    puts "Nothing changed among #{candidates.size} tracked addresses."
+  else
+    puts "\n#{changed.size} address(es) changed:\n"
+    puts "  addr    old  new  (decimal)"
+    changed.each do |addr, v|
+      puts "  0x%04X  %3d  %3d" % [addr, v[:old], v[:new]]
+    end
+
+    print "\nKeep only changed addresses as candidates? [Y/n]: "
+    answer = $stdin.gets.chomp
+    unless answer.downcase == "n"
+      candidates = changed.transform_values { |v| v[:new] }
+      puts "Narrowed to #{candidates.size} candidate(s)."
+    end
+  end
+end
+
+emulator.stop
+puts "Stopped."

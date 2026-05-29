@@ -34,12 +34,28 @@ bundle exec rspec
 
 See `docs/adding_new_fighting_game.md`.
 
+## Understanding the Codebase
+
+Before reading source files, check the `docs/` directory first:
+
+- `docs/architecture.md` — layer diagram, data flow, module boundaries
+- `docs/retroarch_integration.md` — display setup, xdotool, WRAM reading, UDP commands, keyboard config
+- `docs/input_system.md` — how keyboard input maps to game actions
+- `docs/observation_system.md` — observation/state extraction pipeline
+- `docs/game_adapter_contract.md` — contract that game adapters must satisfy
+- `docs/adding_new_fighting_game.md` — step-by-step guide for new games
+- `docs/training_dsl.md` — training loop and recorder
+
+If docs don't answer the question, read the source and **update the relevant doc** after making a significant change (new feature, refactor, changed protocol).
+
+**Do not read `mk3.md` or `mk3.sfc`** — both are binary ROM files. `mk3.sfc` is the SNES ROM used at runtime; `mk3.md` is a leftover Genesis ROM (wrong format, not used).
+
 ## Communication Protocol
 
 RetroArch ↔ Ruby uses two channels:
 
 1. **Input**: xdotool keydown/keyup injected to the RetroArch window (via `Input::KeyboardInput`).
-2. **State**: `/proc/[pid]/mem` WRAM reads via `Emulator::RetroArch::WramReader`.
+2. **State**: Save-state file reads via `Emulator::RetroArch::SaveStateReader` (WRAM extracted from snes9x `.state` files).
 3. **Control**: UDP network commands on port 55355 via `Emulator::RetroArch::NetworkCommands`.
 
 See `docs/retroarch_integration.md`.

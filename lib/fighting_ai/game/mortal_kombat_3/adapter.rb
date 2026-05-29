@@ -52,8 +52,20 @@ module FightingAI
           @reward_function.call(prev_game_state, next_game_state, player_index: player_index)
         end
 
+        def read_memory_debug
+          mm = MemoryMap
+          {
+            screen:     emulator_adapter.read_memory(mm::SCREEN_ADDR),
+            timer:      emulator_adapter.read_memory(mm::LEVEL_TIMER_ADDR),
+            p1_health:  emulator_adapter.read_memory(mm::P1_HEALTH_ADDR),
+            p2_health:  emulator_adapter.read_memory(mm::P2_HEALTH_ADDR),
+            p1_rounds:  emulator_adapter.read_memory(mm::P1_ROUNDS_WON),
+            p2_rounds:  emulator_adapter.read_memory(mm::P2_ROUNDS_WON)
+          }
+        end
+
         def start_game
-          @navigator.wait(60)
+          # No-op: bin/learn loads match states directly via emulator.install_match_state
         end
 
         def open_player_vs_player_mode

@@ -23,6 +23,19 @@ module FightingAI
           frames.times { @emulator.send_noop }
         end
 
+        def press_start_until(emulator_adapter, target_screen:, timeout_seconds: 30)
+          deadline = Time.now + timeout_seconds
+          loop do
+            snapshot = emulator_adapter.next_frame_snapshot
+            screen   = snapshot["screen"].to_i
+            $stderr.puts "[nav] press_start_until: screen=0x%02X (target=0x%02X)" % [screen, target_screen]
+            return if screen == target_screen
+            raise "Did not reach screen=0x%02X within #{timeout_seconds}s" % target_screen if Time.now > deadline
+            press(1, :start)
+            wait(30)
+          end
+        end
+
         def navigate_to_versus_mode
           wait(30)
           press(1, :down)

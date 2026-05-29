@@ -18,7 +18,8 @@ module FightingAI
           low_kick:   "B",
           high_kick:  "A",
           block:      "L",
-          run:        "R"
+          run:        "R",
+          start:      "Start"
         }.freeze
 
         # Convert an array of logical button symbols to a { logical_symbol => bool } hash.

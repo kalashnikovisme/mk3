@@ -6,7 +6,7 @@ require "fighting_ai/cli/bootstrap"
 require_relative "../config/mk3"
 
 ROM_PATH  = ENV.fetch("ROM_PATH",  File.expand_path("../mk3.sfc", __dir__))
-CORE_PATH = ENV.fetch("CORE_PATH", File.expand_path("~/.config/retroarch/cores/snes9x_libretro.so"))
+CORE_PATH = ENV.fetch("CORE_PATH", '/usr/lib/x86_64-linux-gnu/libretro/snes9x_libretro.so')
 
 puts FightingAI::CLI::BANNER
 puts "Mode: AI vs AI (spectator)\n\n"

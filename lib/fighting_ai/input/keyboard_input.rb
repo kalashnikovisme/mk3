@@ -35,11 +35,14 @@ module FightingAI
       }.freeze
 
       def initialize
-        @window_id  = nil
-        @key_state  = { 1 => {}, 2 => {} }
+        @pid       = nil
+        @window_id = nil
+        @key_state = { 1 => {}, 2 => {} }
       end
 
-      def start
+      # Call after the RetroArch process has started and its window is visible.
+      def start(pid: nil)
+        @pid       = pid
         @window_id = find_window
       end
 
@@ -49,6 +52,7 @@ module FightingAI
       end
 
       def send_input(player_index, buttons)
+        @window_id ||= find_window
         return unless @window_id
 
         key_map = PLAYER_KEYS.fetch(player_index)
@@ -61,16 +65,19 @@ module FightingAI
           was_pressed = current[logical]
 
           if pressed && !was_pressed
-            system("xdotool keydown --window #{@window_id} #{key}")
+            $stderr.puts "[keys] P#{player_index} DOWN  #{logical}=#{key}  (window #{@window_id})"
+            system("xdotool keydown --window #{@window_id} #{key} 2>/dev/null")
             current[logical] = true
           elsif !pressed && was_pressed
-            system("xdotool keyup --window #{@window_id} #{key}")
+            $stderr.puts "[keys] P#{player_index} UP    #{logical}=#{key}  (window #{@window_id})"
+            system("xdotool keyup --window #{@window_id} #{key} 2>/dev/null")
             current[logical] = false
           end
         end
       end
 
       def release_all(player_index)
+        @window_id ||= find_window
         return unless @window_id
 
         key_map = PLAYER_KEYS.fetch(player_index)
@@ -80,7 +87,7 @@ module FightingAI
           next unless pressed
           key = key_map[logical]
           next unless key
-          system("xdotool keyup --window #{@window_id} #{key}")
+          system("xdotool keyup --window #{@window_id} #{key} 2>/dev/null")
         end
 
         @key_state[player_index] = {}
@@ -89,9 +96,24 @@ module FightingAI
       private
 
       def find_window
-        output = `xdotool search --name "RetroArch" 2>/dev/null`.strip
-        return nil if output.empty?
-        output.lines.last.strip
+        if @pid
+          ids = `xdotool search --pid #{@pid} --onlyvisible 2>/dev/null`.strip.split
+          unless ids.empty?
+            wid = ids.first
+            name = `xdotool getwindowname #{wid} 2>/dev/null`.strip
+            $stderr.puts "[keys] window found by PID #{@pid}: id=#{wid} title=#{name.inspect}"
+            return wid
+          end
+        end
+        ids = `xdotool search --onlyvisible --name "RetroArch" 2>/dev/null`.strip.split
+        if ids.empty?
+          $stderr.puts "[keys] no RetroArch window found"
+          return nil
+        end
+        wid = ids.first
+        name = `xdotool getwindowname #{wid} 2>/dev/null`.strip
+        $stderr.puts "[keys] window found by name: id=#{wid} title=#{name.inspect}"
+        wid
       end
     end
   end

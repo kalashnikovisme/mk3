@@ -9,20 +9,27 @@ module FightingAI
       └─────────────────────────────────────────┘
     TEXT
 
-    def self.start_retro_arch(rom_path:, core_path:, display: ":1")
-      config_path   = Emulator::RetroArch::ConfigBuilder.build
-      keyboard      = Input::KeyboardInput.new
-      frame_grabber = Emulator::RetroArch::FrameGrabber.new
-      wram_reader   = Emulator::RetroArch::WramReader.new
+    def self.start_retro_arch(rom_path:, core_path:, display: ":1", extra_watch_dirs: [])
+      config_path       = Emulator::RetroArch::ConfigBuilder.build
+      keyboard          = Input::KeyboardInput.new
+      frame_grabber     = Emulator::RetroArch::FrameGrabber.new
+      save_state_reader = Emulator::RetroArch::SaveStateReader.new(
+        watch_dirs:   ([
+          Emulator::RetroArch::ConfigBuilder.states_dir,
+          File.dirname(File.expand_path(rom_path)),
+          File.expand_path("~/.config/retroarch/states")
+        ] + extra_watch_dirs).uniq,
+        rom_basename: File.basename(rom_path, ".*")
+      )
 
       adapter = Emulator::RetroArch::Adapter.new(
-        rom_path:      rom_path,
-        core_path:     core_path,
-        config_path:   config_path,
-        keyboard:      keyboard,
-        frame_grabber: frame_grabber,
-        wram_reader:   wram_reader,
-        display:       display
+        rom_path:          rom_path,
+        core_path:         core_path,
+        config_path:       config_path,
+        keyboard:          keyboard,
+        frame_grabber:     frame_grabber,
+        save_state_reader: save_state_reader,
+        display:           display
       )
 
       puts "Starting RetroArch..."

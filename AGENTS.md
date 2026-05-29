@@ -1,5 +1,18 @@
 # AGENTS.md
 
+## Understanding the Codebase
+
+Read `docs/` before diving into source files:
+
+- `docs/architecture.md` — full layer diagram and data flow
+- `docs/game_adapter_contract.md` — what a game adapter must implement
+- `docs/observation_system.md` — how observations are built from game state
+- `docs/input_system.md` — how actions become key presses
+
+If docs don't answer the question, read the source and update the relevant doc after any significant change.
+
+**Do not read `mk3.md` or `mk3.sfc`** — both are binary ROM files.
+
 ## Agent Contract
 
 All agents inherit from `FightingAI::Agent::Base`.
