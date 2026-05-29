@@ -12,6 +12,7 @@ module FightingAI
           network_cmd_enable = "true"
           network_cmd_port = "55355"
           video_fullscreen = "false"
+          audio_sync = "true"
           savestate_auto_load = "false"
           savestate_auto_save = "false"
           savestate_directory = "#{STATES_DIR}"

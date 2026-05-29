@@ -51,6 +51,9 @@ emulator.install_match_state(first_state)
 
 # ── Build DSL context ─────────────────────────────────────────────────────────
 
+FightingAI::Scenario.emulator = emulator
+FightingAI::Scenario.set_speed(:normal)   # ensure clean state before scenario runs
+
 P1 = FightingAI::Scenario::PlayerProxy.new(1, emulator)
 P2 = FightingAI::Scenario::PlayerProxy.new(2, emulator)
 

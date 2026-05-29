@@ -33,6 +33,18 @@ module FightingAI
           send_command("LOAD_STATE", host: host, port: port)
         end
 
+        def self.fast_forward(host: DEFAULT_HOST, port: DEFAULT_PORT)
+          send_command("FAST_FORWARD", host: host, port: port)
+        end
+
+        def self.slowmotion(host: DEFAULT_HOST, port: DEFAULT_PORT)
+          send_command("SLOWMOTION", host: host, port: port)
+        end
+
+        def self.frame_advance(host: DEFAULT_HOST, port: DEFAULT_PORT)
+          send_command("FRAME_ADVANCE", host: host, port: port)
+        end
+
         def self.screenshot(host: DEFAULT_HOST, port: DEFAULT_PORT)
           send_command("SCREENSHOT", host: host, port: port)
         end
