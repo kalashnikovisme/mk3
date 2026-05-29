@@ -55,6 +55,7 @@ module FightingAI
 
       def run_round(match, round)
         prev_game_state = nil
+        fight_seen = false
 
         loop do
           snapshot   = @emulator.next_frame_snapshot
@@ -68,11 +69,13 @@ module FightingAI
           )
           round.record_frame(frame)
 
-          if @game.fight_active?(game_state)
+          fight_seen ||= game_state.fight_active?
+
+          if game_state.fight_active?
             step_agents(game_state, prev_game_state, match.id)
           end
 
-          if @game.fight_finished?(game_state) || game_state.round_over?
+          if fight_seen && (@game.fight_finished?(game_state) || game_state.round_over?)
             winner = determine_round_winner(game_state)
             round.finish!(winner: winner)
             log "Round #{round.number} finished. Winner: #{winner}"

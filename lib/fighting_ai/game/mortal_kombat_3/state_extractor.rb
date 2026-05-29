@@ -16,10 +16,11 @@ module FightingAI
           fighter1 = build_fighter(1, players.fetch("1"))
           fighter2 = build_fighter(2, players.fetch("2"))
 
-          screen       = snapshot.fetch("screen", MM::SCREEN_TITLE).to_i
-          in_fight     = MM::FIGHT_SCREENS.include?(screen)
-          round_over   = in_fight && (fighter1.health == 0 || fighter2.health == 0)
-          fight_active = in_fight && !round_over
+          screen               = snapshot.fetch("screen", MM::SCREEN_TITLE).to_i
+          in_fight             = MM::FIGHT_SCREENS.include?(screen)
+          round_time_remaining = snapshot.fetch("timer", 99).to_i
+          round_over           = in_fight && (fighter1.health == 0 || fighter2.health == 0 || round_time_remaining == 0)
+          fight_active         = in_fight && !round_over
 
           Core::GameState.new(
             frame_number:         snapshot.fetch("frame").to_i,
