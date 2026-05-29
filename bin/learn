@@ -38,12 +38,7 @@ states_dir = FightingAI::Emulator::RetroArch::ConfigBuilder::STATES_DIR
 rom_base   = File.basename(ROM_PATH, ".*")
 FileUtils.mkdir_p(states_dir)
 
-# RetroArch saves under a core subdirectory (e.g. Snes9x/).
-# Use the existing location if we've run before; otherwise fall back to the base dir.
-candidates = Dir.glob(File.join(states_dir, "**", "#{rom_base}.state"))
-slot0_path = candidates.max_by { |f| File.mtime(f) rescue Time.at(0) } ||
-             File.join(states_dir, "#{rom_base}.state")
-FileUtils.mkdir_p(File.dirname(slot0_path))
+slot0_path = File.join(states_dir, "#{rom_base}.state")
 FileUtils.cp(first_state[:path], slot0_path)
 puts "Staged #{File.basename(first_state[:path])} → #{slot0_path}\n\n"
 

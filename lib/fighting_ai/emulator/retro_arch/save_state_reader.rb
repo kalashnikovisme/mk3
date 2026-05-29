@@ -26,13 +26,11 @@ module FightingAI
           @wram_offset  = nil
         end
 
-        def current_state_snapshot
-          snapshot_state_files
-        end
+        def current_state_snapshot = snapshot_state_files
+        def read_next(before: nil) = read_current
 
-        def read_next(before: nil)
-          before ||= snapshot_state_files
-          data     = wait_for_update(before)
+        def read_current
+          data = latest_state_file_data
           locate_wram(data) unless @wram_offset
           Snapshot.new(decompress(data).bytes, @wram_offset)
         end
@@ -54,6 +52,13 @@ module FightingAI
         end
 
         private
+
+        def latest_state_file_data
+          files = @watch_dirs.flat_map { |dir| Dir.glob(File.join(dir, "**", "*.state*")) }
+          latest = files.max_by { |f| File.mtime(f) rescue Time.at(0) }
+          raise "No state files found (searched: #{@watch_dirs.join(', ')})" unless latest
+          File.binread(latest)
+        end
 
         def snapshot_state_files
           result = {}

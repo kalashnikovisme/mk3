@@ -1,0 +1,24 @@
+FROM ruby:4.0-bookworm AS ruby-source
+
+FROM ubuntu:24.04
+
+COPY --from=ruby-source /usr/local /usr/local
+
+ENV GEM_HOME=/usr/local/bundle
+ENV BUNDLE_APP_CONFIG=/usr/local/bundle
+ENV BUNDLE_SILENCE_ROOT_WARNING=1
+ENV PATH=/usr/local/bundle/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+WORKDIR /app
+
+RUN apt-get update -qq \
+  && apt-get install -y --no-install-recommends \
+     build-essential \
+     retroarch \
+     libretro-snes9x \
+     xdotool \
+     x11-utils \
+     libyaml-dev \
+  && rm -rf /var/lib/apt/lists/*
+
+CMD ["sleep", "infinity"]

@@ -1,0 +1,64 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bibendi/dip/refs/heads/master/schema.json
+version: '8.0'
+
+compose:
+  files:
+    - .dockerdev/compose.yml
+  project_name: fighting-ai
+
+interaction:
+  shell:
+    description: Open a shell in the app container
+    service: app
+    command: bash
+    compose:
+      run_options: [no-deps]
+
+  ruby:
+    description: Run ruby in the app container
+    service: app
+    command: ruby
+    compose:
+      run_options: [no-deps]
+
+  bundle:
+    description: Run bundler in the app container
+    service: app
+    command: bundle
+    compose:
+      run_options: [no-deps]
+
+  rspec:
+    description: Run RSpec tests
+    service: app
+    command: bundle exec rspec
+    compose:
+      run_options: [no-deps]
+
+  rubocop:
+    description: Run RuboCop linter
+    service: app
+    command: bundle exec rubocop
+    compose:
+      run_options: [no-deps]
+
+  learn:
+    description: Record AI vs AI gameplay for imitation learning
+    service: app
+    command: bundle exec ruby bin/learn
+
+  watch-match:
+    description: Watch a recorded match replay
+    service: app
+    command: bundle exec ruby bin/watch-match
+
+  play-vs-ai:
+    description: Play against the trained AI
+    service: app
+    command: bundle exec ruby bin/play-vs-ai
+
+provision:
+  - xhost +local:docker
+  - dip compose build
+  - dip compose run --rm --no-deps app bundle install
+  - dip compose run --rm --no-deps app mkdir -p data/recordings/mk3

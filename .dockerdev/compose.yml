@@ -1,0 +1,17 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: .dockerdev/Dockerfile.dev
+    working_dir: /app
+    volumes:
+      - ..:/app
+      - bundle:/usr/local/bundle
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    environment:
+      DISPLAY: "${DISPLAY:-:0}"
+      ROM_PATH: /app/mk3.sfc
+      CORE_PATH: /usr/lib/x86_64-linux-gnu/libretro/snes9x_libretro.so
+
+volumes:
+  bundle:

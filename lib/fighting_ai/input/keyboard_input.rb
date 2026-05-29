@@ -76,6 +76,12 @@ module FightingAI
         end
       end
 
+      def load_state
+        @window_id ||= find_window
+        return unless @window_id
+        system("xdotool key --window #{@window_id} F4 2>/dev/null")
+      end
+
       def release_all(player_index)
         @window_id ||= find_window
         return unless @window_id

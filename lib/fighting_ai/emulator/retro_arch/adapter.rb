@@ -117,16 +117,12 @@ module FightingAI
           dest = slot0_state_path
           FileUtils.mkdir_p(File.dirname(dest))
           FileUtils.cp(src_path, dest)
-          NetworkCommands.load_state(slot: 0)
-          sleep(0.5)
+          @keyboard.load_state
+          sleep(1.0)
         end
 
         def slot0_state_path
-          # RetroArch organises saves under a core-named subdirectory (e.g. Snes9x/).
-          # Find the most recently modified mk3.state anywhere under STATES_DIR.
-          candidates = Dir.glob(File.join(ConfigBuilder::STATES_DIR, "**", "#{@rom_basename}.state"))
-          candidates.max_by { |f| File.mtime(f) rescue Time.at(0) } ||
-            File.join(ConfigBuilder::STATES_DIR, "#{@rom_basename}.state")
+          File.join(ConfigBuilder::STATES_DIR, "#{@rom_basename}.state")
         end
 
         def reset
@@ -152,9 +148,9 @@ module FightingAI
         private
 
         def capture_state_snapshot
-          before = @save_state_reader.current_state_snapshot
           NetworkCommands.save_state
-          @save_state_reader.read_next(before: before)
+          sleep(FRAME_DURATION)
+          @save_state_reader.read_current
         end
 
         def build_mk3_snapshot(frame_num, wram)
