@@ -46,6 +46,8 @@ interaction:
     description: Record AI vs AI gameplay for imitation learning
     service: app
     command: bundle exec ruby bin/learn
+    environment:
+      MATCH: sub-zero-vs-sub-zero
 
   scenario:
     description: Run a scenario script against a live match state
