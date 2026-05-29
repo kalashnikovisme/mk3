@@ -10,13 +10,16 @@ Ruby framework for training AI agents to play fighting games through real emulat
 - Do not use gym-retro as the primary runtime.
 - Core (`lib/fighting_ai/core/`) must have zero knowledge of any specific game, emulator, memory address, or Lua script.
 - Emulator adapters (`lib/fighting_ai/emulator/`) must have zero knowledge of any specific game.
+- Input devices (`lib/fighting_ai/input/`) must have zero knowledge of any specific game or emulator internals.
+- Observation types (`lib/fighting_ai/observation/`) live outside Core and outside the emulator layer.
 - Game adapters (`lib/fighting_ai/game/`) contain all game-specific knowledge.
 - Agents (`lib/fighting_ai/agent/`) operate only on `Core::Observation` and `Core::Action`.
 
 ## Architecture Layers
 
 ```
-Core → Emulator Adapter → Game Adapter → Agent → Runtime → Training
+Core → Input Device → Emulator Adapter → Game Adapter → Agent → Runtime → Training
+                    ↘ Observation Layer ↗
 ```
 
 See `docs/architecture.md` for the full diagram and data flow.
@@ -33,9 +36,13 @@ See `docs/adding_new_fighting_game.md`.
 
 ## Communication Protocol
 
-BizHawk ↔ Ruby uses newline-delimited JSON over TCP (port 7878 by default).
+RetroArch ↔ Ruby uses two channels:
 
-See `docs/emulator_bridge.md`.
+1. **Input**: xdotool keydown/keyup injected to the RetroArch window (via `Input::KeyboardInput`).
+2. **State**: `/proc/[pid]/mem` WRAM reads via `Emulator::RetroArch::WramReader`.
+3. **Control**: UDP network commands on port 55355 via `Emulator::RetroArch::NetworkCommands`.
+
+See `docs/retroarch_integration.md`.
 
 ## Domain Vocabulary
 

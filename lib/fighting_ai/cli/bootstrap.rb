@@ -5,36 +5,32 @@ module FightingAI
     BANNER = <<~TEXT
       ┌─────────────────────────────────────────┐
       │         FightingAI Framework            │
-      │   Mortal Kombat 3  ·  BizHawk Bridge   │
+      │   Mortal Kombat 3  ·  RetroArch         │
       └─────────────────────────────────────────┘
     TEXT
 
-    def self.connect(host: "127.0.0.1", port: 7878, timeout: 90)
-      emulator = FightingAI.build_bizhawk_adapter(host: host, port: port)
+    def self.start_retro_arch(rom_path:, core_path:, display: ":1")
+      config_path   = Emulator::RetroArch::ConfigBuilder.build
+      keyboard      = Input::KeyboardInput.new
+      frame_grabber = Emulator::RetroArch::FrameGrabber.new
+      wram_reader   = Emulator::RetroArch::WramReader.new
 
-      puts "Waiting for BizHawk on #{host}:#{port}  (timeout #{timeout}s)"
-      puts "→ Open BizHawk, load the MK3 ROM, then run: Tools → Lua Console → lua/bizhawk_bridge.lua"
-      print "  Listening"
+      adapter = Emulator::RetroArch::Adapter.new(
+        rom_path:      rom_path,
+        core_path:     core_path,
+        config_path:   config_path,
+        keyboard:      keyboard,
+        frame_grabber: frame_grabber,
+        wram_reader:   wram_reader,
+        display:       display
+      )
 
-      thread = Thread.new do
-        loop do
-          sleep 1
-          print "."
-          $stdout.flush
-        end
-      end
-
-      begin
-        emulator.connect(timeout: timeout)
-      rescue => e
-        thread.kill
-        puts "\n\nConnection failed: #{e.message}"
-        exit 1
-      end
-
-      thread.kill
-      puts " connected.\n\n"
-      emulator
+      puts "Starting RetroArch..."
+      adapter.start
+      puts "RetroArch started (PID #{adapter.pid}). Scanning for game memory..."
+      adapter.wait_for_wram(timeout: 30)
+      puts "Game memory found. Ready.\n\n"
+      adapter
     end
 
     def self.logger(prefix)

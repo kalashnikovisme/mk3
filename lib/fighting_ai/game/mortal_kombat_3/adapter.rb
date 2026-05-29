@@ -13,18 +13,14 @@ module FightingAI
     module MortalKombat3
       class Adapter < FightingAI::Game::Adapter
         GAME_ID             = :mortal_kombat_3
-        VERSUS_SAVE_STATE   = 1  # BizHawk save state slot with versus mode ready
-        FIGHT_START_TIMEOUT = 600 # frames
+        VERSUS_SAVE_STATE   = 1
+        FIGHT_START_TIMEOUT = 600
 
         def initialize(emulator_adapter:, game_definition:, reward_weights: {})
           super(emulator_adapter: emulator_adapter, game_definition: game_definition)
           @reward_function = RewardFunction.new(weights: reward_weights)
           @navigator       = MenuNavigator.new(emulator_adapter)
         end
-
-        # -----------------------------------------------------------------------
-        # State extraction
-        # -----------------------------------------------------------------------
 
         def extract_game_state(raw_snapshot)
           StateExtractor.extract(raw_snapshot)
@@ -34,15 +30,9 @@ module FightingAI
           ObservationSpace.build(game_state, player_index: player_index)
         end
 
-        # -----------------------------------------------------------------------
-        # Action translation
-        # -----------------------------------------------------------------------
-
         def action_to_input_sequence(action, player_index:, game_state:)
           seq = ActionSpace.to_input_sequence(action.name, player_index: player_index)
 
-          # Flip left/right when player is facing left so "walk_forward" always
-          # means "toward the opponent" regardless of screen side.
           if action.name.to_s.start_with?("walk_") || action.name == :jump_forward
             fighter = game_state.fighter_for(player_index)
             seq = flip_direction(seq) if fighter.facing.left?
@@ -54,25 +44,15 @@ module FightingAI
         def input_sequence_to_buttons(input_sequence, player_index:, frame_offset: 0)
           frame_buttons = input_sequence.to_button_frames
           logical = frame_buttons[frame_offset] || []
-          return InputMap.all_released(player_index: player_index) if logical.empty?
-          InputMap.to_bizhawk(logical, player_index: player_index)
+          return InputMap.all_released if logical.empty?
+          InputMap.to_logical(logical, player_index: player_index)
         end
-
-        # -----------------------------------------------------------------------
-        # Reward
-        # -----------------------------------------------------------------------
 
         def calculate_reward(prev_game_state, next_game_state, player_index:)
           @reward_function.call(prev_game_state, next_game_state, player_index: player_index)
         end
 
-        # -----------------------------------------------------------------------
-        # Match lifecycle
-        # -----------------------------------------------------------------------
-
         def start_game
-          # Game is assumed to already be running in BizHawk.
-          # Load the main menu save state if provided.
           @navigator.wait(60)
         end
 
@@ -118,16 +98,11 @@ module FightingAI
             emulator_adapter.load_save_state(VERSUS_SAVE_STATE)
             @navigator.wait(30)
           when :restart_game
-            # Requires the emulator adapter to support process restart — not implemented here.
             raise NotImplementedError, "Game restart strategy not yet implemented"
           else
             raise ArgumentError, "Unknown reset strategy: #{strategy}"
           end
         end
-
-        # -----------------------------------------------------------------------
-        # Character registry
-        # -----------------------------------------------------------------------
 
         def characters
           Characters.all

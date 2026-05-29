@@ -17,10 +17,25 @@ require_relative "fighting_ai/dsl/game_definition"
 require_relative "fighting_ai/dsl/training_definition"
 require_relative "fighting_ai/dsl/match_setup"
 
+# Input devices
+require_relative "fighting_ai/input/device"
+require_relative "fighting_ai/input/keyboard_input"
+require_relative "fighting_ai/input/uinput_device"
+require_relative "fighting_ai/input/virtual_input"
+
+# Observation types
+require_relative "fighting_ai/observation/provider"
+require_relative "fighting_ai/observation/frame_observation"
+require_relative "fighting_ai/observation/memory_observation"
+
 # Emulator adapters
 require_relative "fighting_ai/emulator/adapter"
-require_relative "fighting_ai/emulator/bizhawk/bridge_server"
-require_relative "fighting_ai/emulator/bizhawk/adapter"
+require_relative "fighting_ai/emulator/retro_arch/config_builder"
+require_relative "fighting_ai/emulator/retro_arch/network_commands"
+require_relative "fighting_ai/emulator/retro_arch/process"
+require_relative "fighting_ai/emulator/retro_arch/frame_grabber"
+require_relative "fighting_ai/emulator/retro_arch/wram_reader"
+require_relative "fighting_ai/emulator/retro_arch/adapter"
 
 # Game adapters
 require_relative "fighting_ai/game/adapter"
@@ -57,7 +72,6 @@ module FightingAI
       @training_definitions ||= {}
     end
 
-    # DSL entry point: FightingAI.configure_game :mortal_kombat_3 do ... end
     def configure_game(game_id, &block)
       definition = DSL::GameDefinition.new(game_id)
       definition.instance_eval(&block)
@@ -65,7 +79,6 @@ module FightingAI
       definition
     end
 
-    # DSL entry point: FightingAI.training :mk3_imitation do ... end
     def training(training_id, &block)
       definition = DSL::TrainingDefinition.new(training_id)
       definition.instance_eval(&block)
@@ -79,8 +92,21 @@ module FightingAI
       end
     end
 
-    def build_bizhawk_adapter(host: "127.0.0.1", port: 7878)
-      Emulator::BizHawk::Adapter.new(host: host, port: port)
+    def build_retro_arch_adapter(rom_path:, core_path:, display: ":1")
+      config_path   = Emulator::RetroArch::ConfigBuilder.build
+      keyboard      = Input::KeyboardInput.new
+      frame_grabber = Emulator::RetroArch::FrameGrabber.new
+      wram_reader   = Emulator::RetroArch::WramReader.new
+
+      Emulator::RetroArch::Adapter.new(
+        rom_path:      rom_path,
+        core_path:     core_path,
+        config_path:   config_path,
+        keyboard:      keyboard,
+        frame_grabber: frame_grabber,
+        wram_reader:   wram_reader,
+        display:       display
+      )
     end
 
     def build_mk3_adapter(emulator_adapter:, reward_weights: {})

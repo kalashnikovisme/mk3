@@ -1,21 +1,20 @@
-.PHONY: install learn show play
+.PHONY: install learn watch-match play-vs-ai
+
+CORE_PATH := $(HOME)/.config/retroarch/cores/snes9x_libretro.so
+ROM_PATH  := $(CURDIR)/mk3.sfc
 
 install:
-	@echo "Installing Ruby dependencies..."
 	bundle install
-	@mkdir -p data/recordings/mk3
-	@echo ""
-	@echo "Done. BizHawk setup (required before running any command):"
-	@echo "  1. Install BizHawk (https://tasvideos.org/BizHawk/ReleaseHistory)"
-	@echo "  2. Load your Mortal Kombat 3 (SNES) ROM."
-	@echo "  3. Save a state in slot 1 at the VS mode character select screen."
-	@echo "  4. When prompted by a make command: Tools → Lua Console → Open → lua/bizhawk_bridge.lua"
+	mkdir -p data/recordings/mk3
+	sudo apt-get install -y retroarch xdotool
+	retroarch --core-updater-download snes9x || true
+	mkdir -p $(HOME)/.config/retroarch/cores
 
 learn:
 	bundle exec ruby bin/learn
 
-show:
-	bundle exec ruby bin/show
+watch-match:
+	bundle exec ruby bin/watch-match
 
-play:
-	bundle exec ruby bin/play
+play-vs-ai:
+	bundle exec ruby bin/play-vs-ai

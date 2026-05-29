@@ -1,0 +1,62 @@
+#!/usr/bin/env ruby
+# Human (P1) vs AI (P2).
+# P1 uses the physical keyboard through RetroArch — no injection.
+# The AI controls P2 via xdotool key injection.
+
+$LOAD_PATH.unshift File.expand_path("../lib", __dir__)
+require "fighting_ai/cli/bootstrap"
+require_relative "../config/mk3"
+
+ROM_PATH  = ENV.fetch("ROM_PATH",  File.expand_path("../mk3.sfc", __dir__))
+CORE_PATH = ENV.fetch("CORE_PATH", File.expand_path("~/.config/retroarch/cores/snes9x_libretro.so"))
+
+P1_CHARACTER = (ARGV[0] || "random").to_sym
+P2_CHARACTER = (ARGV[1] || "random").to_sym
+
+puts FightingAI::CLI::BANNER
+puts "Mode: Human (P1) vs AI (P2)\n\n"
+puts "Your character : #{P1_CHARACTER}"
+puts "AI character   : #{P2_CHARACTER}\n\n"
+puts "Your keyboard drives Player 1 through RetroArch directly."
+puts "AI controls Player 2 via key injection.\n\n"
+
+FightingAI::CLI.trap_sigint
+
+emulator = FightingAI::CLI.start_retro_arch(rom_path: ROM_PATH, core_path: CORE_PATH)
+game     = FightingAI.build_mk3_adapter(emulator_adapter: emulator)
+ai_agent = FightingAI::Agent::RuleBased.new(player_index: 2)
+
+p1_char = P1_CHARACTER == :random ? game.characters.keys.sample : P1_CHARACTER
+p2_char = P2_CHARACTER == :random ? game.characters.keys.sample : P2_CHARACTER
+
+puts "── Match: #{p1_char} (you) vs #{p2_char} (AI) ──\n\n"
+
+timestamp = Time.now.strftime("%Y%m%d_%H%M%S")
+rec_path  = File.expand_path("../data/recordings/mk3/human_#{timestamp}.jsonl", __dir__)
+recorder  = FightingAI::Training::Recorder.new(path: rec_path)
+puts "Recording your session → #{File.basename(rec_path)}\n\n"
+
+runtime = FightingAI::Runtime::HumanVsAI.new(
+  emulator_adapter: emulator,
+  game_adapter:     game,
+  ai_agent:         ai_agent,
+  human_player:     1,
+  recorder:         recorder,
+  logger:           FightingAI::CLI.logger("play")
+)
+
+match  = runtime.run(player1_character: p1_char, player2_character: p2_char)
+result = game.collect_match_result(match)
+
+puts "\n── Result ──"
+FightingAI::CLI.print_result(match, result)
+
+if result[:winner] == 1
+  puts "\n  You win!"
+elsif result[:winner] == 2
+  puts "\n  AI wins."
+else
+  puts "\n  Draw."
+end
+
+puts "\nSession saved to #{rec_path}"

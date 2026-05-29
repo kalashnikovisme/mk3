@@ -1,5 +1,5 @@
 FightingAI.configure_game :mortal_kombat_3 do
-  emulator :bizhawk
+  emulator :retro_arch
 
   inputs do
     button :up

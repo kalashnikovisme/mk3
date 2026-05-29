@@ -20,7 +20,8 @@ def build_observation(game_state, player_index:)
 # Translate a Core::Action into a Core::InputSequence.
 def action_to_input_sequence(action, player_index:, game_state:)
 
-# Translate an InputSequence into a raw buttons Hash for the emulator adapter.
+# Translate an InputSequence into a logical button Hash for the emulator adapter.
+# Returns { up: bool, down: bool, low_punch: bool, ... }
 def input_sequence_to_buttons(input_sequence, player_index:, frame_offset: 0)
 ```
 
@@ -58,7 +59,7 @@ def character_pools
 
 - Game ID constant: `GAME_ID = :your_game_id`
 - Use a `MemoryMap` module for all memory addresses.
-- Use an `InputMap` module for button translation.
+- Use an `InputMap` module for button translation. `to_logical(buttons_array)` returns `{ symbol => bool }`.
 - Use an `ActionSpace` module for action → InputSequence mapping.
 - Use an `ObservationSpace` module for GameState → Observation normalization.
 - Use a `RewardFunction` class for configurable reward calculation.
