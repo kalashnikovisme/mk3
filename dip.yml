@@ -47,6 +47,11 @@ interaction:
     service: app
     command: bundle exec ruby bin/learn
 
+  scenario:
+    description: Run a scenario script against a live match state
+    service: app
+    command: bundle exec ruby bin/scenario
+
   watch-match:
     description: Watch a recorded match replay
     service: app

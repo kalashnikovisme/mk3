@@ -1,0 +1,71 @@
+#!/usr/bin/env ruby
+# Execute a hand-written scenario against a live RetroArch match state.
+# Usage:
+#   bundle exec ruby bin/scenario [scenario_file]
+# Defaults to scenario.rb in the project root.
+#
+# Inside the scenario file, P1 and P2 are PlayerProxy objects:
+#   P1.right(10)        # hold right for 10 frames
+#   P1.low_punch        # press low punch for 1 frame
+#   P2.block(5)         # P2 holds block for 5 frames
+#   wait(30)            # pause both players for 30 frames (~0.5 s)
+
+$LOAD_PATH.unshift File.expand_path("../lib", __dir__)
+require "fighting_ai/cli/bootstrap"
+require "fighting_ai/scenario/speed"
+require "fighting_ai/scenario/player_proxy"
+require_relative "../config/mk3"
+
+ROM_PATH    = ENV.fetch("ROM_PATH",  File.expand_path("../mk3.sfc", __dir__))
+CORE_PATH   = ENV.fetch("CORE_PATH", "/usr/lib/x86_64-linux-gnu/libretro/snes9x_libretro.so")
+MATCHES_DIR = File.expand_path("../data/matches", __dir__)
+
+SCENARIO_FILE = ARGV[0] || File.expand_path("../scenario.rb", __dir__)
+raise "Scenario file not found: #{SCENARIO_FILE}" unless File.exist?(SCENARIO_FILE)
+
+# ── Load match state ──────────────────────────────────────────────────────────
+
+match_states = Dir.glob(File.join(MATCHES_DIR, "*.state")).sort
+raise "No .state files found in #{MATCHES_DIR}" if match_states.empty?
+
+first_state = match_states.first
+states_dir  = FightingAI::Emulator::RetroArch::ConfigBuilder::STATES_DIR
+rom_base    = File.basename(ROM_PATH, ".*")
+FileUtils.mkdir_p(states_dir)
+FileUtils.cp(first_state, File.join(states_dir, "#{rom_base}.state"))
+
+puts FightingAI::CLI::BANNER
+puts "Mode: Scenario\n\n"
+puts "State  → #{File.basename(first_state)}"
+puts "Script → #{SCENARIO_FILE}\n\n"
+
+FightingAI::CLI.trap_sigint
+
+emulator = FightingAI::CLI.start_retro_arch(
+  rom_path:         ROM_PATH,
+  core_path:        CORE_PATH,
+  extra_watch_dirs: [MATCHES_DIR]
+)
+
+emulator.install_match_state(first_state)
+
+# ── Build DSL context ─────────────────────────────────────────────────────────
+
+P1 = FightingAI::Scenario::PlayerProxy.new(1, emulator)
+P2 = FightingAI::Scenario::PlayerProxy.new(2, emulator)
+
+def speed(preset_or_multiplier)
+  FightingAI::Scenario.set_speed(preset_or_multiplier)
+end
+
+def wait(frames)
+  sleep(frames * FightingAI::Scenario.frame_duration)
+end
+
+# ── Run scenario ──────────────────────────────────────────────────────────────
+
+puts "Running #{File.basename(SCENARIO_FILE)}...\n\n"
+load SCENARIO_FILE
+puts "\nScenario complete."
+
+emulator.stop
