@@ -53,7 +53,7 @@ See `docs/adding_new_fighting_game.md`.
 
 ## Understanding the Codebase
 
-Before reading source files, check the `docs/` directory first:
+**Always read `docs/` before reading source files.** The docs are the authoritative description of how the system works.
 
 - `docs/architecture.md` — layer diagram, data flow, module boundaries
 - `docs/retroarch_integration.md` — display setup, xdotool, WRAM reading, UDP commands, keyboard config
@@ -63,7 +63,13 @@ Before reading source files, check the `docs/` directory first:
 - `docs/adding_new_fighting_game.md` — step-by-step guide for new games
 - `docs/training_dsl.md` — training loop and recorder
 
-If docs don't answer the question, read the source and **update the relevant doc** after making a significant change (new feature, refactor, changed protocol).
+## Keeping Docs Current
+
+**Every architectural or principled change must be reflected in `docs/` before the task is considered done.**
+
+This includes: new layers or components, changed protocols or data flows, renamed abstractions, new training modes, changed reward structure, new agent types, or any decision that future developers would need to understand.
+
+If docs don't cover something, add or update the relevant file. Do not leave docs stale after significant changes.
 
 **Do not read `mk3.md` or `mk3.sfc`** — both are binary ROM files. `mk3.sfc` is the SNES ROM used at runtime; `mk3.md` is a leftover Genesis ROM (wrong format, not used).
 

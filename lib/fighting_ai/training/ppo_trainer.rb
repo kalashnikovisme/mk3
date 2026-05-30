@@ -22,7 +22,8 @@ module FightingAI
         checkpoint_manager:,
         agents:,
         match_state:,
-        logger: nil
+        logger: nil,
+        wram_dump: false
       )
         @emulator           = emulator
         @game               = game
@@ -32,6 +33,7 @@ module FightingAI
         @agents             = agents
         @match_state        = match_state
         @logger             = logger || method(:default_log)
+        @wram_dump          = wram_dump
         @episode            = 0
         @training_step      = 0
       end
@@ -72,7 +74,8 @@ module FightingAI
           emulator_adapter: @emulator,
           game_adapter:     @game,
           agents:           @agents,
-          logger:           @logger
+          logger:           @logger,
+          wram_dump:        @wram_dump
         )
 
         match  = runner.run(

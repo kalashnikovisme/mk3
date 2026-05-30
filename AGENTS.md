@@ -13,14 +13,19 @@ dip shell       # interactive shell in the container
 
 ## Understanding the Codebase
 
-Read `docs/` before diving into source files:
+**Always read `docs/` before diving into source files.** The docs are the authoritative description of how the system works, not the code.
 
 - `docs/architecture.md` — full layer diagram and data flow
 - `docs/game_adapter_contract.md` — what a game adapter must implement
 - `docs/observation_system.md` — how observations are built from game state
 - `docs/input_system.md` — how actions become key presses
+- `docs/training_dsl.md` — training loop, PPO pipeline, reward structure
 
-If docs don't answer the question, read the source and update the relevant doc after any significant change.
+## Keeping Docs Current
+
+**Every architectural or principled change must be reflected in `docs/` before the task is considered done.**
+
+This includes: new components, changed protocols, new training modes, changed reward structure, new agent types, or any decision that future contributors would need to understand. Do not leave docs stale after significant changes.
 
 **Do not read `mk3.md` or `mk3.sfc`** — both are binary ROM files.
 
