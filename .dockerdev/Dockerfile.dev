@@ -7,7 +7,11 @@ COPY --from=ruby-source /usr/local /usr/local
 ENV GEM_HOME=/usr/local/bundle
 ENV BUNDLE_APP_CONFIG=/usr/local/bundle
 ENV BUNDLE_SILENCE_ROOT_WARNING=1
-ENV PATH=/usr/local/bundle/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+ENV PIP_TARGET=/usr/local/pip
+ENV PYTHONPATH=/usr/local/pip
+
+ENV PATH=/usr/local/bundle/bin:/usr/local/pip/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 WORKDIR /app
 
@@ -19,6 +23,8 @@ RUN apt-get update -qq \
      xdotool \
      x11-utils \
      libyaml-dev \
+     python3 \
+     python3-pip \
   && rm -rf /var/lib/apt/lists/*
 
 CMD ["sleep", "infinity"]

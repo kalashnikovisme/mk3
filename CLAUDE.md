@@ -24,10 +24,27 @@ Core → Input Device → Emulator Adapter → Game Adapter → Agent → Runtim
 
 See `docs/architecture.md` for the full diagram and data flow.
 
+## Development Environment
+
+**All commands must run inside the dip configuration.** Never invoke Ruby, Python, or system tools directly on the host.
+
+```bash
+dip provision          # build image, install Ruby gems and Python packages
+dip learn              # PPO self-play training (auto-resumes from checkpoint)
+dip rspec              # run the test suite
+dip rubocop            # lint
+dip scenario           # run a scenario script
+dip shell              # open a shell inside the container
+```
+
+The container has RetroArch, Python 3, and PyTorch available.
+Ruby gems are persisted in the `bundle` Docker volume; Python packages in the `pip` volume.
+Re-run `dip provision` after changing `Gemfile` or `requirements.txt`.
+
 ## Running Tests
 
 ```bash
-bundle exec rspec
+dip rspec
 ```
 
 ## Adding a New Game

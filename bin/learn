@@ -1,33 +1,41 @@
 #!/usr/bin/env ruby
-# Record AI vs AI gameplay to data/recordings/mk3/ for imitation learning.
-# Loads match save states from data/matches/<p1>-vs-<p2>.state.
-# Each state is captured right after "FIGHT!" — no menu navigation needed.
-# Run indefinitely until Ctrl+C.
+# PPO self-play training for Mortal Kombat 3.
+# Runs indefinitely: play matches → collect trajectories → PPO update → repeat.
+# Resumes from the latest checkpoint automatically.
+# Press Ctrl+C to stop cleanly.
+#
+# Environment variables:
+#   MATCH=sub-zero-vs-sub-zero   load only that match state (default)
+#   ROM_PATH, CORE_PATH          override ROM / libretro core paths
 
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
+
+# ── Pre-flight: Python environment ────────────────────────────────────────────
+unless system("python3 --version > /dev/null 2>&1")
+  abort "ERROR: python3 not found.\nRun `dip provision` to rebuild the image and install all dependencies."
+end
+
+unless system("python3 -c 'import torch' > /dev/null 2>&1")
+  abort "ERROR: PyTorch is not installed.\nRun `dip provision` to install Python dependencies (pip install -r requirements.txt)."
+end
+
 require "fighting_ai/cli/bootstrap"
 require_relative "../config/mk3"
 
-ROM_PATH       = ENV.fetch("ROM_PATH",  File.expand_path("../mk3.sfc", __dir__))
-CORE_PATH      = ENV.fetch("CORE_PATH", "/usr/lib/x86_64-linux-gnu/libretro/snes9x_libretro.so")
-RECORDINGS_DIR = File.expand_path("../data/recordings/mk3", __dir__)
-MATCHES_DIR    = File.expand_path("../data/matches", __dir__)
-MEMORY_DIR     = File.expand_path("../data/memory", __dir__)
-WRAM_DEBUG     = ARGV.include?("debug")
+ROM_PATH    = ENV.fetch("ROM_PATH",  File.expand_path("../mk3.sfc", __dir__))
+CORE_PATH   = ENV.fetch("CORE_PATH", "/usr/lib/x86_64-linux-gnu/libretro/snes9x_libretro.so")
+MATCHES_DIR = File.expand_path("../data/matches", __dir__)
+MODELS_DIR  = File.expand_path("../models", __dir__)
 
-if WRAM_DEBUG
-  FileUtils.mkdir_p(MEMORY_DIR)
-  FileUtils.rm_f(Dir.glob("#{MEMORY_DIR}/*"))
-end
+OBS_DIM    = 18  # FightingAI::Core::Observation#to_vector element count
+ACTION_DIM = FightingAI::Game::MortalKombat3::ActionTranslator::ACTIONS.size
 
-# --- Parse match state files ---
+# ── Resolve match state ───────────────────────────────────────────────────────
 
 def parse_match_file(path)
-  basename  = File.basename(path, ".state")           # "sub-zero-vs-sindel"
-  p1_str, p2_str = basename.split("-vs-", 2)
-  p1 = p1_str.tr("-", "_").to_sym                     # :sub_zero
-  p2 = p2_str.tr("-", "_").to_sym                     # :sindel
-  { path: path, p1: p1, p2: p2 }
+  basename          = File.basename(path, ".state")
+  p1_str, p2_str    = basename.split("-vs-", 2)
+  { path: path, p1: p1_str.tr("-", "_").to_sym, p2: p2_str.tr("-", "_").to_sym }
 end
 
 match_states = Dir.glob(File.join(MATCHES_DIR, "*.state")).sort.map { |f| parse_match_file(f) }
@@ -36,64 +44,74 @@ if (match_filter = ENV["MATCH"])
 end
 raise "No .state files found in #{MATCHES_DIR}" if match_states.empty?
 
-puts FightingAI::CLI::BANNER
-puts "Mode: Learn (AI self-play recording)\n\n"
-puts "Recordings → #{RECORDINGS_DIR}"
-puts "Match states: #{match_states.map { |m| File.basename(m[:path]) }.join(', ')}\n\n"
+match_state = match_states.first
 
-# Stage the first match state into slot 0 before RetroArch starts so that
-# savestate_auto_load picks it up immediately — no title screen on boot.
-first_state = match_states.first
+# Stage state into slot 0 so RetroArch auto-loads it on boot.
 states_dir = FightingAI::Emulator::RetroArch::ConfigBuilder::STATES_DIR
-rom_base   = File.basename(ROM_PATH, ".*")
 FileUtils.mkdir_p(states_dir)
+FileUtils.cp(match_state[:path], File.join(states_dir, "#{File.basename(ROM_PATH, '.*')}.state"))
 
-slot0_path = File.join(states_dir, "#{rom_base}.state")
-FileUtils.cp(first_state[:path], slot0_path)
-puts "Staged #{File.basename(first_state[:path])} → #{slot0_path}\n\n"
+puts FightingAI::CLI::BANNER
+puts "Mode: PPO Self-Play Training\n\n"
+puts "Match  → #{File.basename(match_state[:path])}"
+puts "Models → #{MODELS_DIR}"
+puts "Obs dim: #{OBS_DIM}  |  Actions: #{ACTION_DIM}\n\n"
 
-recorder = nil
-FightingAI::CLI.trap_sigint(cleanup: -> { recorder&.stop })
+# ── Signal handling ───────────────────────────────────────────────────────────
+
+trainer_ref = nil
+FightingAI::CLI.trap_sigint(cleanup: -> { trainer_ref&.stop })
+
+# ── Start emulator ────────────────────────────────────────────────────────────
 
 emulator = FightingAI::CLI.start_retro_arch(
   rom_path:         ROM_PATH,
   core_path:        CORE_PATH,
   extra_watch_dirs: [MATCHES_DIR]
 )
-game   = FightingAI.build_mk3_adapter(emulator_adapter: emulator)
-agent1 = FightingAI::Agent::RuleBased.new(player_index: 1)
-agent2 = FightingAI::Agent::RuleBased.new(player_index: 2)
 
-total_frames = 0
-match_number = 0
+# ── Build game adapter with RL reward weights ─────────────────────────────────
 
-# Cycle through available match states indefinitely
-match_states.cycle do |ms|
-  match_number += 1
-  timestamp = Time.now.strftime("%Y%m%d_%H%M%S")
-  rec_path  = File.join(RECORDINGS_DIR, "match_#{timestamp}_#{match_number}.jsonl")
+game = FightingAI.build_mk3_adapter(
+  emulator_adapter: emulator,
+  reward_weights:   FightingAI::Game::RewardCalculator.weights
+)
 
-  recorder = FightingAI::Training::Recorder.new(path: rec_path)
+# ── Build training components ─────────────────────────────────────────────────
 
-  puts "── Match #{match_number}: #{ms[:p1]} vs #{ms[:p2]} → #{File.basename(rec_path)}"
+policy     = FightingAI::Training::Policy.new(obs_dim: OBS_DIM, action_dim: ACTION_DIM)
+buffer     = FightingAI::Training::TrajectoryBuffer.new(min_size: 512)
+checkpoint = FightingAI::Training::CheckpointManager.new(dir: MODELS_DIR)
+translator = FightingAI::Game::MortalKombat3::ActionTranslator
 
-  emulator.install_match_state(ms[:path])
-
-  runner = FightingAI::Runtime::MatchRunner.new(
-    emulator_adapter: emulator,
-    game_adapter:     game,
-    agents:           { 1 => agent1, 2 => agent2 },
-    recorder:         recorder,
-    logger:           FightingAI::CLI.logger("learn"),
-    wram_dump:        WRAM_DEBUG
+agents = {
+  1 => FightingAI::Agent::PPOAgent.new(
+    player_index:      1,
+    policy:            policy,
+    action_translator: translator,
+    buffer:            buffer
+  ),
+  2 => FightingAI::Agent::PPOAgent.new(
+    player_index:      2,
+    policy:            policy,
+    action_translator: translator,
+    buffer:            buffer
   )
-  match  = runner.run(player1_character: ms[:p1], player2_character: ms[:p2])
-  result = game.collect_match_result(match)
+}
 
-  total_frames += match.total_frames
-  FightingAI::CLI.print_result(match, result)
-  puts "  Frames recorded: #{recorder.frame_count}  (total: #{total_frames})\n\n"
+trainer = FightingAI::Training::PPOTrainer.new(
+  emulator:           emulator,
+  game:               game,
+  policy:             policy,
+  buffer:             buffer,
+  checkpoint_manager: checkpoint,
+  agents:             agents,
+  match_state:        match_state,
+  logger:             FightingAI::CLI.logger("PPO")
+)
+trainer_ref = trainer
 
-  recorder.stop
-  emulator.install_match_state(ms[:path])
-end
+# ── Run ───────────────────────────────────────────────────────────────────────
+
+trainer.train
+emulator.stop

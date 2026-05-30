@@ -16,6 +16,11 @@ module FightingAI
         raise NotImplementedError, "#{self.class}#act not implemented"
       end
 
+      # Called after the reward for the previous step is known.
+      # RL agents use this to complete and buffer the prior transition.
+      # done: true signals the end of an episode (terminal state).
+      def observe_reward(reward, done: false); end
+
       # Called once before a match begins.
       def on_match_start(match); end
 

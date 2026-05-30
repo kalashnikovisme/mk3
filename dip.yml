@@ -43,7 +43,7 @@ interaction:
       run_options: [no-deps]
 
   learn:
-    description: Record AI vs AI gameplay for imitation learning
+    description: PPO self-play training (resumes from latest checkpoint automatically)
     service: app
     command: bundle exec ruby bin/learn
     environment:
@@ -68,3 +68,4 @@ provision:
   - xhost +local:docker
   - dip compose build
   - dip compose run --rm --no-deps app bundle install
+  - dip compose run --rm --no-deps app pip3 install -r requirements.txt

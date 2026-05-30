@@ -1,5 +1,16 @@
 # AGENTS.md
 
+## Development Environment
+
+**All commands must run inside the dip configuration.** Do not run Ruby, Python, or system binaries directly on the host.
+
+```bash
+dip provision   # first-time setup: build image, install gems and Python packages
+dip learn       # start PPO self-play training
+dip rspec       # run tests
+dip shell       # interactive shell in the container
+```
+
 ## Understanding the Codebase
 
 Read `docs/` before diving into source files:

@@ -49,13 +49,26 @@ require_relative "fighting_ai/game/mortal_kombat_3/menu_navigator"
 require_relative "fighting_ai/game/mortal_kombat_3/characters"
 require_relative "fighting_ai/game/mortal_kombat_3/adapter"
 
+# Game extensions
+require_relative "fighting_ai/game/side_normalizer"
+require_relative "fighting_ai/game/reward_calculator"
+require_relative "fighting_ai/game/mortal_kombat_3/action_translator"
+
+# Observation providers
+require_relative "fighting_ai/observation/structured_observation_provider"
+
 # Agents
 require_relative "fighting_ai/agent/base"
 require_relative "fighting_ai/agent/rule_based"
+require_relative "fighting_ai/agent/ppo_agent"
 
 # Training
 require_relative "fighting_ai/training/recorder"
 require_relative "fighting_ai/training/dataset_exporter"
+require_relative "fighting_ai/training/trajectory_buffer"
+require_relative "fighting_ai/training/policy"
+require_relative "fighting_ai/training/checkpoint_manager"
+require_relative "fighting_ai/training/ppo_trainer"
 
 # Runtime
 require_relative "fighting_ai/runtime/match_runner"

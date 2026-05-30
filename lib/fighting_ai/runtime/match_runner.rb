@@ -98,6 +98,8 @@ module FightingAI
           end
 
           if fight_seen && (@game.fight_finished?(game_state) || game_state.round_over?)
+            # Deliver terminal reward (includes round_win / round_loss) before closing the episode.
+            notify_agents_terminal_reward(game_state, prev_game_state) if prev_game_state
             winner = determine_round_winner(game_state)
             round.finish!(winner: winner)
             log "Round #{round.number} finished. Winner: #{winner}"
@@ -112,14 +114,18 @@ module FightingAI
         button_log = {}
 
         @agents.each do |player_index, agent|
-          observation = @game.build_observation(game_state, player_index: player_index)
-          action      = agent.act(observation)
-
           reward = if prev_game_state
             @game.calculate_reward(prev_game_state, game_state, player_index: player_index)
           else
             Core::Reward::ZERO
           end
+
+          # Deliver reward for the previous step before the agent decides its next action.
+          # This lets RL agents store (obs_t, action_t, reward_{t→t+1}) in the correct order.
+          agent.observe_reward(reward)
+
+          observation = @game.build_observation(game_state, player_index: player_index)
+          action      = agent.act(observation)
 
           @recorder&.record(
             frame_number: game_state.frame_number,
@@ -137,6 +143,13 @@ module FightingAI
         end
 
         log button_log.values.join("   ")
+      end
+
+      def notify_agents_terminal_reward(game_state, prev_game_state)
+        @agents.each do |player_index, agent|
+          reward = @game.calculate_reward(prev_game_state, game_state, player_index: player_index)
+          agent.observe_reward(reward, done: true)
+        end
       end
 
       def determine_round_winner(game_state)
