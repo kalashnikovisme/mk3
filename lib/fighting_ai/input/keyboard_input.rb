@@ -34,17 +34,25 @@ module FightingAI
         }.freeze
       }.freeze
 
-      def initialize(verbose: true)
+      def initialize(verbose: true, display: ":1")
         @verbose   = verbose
+        @display   = display
         @pid       = nil
         @window_id = nil
         @key_state = { 1 => {}, 2 => {} }
       end
 
-      # Call after the RetroArch process has started and its window is visible.
       def start(pid: nil)
         @pid       = pid
         @window_id = find_window
+        if @window_id
+          xdotool("windowactivate --sync #{@window_id}")
+          clear_stuck_modifiers
+          if @verbose
+            name = xdotool_output("getwindowname #{@window_id}")
+            $stderr.puts "\e[34m[keys] focused window: #{name} (id=#{@window_id})\e[0m"
+          end
+        end
       end
 
       def stop
@@ -67,11 +75,11 @@ module FightingAI
 
           if pressed && !was_pressed
             $stdout.puts "[keys] P#{player_index} ▼ #{logical}" if @verbose
-            system("xdotool keydown --window #{@window_id} #{key} 2>/dev/null")
+            xdotool("keydown #{key}")
             current[logical] = true
           elsif !pressed && was_pressed
             $stdout.puts "[keys] P#{player_index} ▲ #{logical}" if @verbose
-            system("xdotool keyup --window #{@window_id} #{key} 2>/dev/null")
+            xdotool("keyup #{key}")
             current[logical] = false
           end
         end
@@ -80,7 +88,7 @@ module FightingAI
       def load_state
         @window_id ||= find_window
         return unless @window_id
-        system("xdotool key --window #{@window_id} F4 2>/dev/null")
+        xdotool("key F4")
       end
 
       def release_all(player_index)
@@ -94,7 +102,7 @@ module FightingAI
           next unless pressed
           key = key_map[logical]
           next unless key
-          system("xdotool keyup --window #{@window_id} #{key} 2>/dev/null")
+          xdotool("keyup #{key}")
         end
 
         @key_state[player_index] = {}
@@ -102,25 +110,39 @@ module FightingAI
 
       private
 
+      def clear_stuck_modifiers
+        %w[alt shift ctrl super].each { |mod| xdotool("keyup #{mod}") }
+      end
+
+      def xdotool(args)
+        system("DISPLAY=#{@display} xdotool #{args} 2>/dev/null")
+      end
+
       def find_window
         if @pid
-          ids = `xdotool search --pid #{@pid} --onlyvisible 2>/dev/null`.strip.split
+          ids = xdotool_output("search --pid #{@pid}").split
           unless ids.empty?
-            wid = ids.first
-            name = `xdotool getwindowname #{wid} 2>/dev/null`.strip
+            wid  = ids.first
+            name = xdotool_output("getwindowname #{wid}")
             $stderr.puts "[keys] window found by PID #{@pid}: id=#{wid} title=#{name.inspect}"
             return wid
           end
         end
-        ids = `xdotool search --onlyvisible --name "RetroArch" 2>/dev/null`.strip.split
+
+        ids = xdotool_output("search --name RetroArch").split
         if ids.empty?
-          $stderr.puts "[keys] no RetroArch window found"
+          $stderr.puts "[keys] no RetroArch window found (DISPLAY=#{@display})"
           return nil
         end
-        wid = ids.first
-        name = `xdotool getwindowname #{wid} 2>/dev/null`.strip
+
+        wid  = ids.first
+        name = xdotool_output("getwindowname #{wid}")
         $stderr.puts "[keys] window found by name: id=#{wid} title=#{name.inspect}"
         wid
+      end
+
+      def xdotool_output(args)
+        `DISPLAY=#{@display} xdotool #{args} 2>/dev/null`.strip
       end
     end
   end

@@ -21,16 +21,19 @@ module FightingAI
     #   Frames 1..SKIP-1:     observe_reward(r)  → accumulate  |  act → repeat cached action
     #   Frame SKIP:           observe_reward(r)  → window done → push accumulated transition  |  act → new decision
     class PPOAgent < Base
-      FRAME_SKIP = 6
+      FRAME_SKIP  = 6
+      IDLE_INDEX  = 0
 
       attr_reader :episode_reward
 
-      def initialize(player_index:, policy:, action_translator:, buffer:)
+      def initialize(player_index:, policy:, action_translator:, buffer:, exploration: 0.2)
         super(player_index: player_index)
         @policy            = policy
         @action_translator = action_translator
         @buffer            = buffer
         @normalizer        = Game::SideNormalizer.new
+        @exploration       = exploration
+        @action_count      = action_translator.respond_to?(:action_count) ? action_translator.action_count : action_translator::ACTIONS.size
         reset_state
       end
 
@@ -40,14 +43,20 @@ module FightingAI
           obs_vector = normalized.to_vector
           result     = @policy.forward(obs_vector)
 
+          action_index = if rand < @exploration
+                           rand_non_idle
+                         else
+                           result[:action_index]
+                         end
+
           @pending = {
             obs:      obs_vector,
-            action:   result[:action_index],
+            action:   action_index,
             log_prob: result[:log_prob],
             value:    result[:value]
           }
 
-          @current_action       = @action_translator.to_game_action(result[:action_index])
+          @current_action        = @action_translator.to_game_action(action_index)
           @frames_until_decision = FRAME_SKIP
         end
 
@@ -79,6 +88,13 @@ module FightingAI
         @buffer.push(**@pending, reward: @accumulated_reward, done: done)
         @accumulated_reward = 0.0
         @pending            = nil
+      end
+
+      def rand_non_idle
+        loop do
+          idx = rand(@action_count)
+          return idx unless idx == IDLE_INDEX
+        end
       end
 
       def reset_state

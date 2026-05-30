@@ -10,9 +10,13 @@ module FightingAI
       └─────────────────────────────────────────┘
     TEXT
 
-    def self.start_retro_arch(rom_path:, core_path:, display: ":1", extra_watch_dirs: [], verbose: true)
-      config_path       = Emulator::RetroArch::ConfigBuilder.build(core_path: core_path)
-      keyboard          = Input::KeyboardInput.new(verbose: verbose)
+    def self.start_retro_arch(rom_path:, core_path:, extra_watch_dirs: [], verbose: true)
+      display_server = ENV["DISPLAY_HOST"] ?
+        Emulator::RetroArch::XephyrServer.new :
+        Emulator::RetroArch::XvfbServer.new
+      display = display_server.display
+      config_path = Emulator::RetroArch::ConfigBuilder.build(core_path: core_path)
+      keyboard    = Input::KeyboardInput.new(verbose: verbose, display: display)
       frame_grabber     = Emulator::RetroArch::FrameGrabber.new
       save_state_reader = Emulator::RetroArch::SaveStateReader.new(
         watch_dirs:   ([
@@ -31,6 +35,7 @@ module FightingAI
         frame_grabber:     frame_grabber,
         save_state_reader: save_state_reader,
         display:           display,
+        display_server:    display_server,
         verbose:           verbose
       )
 

@@ -22,6 +22,8 @@ RUN apt-get update -qq \
      libretro-snes9x \
      xdotool \
      x11-utils \
+     xvfb \
+     xserver-xephyr \
      libyaml-dev \
      python3 \
      python3-pip \

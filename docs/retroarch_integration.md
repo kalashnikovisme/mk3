@@ -13,10 +13,11 @@ FightingAI drives RetroArch (with the snes9x core) as the SNES emulator. Communi
 ## Process Lifecycle
 
 1. `RetroArch::ConfigBuilder.build` writes a temp `retroarch.cfg` with network commands enabled and P1/P2 keyboard bindings.
-2. `RetroArch::Process#start` spawns `retroarch -L [core] [rom] --config [cfg] --no-stdin` in a new process group with stdout/stderr redirected to `/dev/null`.
-3. After a 3-second startup pause, `RetroArch::WramReader#attach(pid)` opens `/proc/[pid]/mem`.
-4. `RetroArch::Adapter#wait_for_wram` calls `WramReader#scan_for_wram` in a polling loop until the MK3 WRAM region is found.
-5. On stop, the adapter releases all keys, sends `QUIT` via UDP, and kills the process group.
+2. `RetroArch::Adapter#start` starts the `display_server` first — either `XvfbServer` (`Xvfb :99`, headless) or `XephyrServer` (`Xephyr :99`, visible window on host desktop).
+3. `RetroArch::Process#start` spawns `retroarch` with `DISPLAY=:99` in a new process group with stdout/stderr redirected to `/dev/null`.
+4. After a startup pause, `RetroArch::WramReader#attach(pid)` opens `/proc/[pid]/mem`.
+5. `RetroArch::Adapter#wait_for_wram` calls `WramReader#scan_for_wram` in a polling loop until the MK3 WRAM region is found.
+6. On stop, the adapter releases all keys, sends `QUIT` via UDP, kills the process group, then stops Xvfb.
 
 ## UDP Network Commands
 
@@ -79,6 +80,27 @@ xdotool search --name "RetroArch"
 `send_input(player_index, buttons)` receives a `{ logical_symbol => bool }` hash. It compares against the current per-player key state and only calls `xdotool keydown/keyup` for keys whose state has changed, minimizing overhead.
 
 `release_all(player_index)` sends `keyup` for every currently held key and clears the state.
+
+## Display Isolation
+
+RetroArch always runs on an isolated internal display `DISPLAY=:99`. Two backends are available:
+
+| Mode | Class | Display | Host socket needed |
+|------|-------|---------|-------------------|
+| Headless (default) | `XvfbServer` | `Xvfb :99` inside container | No |
+| Watch | `XephyrServer` | `Xephyr :99` inside container, renders into a window on the host desktop | Yes (`/tmp/.X11-unix`) |
+
+`CLI.start_retro_arch` selects the backend: if `DISPLAY_HOST` is set in the environment it creates an `XephyrServer`; otherwise it creates an `XvfbServer`. The selected server is passed to `Adapter` as `display_server:` — its lifecycle is tied to `adapter.start` / `adapter.stop`.
+
+`xdotool` always targets `:99`, so key injection is isolated from all windows on the host desktop regardless of mode.
+
+### Watching live training
+
+```bash
+dip learn-watch [match-name]
+```
+
+`dip learn-watch` merges `.dockerdev/compose.watch.yml` on top of the base compose config, which mounts `/tmp/.X11-unix` and sets `DISPLAY_HOST`. Xephyr opens a `1024×768` window on the host desktop showing the live game.
 
 ## RetroArch Configuration
 

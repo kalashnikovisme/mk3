@@ -9,11 +9,17 @@ services:
       - bundle:/usr/local/bundle
       - pip:/usr/local/pip
       - ../data:/app/data
-      - /tmp/.X11-unix:/tmp/.X11-unix
     environment:
-      DISPLAY: "${DISPLAY:-:0}"
       ROM_PATH: /app/mk3.sfc
       CORE_PATH: /usr/lib/x86_64-linux-gnu/libretro/snes9x_libretro.so
+
+  app_watch:
+    extends:
+      service: app
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    environment:
+      DISPLAY_HOST: "${DISPLAY:-:0}"
 
 volumes:
   bundle:

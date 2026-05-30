@@ -5,6 +5,8 @@ require_relative "network_commands"
 require_relative "config_builder"
 require_relative "frame_grabber"
 require_relative "save_state_reader"
+require_relative "xvfb_server"
+require_relative "xephyr_server"
 
 module FightingAI
   module Emulator
@@ -20,7 +22,8 @@ module FightingAI
 
         attr_reader :pid
 
-        def initialize(rom_path:, core_path:, config_path:, keyboard:, frame_grabber:, save_state_reader:, display: ":1", verbose: true)
+        def initialize(rom_path:, core_path:, config_path:, keyboard:, frame_grabber:, save_state_reader:, display: ":1", display_server: nil, verbose: true)
+          @display_server    = display_server
           @process           = Process.new(
             rom_path:    rom_path,
             core_path:   core_path,
@@ -45,6 +48,7 @@ module FightingAI
         ].freeze
 
         def start
+          @display_server&.start
           @process.start
           @started = true
           if @verbose
@@ -68,6 +72,7 @@ module FightingAI
           NetworkCommands.quit rescue nil
           sleep(0.5)
           @process.stop
+          @display_server&.stop
           @started = false
         end
 

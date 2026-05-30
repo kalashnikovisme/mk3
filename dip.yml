@@ -47,6 +47,11 @@ interaction:
     service: app
     command: bundle exec ruby bin/learn
 
+  learn_watch:
+    description: "PPO training with live Xephyr window on host desktop. Usage: dip learn_watch [match-name]"
+    service: app_watch
+    command: bundle exec ruby bin/learn
+
   retroarch:
     description: Launch RetroArch with the MK3 ROM and snes9x core
     service: app
@@ -73,7 +78,6 @@ interaction:
     command: bundle exec ruby bin/play-vs-ai
 
 provision:
-  - xhost +local:docker
   - dip compose build
   - dip compose run --rm --no-deps app bundle install
   - dip compose run --rm --no-deps app pip3 install -r requirements.txt
