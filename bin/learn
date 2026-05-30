@@ -58,6 +58,7 @@ match_state = match_states.first
 
 # Stage state into slot 0 so RetroArch auto-loads it on boot.
 states_dir = FightingAI::Emulator::RetroArch::ConfigBuilder::STATES_DIR
+FileUtils.rm_rf(states_dir)
 FileUtils.mkdir_p(states_dir)
 FileUtils.cp(match_state[:path], File.join(states_dir, "#{File.basename(ROM_PATH, '.*')}.state"))
 

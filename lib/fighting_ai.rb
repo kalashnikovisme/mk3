@@ -106,7 +106,7 @@ module FightingAI
     end
 
     def build_retro_arch_adapter(rom_path:, core_path:, display: ":1")
-      config_path       = Emulator::RetroArch::ConfigBuilder.build
+      config_path       = Emulator::RetroArch::ConfigBuilder.build(core_path: core_path)
       keyboard          = Input::KeyboardInput.new
       frame_grabber     = Emulator::RetroArch::FrameGrabber.new
       save_state_reader = Emulator::RetroArch::SaveStateReader.new(

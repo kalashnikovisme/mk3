@@ -22,14 +22,15 @@ FightingAI drives RetroArch (with the snes9x core) as the SNES emulator. Communi
 
 Port 55355 (configured in `retroarch.cfg` via `network_cmd_port`).
 
-| Command       | UDP payload         |
-|---------------|---------------------|
-| Pause toggle  | `PAUSE_TOGGLE`      |
-| Reset         | `RESET`             |
-| Save state    | `STATE_SLOT N` then `SAVE_STATE` |
-| Load state    | `STATE_SLOT N` then `LOAD_STATE` |
-| Screenshot    | `SCREENSHOT`        |
-| Quit          | `QUIT`              |
+| Command            | UDP payload           | Notes |
+|--------------------|-----------------------|-------|
+| Pause toggle       | `PAUSE_TOGGLE`        | |
+| Reset              | `RESET`               | |
+| Save state         | `SAVE_STATE`          | Always saves to current slot; no `SAVE_STATE_SLOT N` command exists |
+| Load state (slot N)| `LOAD_STATE_SLOT N`   | Single command — sets slot and loads atomically |
+| Load state (current)| `LOAD_STATE`         | |
+| Screenshot         | `SCREENSHOT`          | |
+| Quit               | `QUIT`                | |
 
 Implemented in `Emulator::RetroArch::NetworkCommands`.
 

@@ -5,7 +5,7 @@ module FightingAI
   module Emulator
     module RetroArch
       class SaveStateReader
-        FILE_TIMEOUT  = 5.0
+        FILE_TIMEOUT  = 1.0
         POLL_INTERVAL = 0.05
 
         # RetroArch 1.17+ wraps save states in RZIP compression.

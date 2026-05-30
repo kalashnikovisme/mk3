@@ -35,9 +35,25 @@ module FightingAI
           @started           = false
         end
 
+        DIR_PERMISSION_CHECK = [
+          "/tmp/fighting_ai/states",
+          "/app",
+          "/root/.config/retroarch/states",
+          "/app/data/matches"
+        ].freeze
+
         def start
           @process.start
           @started = true
+          puts "Directory permissions:"
+          DIR_PERMISSION_CHECK.each do |dir|
+            if Dir.exist?(dir)
+              mode = format("%o", File.stat(dir).mode & 0o777)
+              puts "  #{mode}  #{dir}"
+            else
+              puts "  ------  #{dir} (does not exist)"
+            end
+          end
           sleep(STARTUP_WAIT)
           @keyboard.start(pid: @process.pid)
         end
@@ -85,6 +101,9 @@ module FightingAI
             $stdout.flush
           end
           puts
+          puts "Loading slot 0 state (F4)..."
+          @keyboard.load_state
+          sleep(LOAD_STATE_WAIT)
         end
 
         def next_frame_snapshot

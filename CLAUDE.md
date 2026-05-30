@@ -26,7 +26,7 @@ See `docs/architecture.md` for the full diagram and data flow.
 
 ## Development Environment
 
-**All commands must run inside the dip configuration.** Never invoke Ruby, Python, or system tools directly on the host.
+**All commands must run inside the dip configuration.** Never invoke Ruby, Python, or system tools directly on the host. Never use `docker` or `docker compose` directly — always use `dip`.
 
 ```bash
 dip provision          # build image, install Ruby gems and Python packages
