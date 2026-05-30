@@ -62,10 +62,14 @@ module FightingAI
 
       private
 
+      STALL_TIMEOUT = 3.0
+
       def run_round(match, round)
         prev_game_state = nil
         fight_seen      = false
         last_status_at  = Time.now - 1
+        stall_hp        = nil
+        stall_since     = nil
 
         loop do
           snapshot   = @emulator.next_frame_snapshot
@@ -99,11 +103,24 @@ module FightingAI
           fight_seen ||= game_state.fight_active?
 
           if game_state.fight_active?
+            current_hp = [game_state.fighter1.health, game_state.fighter2.health]
+            if current_hp != stall_hp
+              stall_hp    = current_hp
+              stall_since = Time.now
+            elsif Time.now - stall_since >= STALL_TIMEOUT
+              log "Round #{round.number} stalled (HP unchanged for #{STALL_TIMEOUT}s). Restarting."
+              notify_agents_terminal_reward(game_state, prev_game_state) if prev_game_state
+              round.finish!(winner: nil)
+              break
+            end
+
             step_agents(game_state, prev_game_state, match.id)
+          else
+            stall_hp    = nil
+            stall_since = nil
           end
 
           if fight_seen && (@game.fight_finished?(game_state) || game_state.round_over?)
-            # Deliver terminal reward (includes round_win / round_loss) before closing the episode.
             notify_agents_terminal_reward(game_state, prev_game_state) if prev_game_state
             winner = determine_round_winner(game_state)
             round.finish!(winner: winner)
