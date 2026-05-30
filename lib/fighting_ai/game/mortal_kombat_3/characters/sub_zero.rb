@@ -12,8 +12,16 @@ module FightingAI
           # D, F + LP
           ice_ball: ->(_pi) {
             IS.new
-              .press([:down],              hold_frames: 1)
-              .press([:right, :low_punch], hold_frames: 1)
+                .press([:down],              hold_frames: 1)
+              .idle(1)
+    .press([:down, :right, :low_punch], hold_frames: 1)
+
+          },
+          # D, F + HP
+          ice_shower: ->(_pi) {
+            IS.new
+              .press([:down],               hold_frames: 1)
+              .press([:right, :high_punch], hold_frames: 1)
           },
           # D, B + LP
           ice_clone: ->(_pi) {

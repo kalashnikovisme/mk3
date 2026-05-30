@@ -17,6 +17,11 @@ module FightingAI
         self
       end
 
+      def idle(frames = 1)
+        @entries << Entry.new(buttons: [], hold_frames: frames)
+        self
+      end
+
       def self.single(*buttons)
         new.press(buttons)
       end
