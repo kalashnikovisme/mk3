@@ -47,6 +47,16 @@ interaction:
     service: app
     command: bundle exec ruby bin/learn
 
+  learn_from_ppo:
+    description: "Resume PPO training from a checkpoint. Usage: dip learn_from_ppo <ppo_path> [match-name] [debug]"
+    service: app
+    command: bundle exec ruby bin/learn_from_ppo
+
+  fight:
+    description: "PPO vs PPO match. Usage: dip fight <state_file> <ppo_file_1> <ppo_file_2>"
+    service: app
+    command: bundle exec ruby bin/fight
+
   learn_watch:
     description: "PPO training with live Xephyr window on host desktop. Usage: dip learn_watch [match-name]"
     service: app_watch

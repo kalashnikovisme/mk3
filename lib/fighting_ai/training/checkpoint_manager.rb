@@ -12,8 +12,8 @@ module FightingAI
         FileUtils.mkdir_p(@dir)
       end
 
-      def save(episode:, policy:)
-        path = checkpoint_path(episode)
+      def save(step:, policy:)
+        path = checkpoint_path(step)
         FileUtils.mkdir_p(path)
         policy.save(path)
         update_latest_link(path)
@@ -25,6 +25,14 @@ module FightingAI
         return false unless path
 
         policy.load(path)
+        true
+      end
+
+      def load(path:, policy:)
+        expanded = File.expand_path(path)
+        raise "Checkpoint not found: #{expanded}" unless File.exist?(expanded)
+
+        policy.load(expanded)
         true
       end
 
@@ -44,8 +52,8 @@ module FightingAI
 
       private
 
-      def checkpoint_path(episode)
-        File.join(@dir, format("checkpoint_%06d", episode))
+      def checkpoint_path(step)
+        File.join(@dir, "ppo_#{step}")
       end
 
       def update_latest_link(path)

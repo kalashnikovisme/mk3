@@ -1,0 +1,108 @@
+#!/usr/bin/env ruby
+# Run a single match between two independently trained PPO agents.
+# Usage:
+#   bundle exec ruby bin/fight <state_file> <ppo_file_1> <ppo_file_2>
+#   e.g. bin/fight data/matches/sub-zero-vs-sub-zero.state models/ppo_10 models/ppo_5
+#
+# Environment variables:
+#   ROM_PATH, CORE_PATH   override ROM / libretro core paths
+
+$LOAD_PATH.unshift File.expand_path("../lib", __dir__)
+
+unless system("python3 --version > /dev/null 2>&1")
+  abort "ERROR: python3 not found.\nRun `dip provision` to rebuild the image and install all dependencies."
+end
+
+unless system("python3 -c 'import torch' > /dev/null 2>&1")
+  abort "ERROR: PyTorch is not installed.\nRun `dip provision` to install Python dependencies (pip install -r requirements.txt)."
+end
+
+require "fighting_ai/cli/bootstrap"
+require_relative "../config/mk3"
+
+if ARGV.size < 3
+  abort "Usage: bin/fight <state_file> <ppo_file_1> <ppo_file_2>"
+end
+
+STATE_FILE = File.expand_path(ARGV[0])
+PPO_FILE_1 = File.expand_path(ARGV[1])
+PPO_FILE_2 = File.expand_path(ARGV[2])
+ROM_PATH   = ENV.fetch("ROM_PATH",  File.expand_path("../mk3.sfc", __dir__))
+CORE_PATH  = ENV.fetch("CORE_PATH", "/usr/lib/x86_64-linux-gnu/libretro/snes9x_libretro.so")
+
+abort "State file not found: #{STATE_FILE}" unless File.exist?(STATE_FILE)
+abort "PPO file 1 not found: #{PPO_FILE_1}" unless File.exist?(PPO_FILE_1)
+abort "PPO file 2 not found: #{PPO_FILE_2}" unless File.exist?(PPO_FILE_2)
+
+OBS_DIM    = 18
+ACTION_DIM = FightingAI::Game::MortalKombat3::ActionTranslator::ACTIONS.size
+
+basename       = File.basename(STATE_FILE, ".state")
+p1_str, p2_str = basename.split("-vs-", 2)
+match_state    = {
+  path: STATE_FILE,
+  p1:   p1_str.tr("-", "_").to_sym,
+  p2:   p2_str.tr("-", "_").to_sym
+}
+
+states_dir = FightingAI::Emulator::RetroArch::ConfigBuilder::STATES_DIR
+FileUtils.rm_rf(states_dir)
+FileUtils.mkdir_p(states_dir)
+FileUtils.cp(STATE_FILE, File.join(states_dir, "#{File.basename(ROM_PATH, '.*')}.state"))
+
+puts FightingAI::CLI::BANNER
+puts "Mode: PPO vs PPO Fight\n\n"
+puts "State → #{File.basename(STATE_FILE)}"
+puts "P1    → #{PPO_FILE_1}"
+puts "P2    → #{PPO_FILE_2}\n\n"
+
+emulator_ref = nil
+FightingAI::CLI.trap_sigint(cleanup: -> { emulator_ref&.stop })
+
+emulator = FightingAI::CLI.start_retro_arch(rom_path: ROM_PATH, core_path: CORE_PATH)
+emulator_ref = emulator
+
+game       = FightingAI.build_mk3_adapter(emulator_adapter: emulator)
+translator = FightingAI::Game::MortalKombat3::ActionTranslator
+
+policy1 = FightingAI::Training::Policy.new(obs_dim: OBS_DIM, action_dim: ACTION_DIM)
+policy1.load(PPO_FILE_1)
+
+policy2 = FightingAI::Training::Policy.new(obs_dim: OBS_DIM, action_dim: ACTION_DIM)
+policy2.load(PPO_FILE_2)
+
+agents = {
+  1 => FightingAI::Agent::PPOAgent.new(
+    player_index:      1,
+    policy:            policy1,
+    action_translator: translator,
+    buffer:            FightingAI::Training::TrajectoryBuffer.new(min_size: 99_999_999),
+    exploration:       0
+  ),
+  2 => FightingAI::Agent::PPOAgent.new(
+    player_index:      2,
+    policy:            policy2,
+    action_translator: translator,
+    buffer:            FightingAI::Training::TrajectoryBuffer.new(min_size: 99_999_999),
+    exploration:       0
+  )
+}
+
+emulator.install_match_state(match_state[:path])
+
+runner = FightingAI::Runtime::MatchRunner.new(
+  emulator_adapter: emulator,
+  game_adapter:     game,
+  agents:           agents,
+  logger:           FightingAI::CLI.logger("fight")
+)
+
+match  = runner.run(player1_character: match_state[:p1], player2_character: match_state[:p2])
+result = game.collect_match_result(match)
+
+puts "\n── Result ──"
+FightingAI::CLI.print_result(match, result)
+
+policy1.stop
+policy2.stop
+emulator.stop

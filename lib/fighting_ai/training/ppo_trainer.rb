@@ -11,8 +11,7 @@ module FightingAI
     #   5. Every CHECKPOINT_EVERY_UPDATES policy updates, save a checkpoint.
     #   6. Repeat until Ctrl+C.
     class PPOTrainer
-      UPDATE_EVERY_EPISODES    = 5
-      CHECKPOINT_EVERY_UPDATES = 10
+      UPDATE_EVERY_EPISODES = 5
 
       def initialize(
         emulator:,
@@ -25,7 +24,8 @@ module FightingAI
         logger: nil,
         ui: nil,
         wram_dump: false,
-        max_rounds: nil
+        max_rounds: nil,
+        initial_checkpoint: nil
       )
         @emulator           = emulator
         @game               = game
@@ -36,10 +36,11 @@ module FightingAI
         @match_state        = match_state
         @logger             = logger || method(:default_log)
         @ui                 = ui
-        @wram_dump          = wram_dump
-        @max_rounds         = max_rounds
-        @episode            = 0
-        @training_step      = 0
+        @wram_dump           = wram_dump
+        @max_rounds          = max_rounds
+        @initial_checkpoint  = initial_checkpoint
+        @episode             = 0
+        @training_step       = 0
       end
 
       def train
@@ -73,10 +74,13 @@ module FightingAI
       private
 
       def resume_from_checkpoint
-        return unless @checkpoint_manager.exists?
-
-        @checkpoint_manager.load_latest(policy: @policy)
-        log "Resumed from checkpoint: #{@checkpoint_manager.latest_path}"
+        if @initial_checkpoint
+          @checkpoint_manager.load(path: @initial_checkpoint, policy: @policy)
+          log "Loaded checkpoint: #{@initial_checkpoint}"
+        elsif @checkpoint_manager.exists?
+          @checkpoint_manager.load_latest(policy: @policy)
+          log "Resumed from checkpoint: #{@checkpoint_manager.latest_path}"
+        end
       end
 
       def run_episode
@@ -116,13 +120,11 @@ module FightingAI
           )
         end
 
-        if (@training_step % CHECKPOINT_EVERY_UPDATES).zero?
-          path = @checkpoint_manager.save(episode: @episode, policy: @policy)
-          if @ui
-            @ui.checkpoint(path)
-          else
-            log "Checkpoint saved → #{File.basename(path)}"
-          end
+        path = @checkpoint_manager.save(step: @training_step, policy: @policy)
+        if @ui
+          @ui.checkpoint(path)
+        else
+          log "PPO ##{@training_step} saved → #{File.basename(path)}"
         end
       end
 
