@@ -30,6 +30,10 @@ module FightingAI
           "#{MemoryMap.stage_name(screen)}  timer=#{timer}  hp1=#{hp1} hp2=#{hp2}"
         end
 
+        def snapshot_stage_name(raw_snapshot)
+          MemoryMap.stage_name(raw_snapshot["screen"].to_i)
+        end
+
         def extract_game_state(raw_snapshot)
           StateExtractor.extract(raw_snapshot)
         end

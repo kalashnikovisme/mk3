@@ -43,7 +43,7 @@ interaction:
       run_options: [no-deps]
 
   learn:
-    description: "PPO training. Usage: dip learn [match-name] [debug]  e.g. dip learn sub-zero-vs-sindel"
+    description: "PPO training. Usage: dip learn [match-name] [debug]  e.g. dip learn sub-zero-vs-sindel debug"
     service: app
     command: bundle exec ruby bin/learn
 

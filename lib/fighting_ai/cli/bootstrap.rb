@@ -1,4 +1,5 @@
 require_relative "../../fighting_ai"
+require_relative "display"
 
 module FightingAI
   module CLI
@@ -9,7 +10,7 @@ module FightingAI
       └─────────────────────────────────────────┘
     TEXT
 
-    def self.start_retro_arch(rom_path:, core_path:, display: ":1", extra_watch_dirs: [])
+    def self.start_retro_arch(rom_path:, core_path:, display: ":1", extra_watch_dirs: [], verbose: true)
       config_path       = Emulator::RetroArch::ConfigBuilder.build(core_path: core_path)
       keyboard          = Input::KeyboardInput.new
       frame_grabber     = Emulator::RetroArch::FrameGrabber.new
@@ -29,19 +30,24 @@ module FightingAI
         keyboard:          keyboard,
         frame_grabber:     frame_grabber,
         save_state_reader: save_state_reader,
-        display:           display
+        display:           display,
+        verbose:           verbose
       )
 
-      puts "Starting RetroArch..."
+      puts "Starting RetroArch..." if verbose
       adapter.start
-      puts "RetroArch started (PID #{adapter.pid}). Scanning for game memory..."
+      puts "RetroArch started (PID #{adapter.pid}). Scanning for game memory..." if verbose
       adapter.wait_for_wram(timeout: 30)
-      puts "Game memory found. Ready.\n\n"
+      puts "Game memory found. Ready.\n\n" if verbose
       adapter
     end
 
     def self.logger(prefix)
       ->(msg) { puts "[#{prefix}] #{msg}" }
+    end
+
+    def self.null_logger
+      ->(_) {}
     end
 
     def self.print_result(match, result)

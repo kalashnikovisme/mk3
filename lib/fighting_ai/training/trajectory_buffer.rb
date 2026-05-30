@@ -4,6 +4,8 @@ module FightingAI
     # Both P1 and P2 push into the same buffer; the shared policy trains on
     # the combined experience.
     class TrajectoryBuffer
+      attr_reader :min_size
+
       def initialize(min_size: 512)
         @min_size    = min_size
         @transitions = []

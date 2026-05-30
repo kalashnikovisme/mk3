@@ -23,6 +23,7 @@ module FightingAI
         agents:,
         match_state:,
         logger: nil,
+        ui: nil,
         wram_dump: false,
         max_rounds: nil
       )
@@ -34,6 +35,7 @@ module FightingAI
         @agents             = agents
         @match_state        = match_state
         @logger             = logger || method(:default_log)
+        @ui                 = ui
         @wram_dump          = wram_dump
         @max_rounds         = max_rounds
         @episode            = 0
@@ -47,6 +49,14 @@ module FightingAI
 
         loop do
           @episode += 1
+
+          @ui&.set_context(
+            episode:          @episode,
+            training_step:    @training_step,
+            buffer_size:      @buffer.size,
+            buffer_capacity:  @buffer.min_size
+          )
+
           run_episode
 
           next unless (@episode % UPDATE_EVERY_EPISODES).zero?
@@ -77,6 +87,7 @@ module FightingAI
           game_adapter:     @game,
           agents:           @agents,
           logger:           @logger,
+          ui:               @ui,
           wram_dump:        @wram_dump,
           max_rounds:       @max_rounds
         )
@@ -95,26 +106,43 @@ module FightingAI
         transitions = @buffer.flush
         stats       = @policy.update(transitions)
 
-        log format(
-          "PPO Update #%d | n=%d | policy_loss=%.4f | value_loss=%.4f | entropy=%.4f",
-          @training_step, transitions.size,
-          stats[:policy_loss].to_f, stats[:value_loss].to_f, stats[:entropy].to_f
-        )
+        if @ui
+          @ui.ppo_update(step: @training_step, stats: stats, n: transitions.size)
+        else
+          log format(
+            "PPO Update #%d | n=%d | policy_loss=%.4f | value_loss=%.4f | entropy=%.4f",
+            @training_step, transitions.size,
+            stats[:policy_loss].to_f, stats[:value_loss].to_f, stats[:entropy].to_f
+          )
+        end
 
         if (@training_step % CHECKPOINT_EVERY_UPDATES).zero?
           path = @checkpoint_manager.save(episode: @episode, policy: @policy)
-          log "Checkpoint saved → #{File.basename(path)}"
+          if @ui
+            @ui.checkpoint(path)
+          else
+            log "Checkpoint saved → #{File.basename(path)}"
+          end
         end
       end
 
       def log_episode(result)
-        winner    = result[:winner] ? "Player #{result[:winner]}" : "Draw"
-        p1_reward = @agents[1].episode_reward
-        p2_reward = @agents[2].episode_reward
-        log format(
-          "Episode %4d | Winner: %-8s | Reward P1: %+7.2f | Reward P2: %+7.2f",
-          @episode, winner, p1_reward, p2_reward
-        )
+        if @ui
+          @ui.episode_done(
+            episode:   @episode,
+            winner:    result[:winner],
+            p1_reward: @agents[1].episode_reward,
+            p2_reward: @agents[2].episode_reward
+          )
+        else
+          winner    = result[:winner] ? "Player #{result[:winner]}" : "Draw"
+          p1_reward = @agents[1].episode_reward
+          p2_reward = @agents[2].episode_reward
+          log format(
+            "Episode %4d | Winner: %-8s | Reward P1: %+7.2f | Reward P2: %+7.2f",
+            @episode, winner, p1_reward, p2_reward
+          )
+        end
       end
 
       def log(msg)

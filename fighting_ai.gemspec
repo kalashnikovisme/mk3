@@ -15,7 +15,8 @@ Gem::Specification.new do |spec|
 
   spec.files = Dir["lib/**/*", "lua/**/*", "docs/**/*", "*.md"]
 
-  spec.add_dependency "json", "~> 2.0"
+  spec.add_dependency "json",     "~> 2.0"
+  spec.add_dependency "colorize", "~> 1.0"
 
   spec.add_development_dependency "rspec", "~> 3.13"
   spec.add_development_dependency "rspec-its", "~> 1.3"

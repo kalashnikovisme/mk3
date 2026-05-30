@@ -2,12 +2,14 @@ PATH
   remote: .
   specs:
     fighting_ai (0.1.0)
+      colorize (~> 1.0)
       json (~> 2.0)
 
 GEM
   remote: https://rubygems.org/
   specs:
     ast (2.4.3)
+    colorize (1.1.0)
     diff-lcs (1.6.2)
     json (2.19.7)
     language_server-protocol (3.17.0.5)
@@ -69,6 +71,7 @@ DEPENDENCIES
 
 CHECKSUMS
   ast (2.4.3) sha256=954615157c1d6a382bc27d690d973195e79db7f55e9765ac7c481c60bdb4d383
+  colorize (1.1.0) sha256=30b5237f0603f6662ab8d1fc2bd4a96142b806c6415d79e45ef5fdc6a0cfc837
   diff-lcs (1.6.2) sha256=9ae0d2cba7d4df3075fe8cd8602a8604993efc0dfa934cff568969efb1909962
   fighting_ai (0.1.0)
   json (2.19.7) sha256=fe432c8639f6efff69f9d73b518a3705d9581ab93156f981ea72806e1e5bcc3e

@@ -20,12 +20,13 @@ module FightingAI
 
         attr_reader :pid
 
-        def initialize(rom_path:, core_path:, config_path:, keyboard:, frame_grabber:, save_state_reader:, display: ":1")
+        def initialize(rom_path:, core_path:, config_path:, keyboard:, frame_grabber:, save_state_reader:, display: ":1", verbose: true)
           @process           = Process.new(
             rom_path:    rom_path,
             core_path:   core_path,
             config_path: config_path,
-            display:     display
+            display:     display,
+            verbose:     verbose
           )
           @rom_basename      = File.basename(rom_path, ".*")
           @keyboard          = keyboard

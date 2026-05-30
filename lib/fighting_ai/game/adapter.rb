@@ -22,6 +22,10 @@ module FightingAI
         "screen=0x#{raw_snapshot['screen'].to_i.to_s(16).rjust(2, '0')}"
       end
 
+      def snapshot_stage_name(raw_snapshot)
+        "screen=0x#{raw_snapshot['screen'].to_i.to_s(16).rjust(2, '0')}"
+      end
+
       # Parse a raw frame snapshot Hash from the emulator into a Core::GameState.
       def extract_game_state(raw_snapshot)
         raise NotImplementedError, "#{self.class}#extract_game_state not implemented"

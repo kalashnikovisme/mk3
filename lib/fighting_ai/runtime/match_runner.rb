@@ -10,12 +10,13 @@ module FightingAI
     class MatchRunner
       WRAM_DUMP_DIR = File.expand_path("../../../data/memory", __dir__).freeze
 
-      def initialize(emulator_adapter:, game_adapter:, agents:, recorder: nil, logger: nil, wram_dump: false, max_rounds: nil)
+      def initialize(emulator_adapter:, game_adapter:, agents:, recorder: nil, logger: nil, ui: nil, wram_dump: false, max_rounds: nil)
         @emulator        = emulator_adapter
         @game            = game_adapter
         @agents          = agents   # Hash { 1 => Agent, 2 => Agent }
         @recorder        = recorder
         @logger          = logger || method(:default_log)
+        @ui              = ui
         @wram_dump       = wram_dump
         @wram_dump_index = 0
         @max_rounds      = max_rounds
@@ -70,7 +71,9 @@ module FightingAI
           snapshot   = @emulator.next_frame_snapshot
           game_state = @game.extract_game_state(snapshot)
 
-          if Time.now - last_status_at >= 1.0
+          if @ui
+            @ui.update(game_state: game_state, stage_name: @game.snapshot_stage_name(snapshot))
+          elsif Time.now - last_status_at >= 1.0
             state = if game_state.fight_active?  then "fight"
                     elsif game_state.round_over? then "round_over"
                     else                              "idle"
@@ -140,11 +143,13 @@ module FightingAI
           buttons   = @game.input_sequence_to_buttons(input_seq, player_index: player_index)
           @emulator.send_input(player_index, buttons)
 
-          pressed = buttons.select { |_, v| v }.keys
-          button_log[player_index] = "P#{player_index}:#{pressed.empty? ? ' —' : " [#{pressed.join(', ')}]"}"
+          if @ui.nil?
+            pressed = buttons.select { |_, v| v }.keys
+            button_log[player_index] = "P#{player_index}:#{pressed.empty? ? ' —' : " [#{pressed.join(', ')}]"}"
+          end
         end
 
-        log button_log.values.join("   ")
+        log button_log.values.join("   ") unless @ui
       end
 
       def notify_agents_terminal_reward(game_state, prev_game_state)

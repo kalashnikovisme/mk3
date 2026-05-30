@@ -8,11 +8,12 @@ module FightingAI
 
         attr_reader :pid
 
-        def initialize(rom_path:, core_path:, config_path:, display: ":1")
+        def initialize(rom_path:, core_path:, config_path:, display: ":1", verbose: true)
           @rom_path    = rom_path
           @core_path   = core_path
           @config_path = config_path
           @display     = display
+          @verbose     = verbose
           @pid         = nil
           @log_io      = nil
           @tail_thread = nil
@@ -31,6 +32,8 @@ module FightingAI
             "--appendconfig", @config_path
           ]
           @pid = ::Process.spawn(env, *args, pgroup: 0, [:out, :err] => @log_io)
+
+          return unless @verbose
 
           @tail_thread = Thread.new do
             File.open(LOG_PATH, "r") do |f|

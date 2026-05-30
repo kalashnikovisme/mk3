@@ -27,7 +27,8 @@ CORE_PATH   = ENV.fetch("CORE_PATH", "/usr/lib/x86_64-linux-gnu/libretro/snes9x_
 MATCHES_DIR = File.expand_path("../data/matches", __dir__)
 MODELS_DIR  = File.expand_path("../models", __dir__)
 MEMORY_DIR  = File.expand_path("../data/memory", __dir__)
-WRAM_DEBUG   = ARGV.include?("debug")
+DEBUG        = ARGV.include?("debug")
+WRAM_DEBUG   = DEBUG
 # First non-flag argument is the match name, e.g. "sub-zero-vs-sindel"
 MATCH_ARG    = ARGV.reject { |a| a == "debug" }.first
 MATCH_FILTER = MATCH_ARG || ENV["MATCH"]
@@ -76,10 +77,13 @@ FightingAI::CLI.trap_sigint(cleanup: -> { trainer_ref&.stop })
 
 # ── Start emulator ────────────────────────────────────────────────────────────
 
+ppo_ui = DEBUG ? nil : FightingAI::CLI::PPODisplay.new
+
 emulator = FightingAI::CLI.start_retro_arch(
   rom_path:         ROM_PATH,
   core_path:        CORE_PATH,
-  extra_watch_dirs: [MATCHES_DIR]
+  extra_watch_dirs: [MATCHES_DIR],
+  verbose:          DEBUG
 )
 
 # ── Build game adapter with RL reward weights ─────────────────────────────────
@@ -119,7 +123,8 @@ trainer = FightingAI::Training::PPOTrainer.new(
   checkpoint_manager: checkpoint,
   agents:             agents,
   match_state:        match_state,
-  logger:             FightingAI::CLI.logger("PPO"),
+  logger:             DEBUG ? FightingAI::CLI.logger("PPO") : FightingAI::CLI.null_logger,
+  ui:                 ppo_ui,
   wram_dump:          WRAM_DEBUG,
   max_rounds:         1
 )
