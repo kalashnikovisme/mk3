@@ -56,9 +56,9 @@ Injects keyboard events into the RetroArch window using `xdotool`.
 | left      | f           |
 | right     | h           |
 | high_punch| n (Y btn)   |
-| low_punch | c (X btn)   |
-| low_kick  | b (B btn)   |
-| high_kick | v (A btn)   |
+| low_punch | b (B btn)   |
+| high_kick | c (X btn)   |
+| low_kick  | v (A btn)   |
 | block     | r (L btn)   |
 | run       | y (R btn)   |
 

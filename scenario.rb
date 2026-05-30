@@ -1,10 +1,10 @@
 speed :normal
 
 # P1.ice_ball
-P1.low_kick
-P1.low_kick
-P1.low_kick
-P1.low_kick
-P1.low_kick
-P1.low_kick
-P1.low_kick
+P2.high_punch
+P2.high_punch
+P2.high_punch
+P2.high_punch
+P2.high_punch
+P2.high_punch
+P2.high_punch
