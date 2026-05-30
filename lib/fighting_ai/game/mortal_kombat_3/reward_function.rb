@@ -40,7 +40,7 @@ module FightingAI
             if round_winner == player_index
               components[:round_win] = @weights[:round_win]
             elsif round_winner.nil?
-              components[:round_draw] = @weights[:round_draw]
+              return Core::Reward.compose(round_draw: @weights[:round_draw])
             else
               components[:round_loss] = @weights[:round_loss]
             end
@@ -58,6 +58,7 @@ module FightingAI
           return 2 if h2 > h1
           nil # draw
         end
+
       end
     end
   end
