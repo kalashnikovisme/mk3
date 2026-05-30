@@ -23,9 +23,14 @@ dip shell       # interactive shell in the container
 
 ## Keeping Docs Current
 
-**Every architectural or principled change must be reflected in `docs/` before the task is considered done.**
+**Updating `docs/` is a required step of every task that involves code changes. A task is not done until the relevant docs are updated.**
 
-This includes: new components, changed protocols, new training modes, changed reward structure, new agent types, or any decision that future contributors would need to understand. Do not leave docs stale after significant changes.
+Before finishing any task:
+1. Identify which `docs/` files are affected.
+2. Update or extend them to reflect the new reality.
+3. If no existing doc covers the topic, add a section to the most relevant one.
+
+Do not leave docs stale. This applies to every change: memory addresses, protocols, new components, reward structures, agent behaviour, training configuration.
 
 **Do not read `mk3.md` or `mk3.sfc`** — both are binary ROM files.
 

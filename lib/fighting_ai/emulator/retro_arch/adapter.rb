@@ -174,7 +174,7 @@ module FightingAI
             "frame"   => frame_num,
             "game"    => "mortal_kombat_3",
             "screen"  => wram.read_u8(0x3A7E),
-            "timer"   => wram.read_u8(0x3BD4),
+            "timer"   => wram.read_u8(0x3610),
             "players" => {
               "1" => {
                 "health"     => wram.read_u8(0x3634),

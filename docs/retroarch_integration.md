@@ -50,6 +50,22 @@ Once found, the base address is cached. `read_u8(wram_addr)` and `read_u16_le(wr
 
 `Errno::EIO` and `Errno::ESRCH` from unreadable regions are silently skipped during scanning and return `0` during normal reads.
 
+## Confirmed MK3 WRAM Addresses
+
+Addresses are relative to WRAM base (SNES bus `0x7E0000`).
+
+| Constant | Offset | Description | Confirmed |
+|---|---|---|---|
+| `P1_HEALTH_ADDR` | `0x3634` | Player 1 current health (0–0xA6) | yes |
+| `P2_HEALTH_ADDR` | `0x37F6` | Player 2 current health (0–0xA6) | yes |
+| `P1_ROUNDS_WON`  | `0x36E0` | Player 1 rounds won | yes |
+| `P2_ROUNDS_WON`  | `0x38A4` | Player 2 rounds won | yes |
+| `SCREEN_ADDR`    | `0x3A7E` | Current screen / stage ID | yes |
+| `LEVEL_TIMER_ADDR` | `0x3610` | Round countdown timer (0–99, decrements once per second) | yes — observed 0x09→0x08→0x07→0x06 across sequential snapshots |
+| `FATALITY_TIMER_ADDR` | `0x3BE0` | Fatality timer | unverified |
+
+Positions (x, y), facing direction, and animation state addresses are **not yet located**. They are placeholder zeros in the current snapshot until a RAM search confirms them.
+
 ## Keyboard Input Injection
 
 `Input::KeyboardInput` uses `xdotool` to inject keydown/keyup events into the RetroArch window.

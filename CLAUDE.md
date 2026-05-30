@@ -65,11 +65,14 @@ See `docs/adding_new_fighting_game.md`.
 
 ## Keeping Docs Current
 
-**Every architectural or principled change must be reflected in `docs/` before the task is considered done.**
+**Updating `docs/` is a required step of every task that involves code changes. A task is not done until the relevant docs are updated.**
 
-This includes: new layers or components, changed protocols or data flows, renamed abstractions, new training modes, changed reward structure, new agent types, or any decision that future developers would need to understand.
+This includes, but is not limited to: new layers or components, changed protocols or data flows, confirmed memory addresses, renamed abstractions, new training modes, changed reward structure, new agent types, or any decision that future developers would need to understand.
 
-If docs don't cover something, add or update the relevant file. Do not leave docs stale after significant changes.
+Checklist before marking a task complete:
+1. Identify which `docs/` files are affected by the change.
+2. Update or extend those files to reflect the new reality.
+3. If no existing doc covers the topic, add a section to the most relevant one.
 
 **Do not read `mk3.md` or `mk3.sfc`** — both are binary ROM files. `mk3.sfc` is the SNES ROM used at runtime; `mk3.md` is a leftover Genesis ROM (wrong format, not used).
 

@@ -45,7 +45,7 @@ module FightingAI
         end
 
         # --- Timers ---
-        LEVEL_TIMER_ADDR    = 0x3BD4
+        LEVEL_TIMER_ADDR    = 0x3610  # confirmed: decrements once per second during a round
         FATALITY_TIMER_ADDR = 0x3BE0
 
         # --- Player 1 ---
