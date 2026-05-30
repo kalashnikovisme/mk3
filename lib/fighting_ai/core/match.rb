@@ -43,6 +43,10 @@ module FightingAI
         rounds.count { |r| r.winner == 2 }
       end
 
+      def stale_rounds
+        rounds.count(&:stale?)
+      end
+
       def total_frames
         rounds.sum(&:frame_count)
       end

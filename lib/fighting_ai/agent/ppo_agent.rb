@@ -71,7 +71,6 @@ module FightingAI
 
       def on_match_end(match, result)
         push_transition(done: true) if @pending
-        @episode_reward = 0.0
       end
 
       private

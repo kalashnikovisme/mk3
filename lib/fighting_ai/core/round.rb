@@ -4,9 +4,10 @@ module FightingAI
       attr_reader :number, :frames, :winner
 
       def initialize(number:)
-        @number = number
-        @frames = []
-        @winner = nil
+        @number   = number
+        @frames   = []
+        @winner   = nil
+        @stale    = false
         @finished = false
       end
 
@@ -15,12 +16,14 @@ module FightingAI
         @frames << frame
       end
 
-      def finish!(winner:)
-        @winner = winner
+      def finish!(winner:, stale: false)
+        @winner   = winner
+        @stale    = stale
         @finished = true
       end
 
-      def finished?  = @finished
+      def finished? = @finished
+      def stale?    = @stale
       def frame_count = @frames.size
 
       def last_game_state

@@ -110,6 +110,7 @@ module FightingAI
             winner:             match.winner,
             player1_rounds_won: match.player1_rounds_won,
             player2_rounds_won: match.player2_rounds_won,
+            stale_rounds:       match.stale_rounds,
             total_frames:       match.total_frames,
             final_health_p1:    last_state.fighter1.health,
             final_health_p2:    last_state.fighter2.health

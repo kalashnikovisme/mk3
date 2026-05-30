@@ -127,20 +127,26 @@ module FightingAI
       end
 
       def log_episode(result)
+        stale     = result[:stale_rounds].to_i > 0
+        p1_reward = @agents[1].episode_reward
+        p2_reward = @agents[2].episode_reward
+
         if @ui
           @ui.episode_done(
             episode:   @episode,
             winner:    result[:winner],
-            p1_reward: @agents[1].episode_reward,
-            p2_reward: @agents[2].episode_reward
+            stale:     stale,
+            p1_reward: p1_reward,
+            p2_reward: p2_reward
           )
         else
-          winner    = result[:winner] ? "Player #{result[:winner]}" : "Draw"
-          p1_reward = @agents[1].episode_reward
-          p2_reward = @agents[2].episode_reward
+          label = if stale then "Stale"
+                  elsif result[:winner] then "Player #{result[:winner]}"
+                  else "Draw"
+                  end
           log format(
-            "Episode %4d | Winner: %-8s | Reward P1: %+7.2f | Reward P2: %+7.2f",
-            @episode, winner, p1_reward, p2_reward
+            "Episode %4d | %-8s | Reward P1: %+7.2f | Reward P2: %+7.2f",
+            @episode, label, p1_reward, p2_reward
           )
         end
       end

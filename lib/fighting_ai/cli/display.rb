@@ -50,11 +50,14 @@ module FightingAI
         $stdout.flush
       end
 
-      def episode_done(episode:, winner:, p1_reward:, p2_reward:)
-        winner_str = (winner ? "P#{winner} wins" : "Draw   ").green
+      def episode_done(episode:, winner:, stale: false, p1_reward:, p2_reward:)
+        outcome = if stale          then "Stale  ".red
+                  elsif winner      then "P#{winner} wins".green
+                  else                   "Draw   ".yellow
+                  end
         line =
           "✓ Ep #{episode.to_s.rjust(4)}".cyan +
-          "  #{winner_str}" +
+          "  #{outcome}" +
           "  P1 #{fmt_reward(p1_reward)}" +
           "  P2 #{fmt_reward(p2_reward)}"
         event(line)
