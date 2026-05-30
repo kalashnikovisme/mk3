@@ -12,9 +12,9 @@ module FightingAI
           # D, F + LP
           ice_ball: ->(_pi) {
             IS.new
-                .press([:down],              hold_frames: 1)
+              .press([:down],              hold_frames: 1)
               .idle(1)
-    .press([:down, :right, :low_punch], hold_frames: 1)
+              .press([:down, :right, :low_punch], hold_frames: 1)
 
           },
           # D, F + HP
@@ -26,13 +26,28 @@ module FightingAI
           # D, B + LP
           ice_clone: ->(_pi) {
             IS.new
-              .press([:down],             hold_frames: 2)
-              .press([:left, :low_punch], hold_frames: 2)
+              .press([:down],             hold_frames: 1)
+              .idle(1)
+              .press([:down, :left, :low_punch], hold_frames: 1)
           },
           # B + BL + LP + LK simultaneously
           slide: ->(_pi) {
             IS.new.press([:left, :block, :low_punch, :low_kick], hold_frames: 3)
-          }
+          },
+          # D, F, B + HP
+          ice_shower_front: ->(_pi) {
+            IS.new
+              .press([:down],               hold_frames: 1)
+              .press([:right],              hold_frames: 1)
+              .press([:left, :high_punch],  hold_frames: 1)
+          },
+          # D, B, F + HP
+          ice_shower_back: ->(_pi) {
+            IS.new
+              .press([:down],               hold_frames: 1)
+              .press([:left],               hold_frames: 1)
+              .press([:right, :high_punch], hold_frames: 1)
+          },
         }.freeze
 
         DIRECTION_SENSITIVE_MOVES = SPECIAL_MOVES.keys.freeze
