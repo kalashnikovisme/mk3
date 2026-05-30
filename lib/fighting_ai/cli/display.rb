@@ -38,7 +38,8 @@ module FightingAI
 
         line =
           "Ep #{@episode.to_s.rjust(4)} ".cyan +
-          "│ #{stage_name} t:#{timer.to_s.rjust(2)} ".light_black +
+          "│ #{stage_name} ".light_black +
+          "│ t:#{timer.to_s.rjust(2)} ".white +
           "│ P1 #{health_bar(f1.health).green} #{f1.health.to_s.rjust(3)} " +
           "│ P2 #{health_bar(f2.health).red} #{f2.health.to_s.rjust(3)} " +
           "│ [#{state_tag}] " +
