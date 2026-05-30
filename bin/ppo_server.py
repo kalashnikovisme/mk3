@@ -40,7 +40,7 @@ except ImportError:
 LEARNING_RATE   = 3e-4
 CLIP_EPS        = 0.2
 VALUE_COEF      = 0.5
-ENTROPY_COEF    = 0.01
+ENTROPY_COEF    = 0.05
 GAE_LAMBDA      = 0.95
 GAMMA           = 0.99
 PPO_EPOCHS      = 4
@@ -116,8 +116,11 @@ def main():
             obs    = torch.tensor(req["obs"], dtype=torch.float32).unsqueeze(0)
             with torch.no_grad():
                 logits, value = model(obs)
-            dist     = Categorical(logits=logits)
-            action   = dist.sample()
+            dist = Categorical(logits=logits)
+            if "action_index" in req:
+                action = torch.tensor(req["action_index"])
+            else:
+                action = dist.sample()
             log_prob = dist.log_prob(action)
             _respond({
                 "action_index": int(action.item()),

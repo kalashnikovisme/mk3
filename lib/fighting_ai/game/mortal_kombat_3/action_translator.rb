@@ -16,41 +16,41 @@ module FightingAI
       # reason about which side of the screen it occupies.
       module ActionTranslator
         ACTIONS = [
-          :idle,
+          # :idle,
           :forward,
           :backward,
-          :jump,
-          :crouch,
+          # :jump,
+          # :crouch,
           :block,
           :high_punch,
           :low_punch,
           :high_kick,
           :low_kick,
-          :forward_high_punch,
-          :forward_low_kick,
-          :backward_block,
-          :jump_forward,
-          :jump_backward,
-          :crouch_block,
-          *SubZero::SPECIAL_MOVES.keys
+          # :forward_high_punch,
+          # :forward_low_kick,
+          # :backward_block,
+          # :jump_forward,
+          # :jump_backward,
+          # :crouch_block,
+          # *SubZero::SPECIAL_MOVES.keys
         ].freeze
 
         GAME_ACTION_MAP = {
-          idle:               :idle,
+          # idle:               :idle,
           forward:            :walk_forward,
           backward:           :walk_back,
-          jump:               :jump,
+          # jump:               :jump,
           crouch:             :duck,
           block:              :block,
           high_punch:         :high_punch,
           low_punch:          :low_punch,
           high_kick:          :high_kick,
           low_kick:           :low_kick,
-          forward_high_punch: :jump_punch,
+          # forward_high_punch: :jump_punch,
           forward_low_kick:   :crouch_kick,
           backward_block:     :block,
-          jump_forward:       :jump_punch,
-          jump_backward:      :jump,
+          # jump_forward:       :jump_punch,
+          # jump_backward:      :jump,
           crouch_block:       :block,
           **SubZero::SPECIAL_MOVES.keys.to_h { |k| [k, k] }
         }.freeze

@@ -17,17 +17,17 @@ module FightingAI
           walk_forward: ->(pi) {
             # "Forward" depends on facing direction; the adapter resolves this
             # by passing the correct directional button via context.
-            IS.single(:right)
+            IS.new.press([:right], hold_frames: 1)
           },
-          walk_back: ->(_pi) { IS.single(:left) },
+          walk_back: ->(_pi) { IS.new.press([:left], hold_frames: 1) },
 
-          jump: ->(_pi) { IS.single(:up) },
+          # jump: ->(_pi) { IS.new.press([:up], hold_frames: 2) },
           duck: ->(_pi) { IS.new.press([:down], hold_frames: 2) },
 
-          low_punch:  ->(_pi) { IS.single(:low_punch) },
-          high_punch: ->(_pi) { IS.single(:high_punch) },
-          low_kick:   ->(_pi) { IS.single(:low_kick) },
-          high_kick:  ->(_pi) { IS.single(:high_kick) },
+          low_punch:  ->(_pi) { IS.new.press([:low_punch], hold_frames: 1) },
+          high_punch: ->(_pi) { IS.new.press([:high_punch], hold_frames: 1) },
+          low_kick:   ->(_pi) { IS.new.press([:low_kick], hold_frames: 1) },
+          high_kick:  ->(_pi) { IS.new.press([:high_kick], hold_frames: 1) },
           block:      ->(_pi) { IS.new.press([:block], hold_frames: 3) },
           run:        ->(_pi) { IS.new.press([:run], hold_frames: 2) },
 
@@ -36,8 +36,8 @@ module FightingAI
           crouch_kick:  ->(_pi) { IS.new.press([:down]).press([:low_kick]) },
 
           # Jump attacks
-          jump_punch: ->(_pi) { IS.new.press([:up]).press([:high_punch]) },
-          jump_kick:  ->(_pi) { IS.new.press([:up]).press([:high_kick]) },
+          # jump_punch: ->(_pi) { IS.new.press([:up]).press([:high_punch]) },
+          # jump_kick:  ->(_pi) { IS.new.press([:up]).press([:high_kick]) },
 
           # Throws (forward = toward opponent)
           throw_forward: ->(_pi) { IS.new.press(%i[low_punch high_punch]) },

@@ -4,12 +4,12 @@ module FightingAI
     # Combat-only reward shaping: damage and round outcomes.
     # No movement or positioning rewards.
     module RewardCalculator
-      DAMAGE_DEALT_WEIGHT =  0.5
-      DAMAGE_TAKEN_WEIGHT = -0.1
+      DAMAGE_DEALT_WEIGHT =  10
+      DAMAGE_TAKEN_WEIGHT =  -5
       WIN_REWARD          =  20.0
       LOSS_REWARD         = -10.0
-      DRAW_REWARD  = -10.0
-      STALE_REWARD = -10.0
+      DRAW_REWARD  = -100.0
+      STALE_REWARD = -100.0
 
       def self.weights
         {

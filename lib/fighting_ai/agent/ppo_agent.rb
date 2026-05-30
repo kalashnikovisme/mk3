@@ -39,15 +39,11 @@ module FightingAI
 
       def act(observation)
         if @frames_until_decision.zero?
-          normalized = @normalizer.normalize(observation)
-          obs_vector = normalized.to_vector
-          result     = @policy.forward(obs_vector)
-
-          action_index = if rand < @exploration
-                           rand_non_idle
-                         else
-                           result[:action_index]
-                         end
+          normalized   = @normalizer.normalize(observation)
+          obs_vector   = normalized.to_vector
+          action_index = rand < @exploration ? rand_non_idle : nil
+          result       = @policy.forward(obs_vector, action_index: action_index)
+          action_index ||= result[:action_index]
 
           @pending = {
             obs:      obs_vector,

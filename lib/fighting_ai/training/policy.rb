@@ -30,8 +30,10 @@ module FightingAI
         start_server
       end
 
-      def forward(obs_vector)
-        resp = request(cmd: "forward", obs: obs_vector)
+      def forward(obs_vector, action_index: nil)
+        payload = { cmd: "forward", obs: obs_vector }
+        payload[:action_index] = action_index unless action_index.nil?
+        resp = request(payload)
         {
           action_index: resp["action_index"],
           log_prob:     resp["log_prob"],
