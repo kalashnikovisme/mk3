@@ -47,6 +47,16 @@ interaction:
     service: app
     command: bundle exec ruby bin/learn
 
+  retroarch:
+    description: Launch RetroArch with the MK3 ROM and snes9x core
+    service: app
+    command: >-
+      retroarch
+      -L /usr/lib/x86_64-linux-gnu/libretro/snes9x_libretro.so
+      -S /app/data/matches/
+      -e 0
+      /app/mk3.sfc
+
   scenario:
     description: Run a scenario script against a live match state
     service: app
