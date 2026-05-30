@@ -1,4 +1,5 @@
 require_relative "../../core/action"
+require_relative "characters/sub_zero"
 
 module FightingAI
   module Game
@@ -14,23 +15,24 @@ module FightingAI
       # the fighter's actual facing direction. The policy therefore never needs to
       # reason about which side of the screen it occupies.
       module ActionTranslator
-        ACTIONS = %i[
-          idle
-          forward
-          backward
-          jump
-          crouch
-          block
-          high_punch
-          low_punch
-          high_kick
-          low_kick
-          forward_high_punch
-          forward_low_kick
-          backward_block
-          jump_forward
-          jump_backward
-          crouch_block
+        ACTIONS = [
+          :idle,
+          :forward,
+          :backward,
+          :jump,
+          :crouch,
+          :block,
+          :high_punch,
+          :low_punch,
+          :high_kick,
+          :low_kick,
+          :forward_high_punch,
+          :forward_low_kick,
+          :backward_block,
+          :jump_forward,
+          :jump_backward,
+          :crouch_block,
+          *SubZero::SPECIAL_MOVES.keys
         ].freeze
 
         GAME_ACTION_MAP = {
@@ -49,7 +51,8 @@ module FightingAI
           backward_block:     :block,
           jump_forward:       :jump_punch,
           jump_backward:      :jump,
-          crouch_block:       :block
+          crouch_block:       :block,
+          **SubZero::SPECIAL_MOVES.keys.to_h { |k| [k, k] }
         }.freeze
 
         def self.action_count

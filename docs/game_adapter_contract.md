@@ -61,6 +61,7 @@ def character_pools
 - Use a `MemoryMap` module for all memory addresses.
 - Use an `InputMap` module for button translation. `to_logical(buttons_array)` returns `{ symbol => bool }`.
 - Use an `ActionSpace` module for action → InputSequence mapping.
+- Character-specific special moves live in `characters/<name>.rb` modules. Each module exposes `SPECIAL_MOVES` (action_name → InputSequence builder) and `DIRECTION_SENSITIVE_MOVES`. `ActionSpace::ACTIONS` and `ActionTranslator::ACTIONS`/`GAME_ACTION_MAP` merge them in via splat so specials appear in the flat RL action space alongside normal actions. The adapter's `DIRECTION_SENSITIVE_ACTIONS` constant lists all actions that need `flip_direction` applied when the player faces left.
 - Use an `ObservationSpace` module for GameState → Observation normalization.
 - Use a `RewardFunction` class for configurable reward calculation.
 - Use a `StateExtractor` module for raw snapshot → GameState parsing.

@@ -1,5 +1,6 @@
 require_relative "input_map"
 require_relative "../../core/input_sequence"
+require_relative "characters/sub_zero"
 
 module FightingAI
   module Game
@@ -40,7 +41,9 @@ module FightingAI
 
           # Throws (forward = toward opponent)
           throw_forward: ->(_pi) { IS.new.press(%i[low_punch high_punch]) },
-          throw_back:    ->(_pi) { IS.new.press(%i[low_punch high_punch]) }
+          throw_back:    ->(_pi) { IS.new.press(%i[low_punch high_punch]) },
+
+          **SubZero::SPECIAL_MOVES
         }.freeze
 
         def self.all_action_names

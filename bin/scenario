@@ -9,6 +9,9 @@
 #   P1.low_punch        # press low punch for 1 frame
 #   P2.block(5)         # P2 holds block for 5 frames
 #   wait(30)            # pause both players for 30 frames (~0.5 s)
+#   P1.ice_ball         # Sub-Zero: D, F + LP (assumes facing right)
+#   P1.ice_clone        # Sub-Zero: D, B + LP
+#   P1.slide            # Sub-Zero: B + BL + LP + LK
 
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 require "fighting_ai/cli/bootstrap"

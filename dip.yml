@@ -67,6 +67,11 @@ interaction:
     service: app
     command: bundle exec ruby bin/scenario
 
+  scenario_watch:
+    description: Run a scenario script with live Xephyr window on host desktop
+    service: app_watch
+    command: bundle exec ruby bin/scenario
+
   watch-match:
     description: Watch a recorded match replay
     service: app

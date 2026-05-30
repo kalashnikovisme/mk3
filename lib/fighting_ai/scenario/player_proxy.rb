@@ -1,3 +1,5 @@
+require_relative "../game/mortal_kombat_3/characters/sub_zero"
+
 module FightingAI
   module Scenario
     # DSL object exposed as P1 / P2 inside scenario files.
@@ -32,8 +34,17 @@ module FightingAI
       def jump_kick(frames = 1)    = hold_multi(%i[up   high_kick],  frames)
       def throw(frames = 1)        = hold_multi(%i[low_punch high_punch], frames)
 
+      # ── Special moves (Sub-Zero) ─────────────────────────────────────────────
+      # ice_ball, ice_clone, slide — auto-defined from SubZero::SPECIAL_MOVES.
+      # Motions are encoded assuming the player faces right; call the mirrored
+      # variant manually (e.g. P1.left instead of P1.right) when facing left.
+      Game::MortalKombat3::SubZero::SPECIAL_MOVES.each do |name, builder|
+        define_method(name) do
+          execute_sequence(builder.call(@player_index))
+        end
+      end
+
       # ── Timing ──────────────────────────────────────────────────────────────
-      # Release all inputs and pause for N frames.
       def wait(frames = 1)
         release_all
         sleep(frames * Scenario.frame_duration)
@@ -52,6 +63,16 @@ module FightingAI
         buttons = Game::MortalKombat3::InputMap.all_released
         button_list.each { |b| buttons[b] = true }
         send_for(buttons, frames)
+        release_all
+      end
+
+      def execute_sequence(input_sequence)
+        input_sequence.to_button_frames.each do |frame_buttons|
+          button_hash = Game::MortalKombat3::InputMap.all_released
+          frame_buttons.each { |b| button_hash[b] = true }
+          @emulator.send_input(@player_index, button_hash)
+          sleep(Scenario.frame_duration)
+        end
         release_all
       end
 

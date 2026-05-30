@@ -7,6 +7,7 @@ require_relative "reward_function"
 require_relative "state_extractor"
 require_relative "menu_navigator"
 require_relative "characters"
+require_relative "characters/sub_zero"
 
 module FightingAI
   module Game
@@ -42,10 +43,14 @@ module FightingAI
           ObservationSpace.build(game_state, player_index: player_index)
         end
 
+        DIRECTION_SENSITIVE_ACTIONS = (
+          %i[walk_forward walk_back jump_forward] + SubZero::DIRECTION_SENSITIVE_MOVES
+        ).freeze
+
         def action_to_input_sequence(action, player_index:, game_state:)
           seq = ActionSpace.to_input_sequence(action.name, player_index: player_index)
 
-          if action.name.to_s.start_with?("walk_") || action.name == :jump_forward
+          if DIRECTION_SENSITIVE_ACTIONS.include?(action.name)
             fighter = game_state.fighter_for(player_index)
             seq = flip_direction(seq) if fighter.facing.left?
           end
