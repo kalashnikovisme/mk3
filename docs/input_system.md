@@ -40,10 +40,10 @@ Injects keyboard events into the RetroArch window using `xdotool`.
 | down      | Down        |
 | left      | Left        |
 | right     | Right       |
-| low_punch | s (Y btn)   |
-| high_punch| a (X btn)   |
-| low_kick  | x (B btn)   |
-| high_kick | z (A btn)   |
+| high_punch| s (Y btn)   |
+| high_kick | a (X btn)   |
+| low_punch | x (B btn)   |
+| low_kick  | z (A btn)   |
 | block     | q (L btn)   |
 | run       | w (R btn)   |
 
@@ -55,8 +55,8 @@ Injects keyboard events into the RetroArch window using `xdotool`.
 | down      | g           |
 | left      | f           |
 | right     | h           |
-| low_punch | n (Y btn)   |
-| high_punch| c (X btn)   |
+| high_punch| n (Y btn)   |
+| low_punch | c (X btn)   |
 | low_kick  | b (B btn)   |
 | high_kick | v (A btn)   |
 | block     | r (L btn)   |
