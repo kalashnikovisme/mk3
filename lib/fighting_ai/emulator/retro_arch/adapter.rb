@@ -32,6 +32,7 @@ module FightingAI
           @keyboard          = keyboard
           @frame_grabber     = frame_grabber
           @save_state_reader = save_state_reader
+          @verbose           = verbose
           @frame_counter     = 0
           @started           = false
         end
@@ -46,13 +47,15 @@ module FightingAI
         def start
           @process.start
           @started = true
-          puts "Directory permissions:"
-          DIR_PERMISSION_CHECK.each do |dir|
-            if Dir.exist?(dir)
-              mode = format("%o", File.stat(dir).mode & 0o777)
-              puts "  #{mode}  #{dir}"
-            else
-              puts "  ------  #{dir} (does not exist)"
+          if @verbose
+            puts "Directory permissions:"
+            DIR_PERMISSION_CHECK.each do |dir|
+              if Dir.exist?(dir)
+                mode = format("%o", File.stat(dir).mode & 0o777)
+                puts "  #{mode}  #{dir}"
+              else
+                puts "  ------  #{dir} (does not exist)"
+              end
             end
           end
           sleep(STARTUP_WAIT)
@@ -138,7 +141,7 @@ module FightingAI
         def install_match_state(src_path)
           dest = slot0_state_path
           FileUtils.mkdir_p(File.dirname(dest))
-          puts "[state] Loading #{File.basename(src_path)}"
+          $stdout.puts "[state] Loading #{File.basename(src_path)}" if @verbose
           FileUtils.cp(src_path, dest)
           NetworkCommands.load_state(slot: 0)
           sleep(LOAD_STATE_WAIT)

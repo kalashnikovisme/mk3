@@ -12,7 +12,7 @@ module FightingAI
 
     def self.start_retro_arch(rom_path:, core_path:, display: ":1", extra_watch_dirs: [], verbose: true)
       config_path       = Emulator::RetroArch::ConfigBuilder.build(core_path: core_path)
-      keyboard          = Input::KeyboardInput.new
+      keyboard          = Input::KeyboardInput.new(verbose: verbose)
       frame_grabber     = Emulator::RetroArch::FrameGrabber.new
       save_state_reader = Emulator::RetroArch::SaveStateReader.new(
         watch_dirs:   ([

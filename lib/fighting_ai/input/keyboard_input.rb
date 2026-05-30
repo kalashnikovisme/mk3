@@ -34,7 +34,8 @@ module FightingAI
         }.freeze
       }.freeze
 
-      def initialize
+      def initialize(verbose: true)
+        @verbose   = verbose
         @pid       = nil
         @window_id = nil
         @key_state = { 1 => {}, 2 => {} }
@@ -65,11 +66,11 @@ module FightingAI
           was_pressed = current[logical]
 
           if pressed && !was_pressed
-            puts "[keys] P#{player_index} ▼ #{logical}"
+            $stdout.puts "[keys] P#{player_index} ▼ #{logical}" if @verbose
             system("xdotool keydown --window #{@window_id} #{key} 2>/dev/null")
             current[logical] = true
           elsif !pressed && was_pressed
-            puts "[keys] P#{player_index} ▲ #{logical}"
+            $stdout.puts "[keys] P#{player_index} ▲ #{logical}" if @verbose
             system("xdotool keyup --window #{@window_id} #{key} 2>/dev/null")
             current[logical] = false
           end
