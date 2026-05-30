@@ -43,11 +43,9 @@ interaction:
       run_options: [no-deps]
 
   learn:
-    description: PPO self-play training (resumes from latest checkpoint automatically)
+    description: "PPO training. Usage: dip learn [match-name] [debug]  e.g. dip learn sub-zero-vs-sindel"
     service: app
     command: bundle exec ruby bin/learn
-    environment:
-      MATCH: sub-zero-vs-sub-zero
 
   scenario:
     description: Run a scenario script against a live match state

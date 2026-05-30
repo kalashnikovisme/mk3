@@ -27,7 +27,10 @@ CORE_PATH   = ENV.fetch("CORE_PATH", "/usr/lib/x86_64-linux-gnu/libretro/snes9x_
 MATCHES_DIR = File.expand_path("../data/matches", __dir__)
 MODELS_DIR  = File.expand_path("../models", __dir__)
 MEMORY_DIR  = File.expand_path("../data/memory", __dir__)
-WRAM_DEBUG  = ARGV.include?("debug")
+WRAM_DEBUG   = ARGV.include?("debug")
+# First non-flag argument is the match name, e.g. "sub-zero-vs-sindel"
+MATCH_ARG    = ARGV.reject { |a| a == "debug" }.first
+MATCH_FILTER = MATCH_ARG || ENV["MATCH"]
 
 OBS_DIM    = 18  # FightingAI::Core::Observation#to_vector element count
 ACTION_DIM = FightingAI::Game::MortalKombat3::ActionTranslator::ACTIONS.size
@@ -46,8 +49,8 @@ if WRAM_DEBUG
 end
 
 match_states = Dir.glob(File.join(MATCHES_DIR, "*.state")).sort.map { |f| parse_match_file(f) }
-if (match_filter = ENV["MATCH"])
-  match_states.select! { |m| File.basename(m[:path], ".state") == match_filter }
+if MATCH_FILTER
+  match_states.select! { |m| File.basename(m[:path], ".state") == MATCH_FILTER }
 end
 raise "No .state files found in #{MATCHES_DIR}" if match_states.empty?
 
