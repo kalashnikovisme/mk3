@@ -63,7 +63,6 @@ module FightingAI
       private
 
       STALL_TIMEOUT = 1.0
-      STALL_PENALTY = Core::Reward.compose(stall: -5.0).freeze
 
       def run_round(match, round)
         prev_game_state = nil
@@ -110,7 +109,7 @@ module FightingAI
               stall_since = Time.now
             elsif Time.now - stall_since >= STALL_TIMEOUT
               log "Round #{round.number} stalled (HP unchanged for #{STALL_TIMEOUT}s). Restarting."
-              notify_agents_terminal_reward(game_state, prev_game_state, extra: STALL_PENALTY) if prev_game_state
+              notify_agents_terminal_reward(game_state, prev_game_state, stale: true) if prev_game_state
               round.finish!(winner: nil, stale: true)
               break
             end
@@ -170,10 +169,10 @@ module FightingAI
         log button_log.values.join("   ") unless @ui
       end
 
-      def notify_agents_terminal_reward(game_state, prev_game_state, extra: Core::Reward::ZERO)
+      def notify_agents_terminal_reward(game_state, prev_game_state, stale: false)
         @agents.each do |player_index, agent|
-          reward = @game.calculate_reward(prev_game_state, game_state, player_index: player_index)
-          agent.observe_reward(reward + extra, done: true)
+          reward = @game.calculate_reward(prev_game_state, game_state, player_index: player_index, stale: stale)
+          agent.observe_reward(reward, done: true)
         end
       end
 

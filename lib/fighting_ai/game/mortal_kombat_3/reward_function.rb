@@ -1,14 +1,17 @@
 require_relative "../../core/reward"
+require_relative "../reward_calculator"
 
 module FightingAI
   module Game
     module MortalKombat3
       class RewardFunction
         DEFAULT_WEIGHTS = {
-          damage_dealt: 1.0,
-          damage_taken: -1.0,
-          round_win:    10.0,
-          round_loss:   -10.0
+          damage_dealt: RewardCalculator::DAMAGE_DEALT_WEIGHT,
+          damage_taken: RewardCalculator::DAMAGE_TAKEN_WEIGHT,
+          round_win:    RewardCalculator::WIN_REWARD,
+          round_loss:   RewardCalculator::LOSS_REWARD,
+          round_draw:   RewardCalculator::DRAW_REWARD,
+          stale:        RewardCalculator::STALE_REWARD
         }.freeze
 
         def initialize(weights: DEFAULT_WEIGHTS)
@@ -16,7 +19,7 @@ module FightingAI
         end
 
         # Calculate reward for player_index between two consecutive game states.
-        def call(prev_state, next_state, player_index:)
+        def call(prev_state, next_state, player_index:, stale: false)
           me_prev  = prev_state.fighter_for(player_index)
           me_next  = next_state.fighter_for(player_index)
           opp_prev = prev_state.opponent_of(player_index)
@@ -30,10 +33,14 @@ module FightingAI
             damage_taken: damage_taken * @weights[:damage_taken]
           }
 
-          if next_state.round_over?
+          if stale
+            components[:stale] = @weights[:stale]
+          elsif next_state.round_over?
             round_winner = determine_round_winner(next_state)
             if round_winner == player_index
               components[:round_win] = @weights[:round_win]
+            elsif round_winner.nil?
+              components[:round_draw] = @weights[:round_draw]
             else
               components[:round_loss] = @weights[:round_loss]
             end

@@ -54,7 +54,7 @@ module FightingAI
       # Reward
       # -------------------------------------------------------------------------
 
-      def calculate_reward(prev_game_state, next_game_state, player_index:)
+      def calculate_reward(prev_game_state, next_game_state, player_index:, stale: false)
         raise NotImplementedError, "#{self.class}#calculate_reward not implemented"
       end
 

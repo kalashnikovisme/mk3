@@ -106,14 +106,14 @@ agents = {
     policy:            policy,
     action_translator: translator,
     buffer:            buffer,
-    exploration:       1
+    exploration:       0.2
   ),
   2 => FightingAI::Agent::PPOAgent.new(
     player_index:      2,
     policy:            policy,
     action_translator: translator,
     buffer:            buffer,
-    exploration:       1
+    exploration:       0.2
   )
 }
 

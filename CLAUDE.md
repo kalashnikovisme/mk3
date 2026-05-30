@@ -4,6 +4,10 @@
 
 Ruby framework for training AI agents to play fighting games through real emulators.
 
+## Coding Rules
+
+- **Never use magic numbers.** All numeric values (reward weights, timeouts, thresholds, frame counts, addresses) must be defined as named constants and referenced by name. If a constant does not exist yet, create it in the most appropriate module before using it.
+
 ## Key Constraints
 
 - Ruby is the primary language. Python may only appear behind ML adapter boundaries and never in the public API.

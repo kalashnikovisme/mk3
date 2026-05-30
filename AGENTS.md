@@ -1,5 +1,9 @@
 # AGENTS.md
 
+## Coding Rules
+
+- **Never use magic numbers.** All numeric values (reward weights, timeouts, thresholds, frame counts, memory addresses) must be defined as named constants and referenced by name. If a constant does not exist yet, create it in the most appropriate module before using it.
+
 ## Development Environment
 
 **All commands must run inside the dip configuration.** Do not run Ruby, Python, or system binaries directly on the host.
