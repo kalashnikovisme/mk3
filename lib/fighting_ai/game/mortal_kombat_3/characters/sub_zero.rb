@@ -30,6 +30,11 @@ module FightingAI
               .idle(1)
               .press([:down, :left, :low_punch], hold_frames: 1)
           },
+          air_ice_clone: ->(_pi) {
+            IS.new
+              .press([:up],             hold_frames: 1)
+              .press([:down, :left, :low_punch], hold_frames: 1)
+          },
           # B + BL + LP + LK simultaneously
           slide: ->(_pi) {
             IS.new.press([:left, :block, :low_punch, :low_kick], hold_frames: 3)
@@ -47,6 +52,23 @@ module FightingAI
               .press([:down],               hold_frames: 1)
               .press([:left],               hold_frames: 1)
               .press([:right, :high_punch], hold_frames: 1)
+          },
+          # HK, HK, B + HK
+          combo_kick: ->(_pi) {
+            IS.new
+              .press([:high_kick],        hold_frames: 2).idle(2)
+              .press([:high_kick],        hold_frames: 2).idle(2)
+              .press([:left, :high_kick], hold_frames: 2)
+          },
+          # HP, HP, LP, LK, HK, B + HK
+          combo_full: ->(_pi) {
+            IS.new
+              .press([:high_punch],       hold_frames: 2).idle(2)
+              .press([:high_punch],       hold_frames: 2).idle(2)
+              .press([:low_punch],        hold_frames: 2).idle(2)
+              .press([:low_kick],         hold_frames: 2).idle(2)
+              .press([:high_kick],        hold_frames: 2).idle(2)
+              .press([:left, :high_kick], hold_frames: 2)
           },
         }.freeze
 

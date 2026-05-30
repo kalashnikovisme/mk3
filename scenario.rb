@@ -1,3 +1,3 @@
 speed :normal
 
-P1.ground_freeze
+P1.air_ice_clone
