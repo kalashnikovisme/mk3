@@ -10,7 +10,7 @@ module FightingAI
     class MatchRunner
       WRAM_DUMP_DIR = File.expand_path("../../../data/memory", __dir__).freeze
 
-      def initialize(emulator_adapter:, game_adapter:, agents:, recorder: nil, logger: nil, wram_dump: false)
+      def initialize(emulator_adapter:, game_adapter:, agents:, recorder: nil, logger: nil, wram_dump: false, max_rounds: nil)
         @emulator        = emulator_adapter
         @game            = game_adapter
         @agents          = agents   # Hash { 1 => Agent, 2 => Agent }
@@ -18,6 +18,7 @@ module FightingAI
         @logger          = logger || method(:default_log)
         @wram_dump       = wram_dump
         @wram_dump_index = 0
+        @max_rounds      = max_rounds
         FileUtils.mkdir_p(WRAM_DUMP_DIR) if @wram_dump
       end
 
@@ -43,6 +44,7 @@ module FightingAI
           notify_agents(:on_round_end, round)
           round_number += 1
 
+          break if @max_rounds && round_number > @max_rounds
           break if match_should_end?(match)
         end
 

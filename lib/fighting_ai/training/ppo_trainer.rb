@@ -23,7 +23,8 @@ module FightingAI
         agents:,
         match_state:,
         logger: nil,
-        wram_dump: false
+        wram_dump: false,
+        max_rounds: nil
       )
         @emulator           = emulator
         @game               = game
@@ -34,6 +35,7 @@ module FightingAI
         @match_state        = match_state
         @logger             = logger || method(:default_log)
         @wram_dump          = wram_dump
+        @max_rounds         = max_rounds
         @episode            = 0
         @training_step      = 0
       end
@@ -75,7 +77,8 @@ module FightingAI
           game_adapter:     @game,
           agents:           @agents,
           logger:           @logger,
-          wram_dump:        @wram_dump
+          wram_dump:        @wram_dump,
+          max_rounds:       @max_rounds
         )
 
         match  = runner.run(

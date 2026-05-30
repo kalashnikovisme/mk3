@@ -119,7 +119,8 @@ trainer = FightingAI::Training::PPOTrainer.new(
   agents:             agents,
   match_state:        match_state,
   logger:             FightingAI::CLI.logger("PPO"),
-  wram_dump:          WRAM_DEBUG
+  wram_dump:          WRAM_DEBUG,
+  max_rounds:         1
 )
 trainer_ref = trainer
 
