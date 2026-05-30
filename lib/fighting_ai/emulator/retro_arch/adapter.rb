@@ -185,6 +185,8 @@ module FightingAI
           before = @save_state_reader.current_state_snapshot
           NetworkCommands.save_state(slot: WRAM_READ_SLOT)
           @save_state_reader.read_after_update(before)
+        rescue RuntimeError
+          @save_state_reader.read_current
         end
 
         def build_mk3_snapshot(frame_num, wram)
