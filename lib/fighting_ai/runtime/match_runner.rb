@@ -62,7 +62,7 @@ module FightingAI
 
       private
 
-      STALL_TIMEOUT = 3.0
+      STALL_TIMEOUT = 1.0
       STALL_PENALTY = Core::Reward.compose(stall: -5.0).freeze
 
       def run_round(match, round)
