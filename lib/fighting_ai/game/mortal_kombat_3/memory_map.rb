@@ -45,7 +45,7 @@ module FightingAI
         end
 
         # --- Timers ---
-        LEVEL_TIMER_ADDR    = 0x3610  # confirmed: decrements once per second during a round
+        LEVEL_TIMER_ADDR    = 0x3610  # elapsed seconds (increments 0→99); adapter converts to remaining = 99 - elapsed
         FATALITY_TIMER_ADDR = 0x3BE0
 
         # --- Player 1 ---
