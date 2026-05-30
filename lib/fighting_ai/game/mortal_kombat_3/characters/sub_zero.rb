@@ -53,22 +53,54 @@ module FightingAI
               .press([:left],               hold_frames: 1)
               .press([:right, :high_punch], hold_frames: 1)
           },
-          # HK, HK, B + HK
-          combo_kick: ->(_pi) {
+          # HP, HP, B + HK
+          combo_1: ->(_pi) {
             IS.new
-              .press([:high_kick],        hold_frames: 2).idle(2)
-              .press([:high_kick],        hold_frames: 2).idle(2)
-              .press([:left, :high_kick], hold_frames: 2)
+              .press([:high_punch],        hold_frames: 1)
+              .idle(1)
+              .press([:high_punch],        hold_frames: 1)
+              .press([:left, :high_kick], hold_frames: 1)
+          },
+          # HP, HP, LP, B + HK
+          combo_2: ->(_pi) {
+            IS.new
+              .press([:high_punch],        hold_frames: 1)
+              .idle(1)
+              .press([:high_punch],        hold_frames: 1)
+              .press([:low_punch],        hold_frames: 1)
+              .press([:left, :high_kick], hold_frames: 1)
+          },
+          # HP, HP, LK, HK, B + HK
+          combo_3: ->(_pi) {
+            IS.new
+              .press([:high_punch],        hold_frames: 1)
+              .idle(1)
+              .press([:high_punch],        hold_frames: 1)
+              .press([:low_kick],        hold_frames: 1)
+              .press([:high_kick],        hold_frames: 1)
+              .idle(1)
+              .press([:left, :high_kick], hold_frames: 1)
           },
           # HP, HP, LP, LK, HK, B + HK
-          combo_full: ->(_pi) {
+          combo_4: ->(_pi) {
             IS.new
-              .press([:high_punch],       hold_frames: 2).idle(2)
-              .press([:high_punch],       hold_frames: 2).idle(2)
-              .press([:low_punch],        hold_frames: 2).idle(2)
-              .press([:low_kick],         hold_frames: 2).idle(2)
-              .press([:high_kick],        hold_frames: 2).idle(2)
-              .press([:left, :high_kick], hold_frames: 2)
+              .press([:high_punch],        hold_frames: 1)
+              .idle(1)
+              .press([:high_punch],        hold_frames: 1)
+              .press([:low_punch],        hold_frames: 1)
+              .press([:low_kick],        hold_frames: 1)
+              .press([:high_kick],        hold_frames: 1)
+              .idle(1)
+              .press([:left, :high_kick], hold_frames: 1)
+          },
+          # HK, HK, B + HK
+          combo_5: ->(_pi) {
+            IS.new
+              .press([:high_kick],        hold_frames: 1)
+              .idle(1)
+              .press([:high_kick],        hold_frames: 1)
+              .idle(1)
+              .press([:left, :high_kick], hold_frames: 1)
           },
         }.freeze
 
