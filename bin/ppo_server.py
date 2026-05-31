@@ -40,7 +40,7 @@ except ImportError:
 LEARNING_RATE   = 3e-4
 CLIP_EPS        = 0.3
 VALUE_COEF      = 0.5
-ENTROPY_COEF    = 0.10
+ENTROPY_COEF    = 0.30
 GAE_LAMBDA      = 0.95
 GAMMA           = 0.99
 PPO_EPOCHS      = 8

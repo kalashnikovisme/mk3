@@ -65,16 +65,19 @@ module FightingAI
       end
 
       def episode_done(episode:, winner:, stale: false, p1_reward:, p2_reward:, p1_components: {}, p2_components: {})
-        outcome = if stale          then "Stale  ".red
-                  elsif winner      then "P#{winner} wins".green
-                  else                   "Draw   ".yellow
-                  end
-        line =
-          "✓ Ep #{episode.to_s.rjust(4)}".cyan +
-          "  #{outcome}" +
-          "  P1 #{fmt_reward(p1_reward)} #{fmt_components(p1_components)}" +
-          "  P2 #{fmt_reward(p2_reward)} #{fmt_components(p2_components)}"
-        event(line)
+        out_plain = stale ? "Stale  " : (winner ? "P#{winner} wins" : "Draw   ")
+        out_color = stale ? out_plain.red : (winner ? out_plain.green : out_plain.yellow)
+
+        ep_plain = "✓ Ep #{episode.to_s.rjust(4)}"
+        prefix   = "#{ep_plain}  #{out_plain}  "
+        indent   = " " * prefix.length
+
+        line1 = ep_plain.cyan + "  #{out_color}  " +
+                "P1 #{fmt_reward(p1_reward)} #{fmt_components(p1_components)}"
+        line2 = indent +
+                "P2 #{fmt_reward(p2_reward)} #{fmt_components(p2_components)}"
+
+        event(line1, line2)
       end
 
       def ppo_update(step:, stats:, n:)
@@ -113,8 +116,9 @@ module FightingAI
         parts.empty? ? "" : "[#{parts.join(' ')}]"
       end
 
-      def event(line)
-        $stdout.print "\r\e[2K#{line}\n\r\e[2K#{@last_status}"
+      def event(*lines)
+        body = lines.map.with_index { |l, i| i.zero? ? "\r\e[2K#{l}" : "\n\e[2K#{l}" }.join
+        $stdout.print "#{body}\n\r\e[2K#{@last_status}"
         $stdout.flush
       end
     end
