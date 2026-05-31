@@ -1,3 +1,3 @@
 speed :normal
 
-P1.right 60
+P2.left 60

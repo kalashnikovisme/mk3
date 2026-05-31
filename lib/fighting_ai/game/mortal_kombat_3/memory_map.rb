@@ -63,7 +63,7 @@ module FightingAI
 
         # --- Player X positions ---
         P1_X_ADDR = 0x1A0A
-        P2_X_ADDR = 0xEB90
+        P2_X_ADDR = 0x0656
 
         # --- Normalization ranges ---
         TIMER_MAX          = 99    # MK3 round timer counts down from 99

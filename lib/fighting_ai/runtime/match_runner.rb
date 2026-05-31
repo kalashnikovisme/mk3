@@ -62,7 +62,7 @@ module FightingAI
 
       private
 
-      STALL_TIMEOUT = 0.5
+      STALL_TIMEOUT = 5.0
 
       def run_round(match, round)
         prev_game_state = nil

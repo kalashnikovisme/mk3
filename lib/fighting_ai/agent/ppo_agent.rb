@@ -21,8 +21,7 @@ module FightingAI
     #   Frames 1..SKIP-1:     observe_reward(r)  → accumulate  |  act → repeat cached action
     #   Frame SKIP:           observe_reward(r)  → window done → push accumulated transition  |  act → new decision
     class PPOAgent < Base
-      FRAME_SKIP  = 6
-      IDLE_INDEX  = 0
+      FRAME_SKIP = 2
 
       attr_reader :episode_reward, :episode_components
 
@@ -41,7 +40,7 @@ module FightingAI
         if @frames_until_decision.zero?
           normalized   = @normalizer.normalize(observation)
           obs_vector   = normalized.to_vector
-          action_index = rand < @exploration ? rand_non_idle : nil
+          action_index = rand < @exploration ? rand(@action_count) : nil
           result       = @policy.forward(obs_vector, action_index: action_index)
           action_index ||= result[:action_index]
 
@@ -87,13 +86,6 @@ module FightingAI
         @buffer.push(**@pending, reward: @accumulated_reward, done: done)
         @accumulated_reward = 0.0
         @pending            = nil
-      end
-
-      def rand_non_idle
-        loop do
-          idx = rand(@action_count)
-          return idx unless idx == IDLE_INDEX
-        end
       end
 
       def reset_state

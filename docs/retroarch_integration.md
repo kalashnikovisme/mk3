@@ -66,7 +66,7 @@ Addresses are relative to WRAM base (SNES bus `0x7E0000`).
 | `LEVEL_TIMER_ADDR` | `0x3610` | Round countdown timer (0–99, decrements once per second) | yes — observed 0x09→0x08→0x07→0x06 across sequential snapshots |
 | `FATALITY_TIMER_ADDR` | `0x3BE0` | Fatality timer | unverified |
 | `P1_X_ADDR` | `0x1A0A` | Player 1 horizontal position (0–255) | confirmed |
-| `P2_X_ADDR` | `0xEB90` | Player 2 horizontal position (0–255) | confirmed |
+| `P2_X_ADDR` | `0x0656` | Player 2 horizontal position (0–255) | confirmed |
 
 Y position, facing direction, and animation state addresses are **not yet located**. They are placeholder zeros in the current snapshot until a RAM search confirms them.
 
