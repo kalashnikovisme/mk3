@@ -103,6 +103,29 @@ runtime = FightingAI::Runtime::HumanVsAI.new(
 runtime.run(player1_character: :sub_zero, player2_character: :scorpion)
 ```
 
+## Scenario DSL
+
+Inside a scenario file the following top-level methods are available:
+
+| Method | Description |
+|--------|-------------|
+| `speed(preset_or_multiplier)` | Set emulation speed (`:normal`, `:fast`, `:turbo`, `:slow`, `:slow_mo`, or a numeric multiplier) |
+| `wait(frames)` | Pause all input for the given number of frames |
+| `save_state(name = nil)` | Save the current RetroArch state and copy it to `/app/data/states/<name>.state`. If `name` is omitted, the file is named by timestamp (`YYYYMMDD_HHMMSS.state`). |
+
+Example:
+
+```ruby
+speed :normal
+
+P1.right 15
+P1.ice_ball
+wait 30
+save_state "after_ice_ball"   # → /app/data/states/after_ice_ball.state
+P1.wait 60
+save_state                    # → /app/data/states/20260101_120000.state
+```
+
 ## Running AI vs AI
 
 ```ruby

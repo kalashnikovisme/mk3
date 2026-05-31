@@ -1,5 +1,4 @@
 speed :normal
 
-P1.right 15
-P1.combo_2
-P1.wait 200
+save_state :default
+# P2.left 15

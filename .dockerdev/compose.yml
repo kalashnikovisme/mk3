@@ -18,8 +18,10 @@ services:
       service: app
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
+      - ${XAUTHORITY:-~/.Xauthority}:/root/.Xauthority:ro
     environment:
       DISPLAY_HOST: "${DISPLAY:-:0}"
+      XAUTHORITY: /root/.Xauthority
 
 volumes:
   bundle:
