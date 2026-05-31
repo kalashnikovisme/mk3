@@ -41,6 +41,7 @@ module FightingAI
         @initial_checkpoint  = initial_checkpoint
         @episode             = 0
         @training_step       = 0
+        @zero_entropy_streak = 0
       end
 
       def train
@@ -105,6 +106,9 @@ module FightingAI
         log_episode(result)
       end
 
+      ENTROPY_COLLAPSE_THRESHOLD  = 1e-6
+      ENTROPY_COLLAPSE_STOP_AFTER = 2
+
       def update_policy
         @training_step += 1
         transitions = @buffer.flush
@@ -125,6 +129,17 @@ module FightingAI
           @ui.checkpoint(path)
         else
           log "PPO ##{@training_step} saved → #{File.basename(path)}"
+        end
+
+        if stats[:entropy].to_f < ENTROPY_COLLAPSE_THRESHOLD
+          @zero_entropy_streak += 1
+          if @zero_entropy_streak >= ENTROPY_COLLAPSE_STOP_AFTER
+            log "Entropy collapsed to 0 for #{ENTROPY_COLLAPSE_STOP_AFTER} consecutive updates. Stopping."
+            @policy.stop
+            exit 1
+          end
+        else
+          @zero_entropy_streak = 0
         end
       end
 

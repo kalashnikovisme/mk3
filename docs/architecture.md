@@ -119,18 +119,26 @@ Stateless or stateful decision maker.
 - Input: `Core::Observation`
 - Output: `Core::Action`
 
+Current implementations:
+- `Agent::PPOAgent` — self-play PPO agent backed by a shared `Training::Policy`. Uses frame-skip and ε-greedy exploration. Both P1 and P2 share one policy instance so the policy trains against itself.
+
 **Rule**: Agents have no knowledge of emulators, memory addresses, or menus.
 
 ### Training
 
-- `Recorder` — JSONL session recording
-- `DatasetExporter` — reads recordings, exports imitation learning pairs
+- `Training::Policy` — thin Ruby wrapper around the Python PPO server (`bin/ppo_server.py`). Communicates via newline-delimited JSON over stdin/stdout. Exposes `forward`, `update`, `save`, `load`.
+- `Training::TrajectoryBuffer` — collects transitions from both agents; triggers a PPO update when `min_size` is reached.
+- `Training::PPOTrainer` — outer training loop: run episode → collect experience → PPO update → checkpoint. Stops automatically if policy entropy collapses.
+- `Training::CheckpointManager` — saves/loads `policy.pt` to `models/`.
+- `Training::Recorder` — JSONL session recording for imitation learning.
+
+See `docs/ppo_training.md` for full hyperparameter reference.
 
 ### Runtime
 
-- `MatchRunner` — drives one match frame-by-frame
-- `HumanVsAI` — human keyboard passthrough (VirtualInput for P1) + AI agent injection (P2)
-- `AIVsAI` — autonomous series of matches
+- `MatchRunner` — drives one match frame-by-frame; detects stale rounds and ends them early.
+- `HumanVsAI` — human keyboard passthrough (VirtualInput for P1) + AI agent injection (P2).
+- `AIVsAI` — autonomous series of matches.
 
 ## Data Flow (one frame)
 
