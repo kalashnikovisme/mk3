@@ -24,9 +24,11 @@ require "fighting_ai/scenario/state"
 require "fighting_ai/scenario/player_proxy"
 require_relative "../config/mk3"
 
-ROM_PATH    = ENV.fetch("ROM_PATH",  File.expand_path("../mk3.sfc", __dir__))
-CORE_PATH   = ENV.fetch("CORE_PATH", "/usr/lib/x86_64-linux-gnu/libretro/snes9x_libretro.so")
-MATCHES_DIR = File.expand_path("../data/matches", __dir__)
+ROM_PATH        = ENV.fetch("ROM_PATH",  File.expand_path("../mk3.sfc", __dir__))
+CORE_PATH       = ENV.fetch("CORE_PATH", "/usr/lib/x86_64-linux-gnu/libretro/snes9x_libretro.so")
+MATCHES_DIR     = File.expand_path("../data/matches", __dir__)
+MEMORY_DEBUG    = ARGV.delete("--memory-debug") != nil
+MEMORY_DUMP_DIR = "/app/data/memory"
 
 SCENARIO_FILE = ARGV[0] || File.expand_path("../scenario.rb", __dir__)
 raise "Scenario file not found: #{SCENARIO_FILE}" unless File.exist?(SCENARIO_FILE)
@@ -42,10 +44,17 @@ rom_base    = File.basename(ROM_PATH, ".*")
 FileUtils.mkdir_p(states_dir)
 FileUtils.cp(first_state, File.join(states_dir, "#{rom_base}.state"))
 
+if MEMORY_DEBUG
+  FileUtils.mkdir_p(MEMORY_DUMP_DIR)
+  FileUtils.rm_f(Dir.glob("#{MEMORY_DUMP_DIR}/*"))
+end
+
 puts FightingAI::CLI::BANNER
-puts "Mode: Scenario\n\n"
+puts "Mode: Scenario#{MEMORY_DEBUG ? " [memory debug]" : ""}\n\n"
 puts "State  → #{File.basename(first_state)}"
-puts "Script → #{SCENARIO_FILE}\n\n"
+puts "Script → #{SCENARIO_FILE}"
+puts "Memory → #{MEMORY_DUMP_DIR}" if MEMORY_DEBUG
+puts
 
 FightingAI::CLI.trap_sigint
 
@@ -81,10 +90,52 @@ def save_memory(name = nil)
   FightingAI::Scenario.save_memory(name)
 end
 
+def watch(address, label: nil)
+  FightingAI::Scenario.watch(address, label: label)
+end
+
+# ── Status display ────────────────────────────────────────────────────────────
+
+game    = FightingAI.build_mk3_adapter(emulator_adapter: emulator)
+display = FightingAI::CLI::PPODisplay.new
+
+status_thread = Thread.new do
+  loop do
+    snapshot   = emulator.next_frame_snapshot
+    game_state = game.extract_game_state(snapshot)
+    watches    = FightingAI::Scenario.watches.map do |w|
+      { label: w[:label], value: emulator.read_memory(w[:address]) }
+    end
+    display.update(game_state: game_state, stage_name: game.snapshot_stage_name(snapshot), watches: watches)
+  rescue => e
+    next if e.is_a?(ThreadError)
+    $stderr.puts "[status thread] #{e.class}: #{e.message}"
+    next
+  end
+end
+
+memory_thread = MEMORY_DEBUG ? Thread.new do
+  frame_index = 0
+  loop do
+    frame_index += 1
+    path = File.join(MEMORY_DUMP_DIR, format("%06d", frame_index))
+    File.write(path, emulator.wram_hex_dump)
+    $stderr.puts "[memory] #{File.basename(path)}"
+  rescue => e
+    next if e.is_a?(ThreadError)
+    $stderr.puts "[memory thread] #{e.class}: #{e.message}"
+    next
+  end
+end : nil
+
 # ── Run scenario ──────────────────────────────────────────────────────────────
 
 puts "Running #{File.basename(SCENARIO_FILE)}...\n\n"
 load SCENARIO_FILE
-puts "\nScenario complete."
+
+status_thread.kill
+memory_thread&.kill
+$stdout.print "\n"
+puts "Scenario complete."
 
 emulator.stop

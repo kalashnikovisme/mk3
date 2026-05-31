@@ -32,6 +32,16 @@ def input_sequence_to_buttons(input_sequence, player_index:, frame_offset: 0)
 def calculate_reward(prev_game_state, next_game_state, player_index:)
 ```
 
+#### MK3 reward components (`RewardFunction`)
+
+| Component | Sign | Formula |
+|-----------|------|---------|
+| `damage_dealt` | + | `(opp_prev.health − opp_next.health) × DAMAGE_DEALT_WEIGHT` |
+| `damage_taken` | − | `(me_prev.health − me_next.health) × DAMAGE_TAKEN_WEIGHT` |
+| `distance` | ±  | `(closeness × 2 − 1) × DISTANCE_WEIGHT` where `closeness = 1 − dist / MAX_FIGHT_DISTANCE`; +weight at zero distance, −weight at maximum separation |
+| `round_win` / `round_loss` / `round_draw` | ± | flat event bonuses |
+| `stale` | − | flat penalty when the round stalls (HP unchanged) |
+
 ### Match Lifecycle
 
 ```ruby

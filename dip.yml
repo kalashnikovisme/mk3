@@ -82,6 +82,11 @@ interaction:
     service: app_watch
     command: bundle exec ruby bin/scenario
 
+  scenario_debug:
+    description: Run scenario and dump full WRAM snapshot to /app/data/memory every frame
+    service: app
+    command: bundle exec ruby bin/scenario --memory-debug
+
   watch-match:
     description: Watch a recorded match replay
     service: app

@@ -5,7 +5,16 @@ module FightingAI
     class PPODisplay
       BAR_WIDTH  = 16
       MAX_HEALTH = 0xA6  # 166
-      CLEAR_COLS = 200   # spaces used to wipe the status line before printing an event
+
+      COMPONENT_LABELS = {
+        damage_dealt: "dmg",
+        damage_taken: "tkn",
+        distance:     "dst",
+        round_win:    "win",
+        round_loss:   "loss",
+        round_draw:   "draw",
+        stale:        "stl"
+      }.freeze
 
       def initialize
         @episode       = 0
@@ -22,7 +31,7 @@ module FightingAI
         @buffer_cap    = buffer_capacity
       end
 
-      def update(game_state:, stage_name:)
+      def update(game_state:, stage_name:, watches: [])
         f1    = game_state.fighter1
         f2    = game_state.fighter2
         timer = game_state.round_time_remaining
@@ -40,17 +49,22 @@ module FightingAI
           "Ep #{@episode.to_s.rjust(4)} ".cyan +
           "│ #{stage_name} ".light_black +
           "│ t:#{timer.to_s.rjust(2)} ".white +
-          "│ P1 #{health_bar(f1.health).green} #{f1.health.to_s.rjust(3)} " +
-          "│ P2 #{health_bar(f2.health).red} #{f2.health.to_s.rjust(3)} " +
+          "│ P1 #{health_bar(f1.health).green} #{f1.health.to_s.rjust(3)} x:#{f1.x.to_s.rjust(3)} " +
+          "│ P2 #{health_bar(f2.health).red} #{f2.health.to_s.rjust(3)} x:#{f2.x.to_s.rjust(3)} " +
           "│ [#{state_tag}] " +
           "│ buf #{buf}"
+
+        unless watches.empty?
+          watch_str = watches.map { |w| "#{w[:label]}:#{w[:value].to_s.rjust(3)}" }.join("  ")
+          line += " │ #{watch_str}".yellow
+        end
 
         @last_status = line
         $stdout.print "\r#{line}"
         $stdout.flush
       end
 
-      def episode_done(episode:, winner:, stale: false, p1_reward:, p2_reward:)
+      def episode_done(episode:, winner:, stale: false, p1_reward:, p2_reward:, p1_components: {}, p2_components: {})
         outcome = if stale          then "Stale  ".red
                   elsif winner      then "P#{winner} wins".green
                   else                   "Draw   ".yellow
@@ -58,8 +72,8 @@ module FightingAI
         line =
           "✓ Ep #{episode.to_s.rjust(4)}".cyan +
           "  #{outcome}" +
-          "  P1 #{fmt_reward(p1_reward)}" +
-          "  P2 #{fmt_reward(p2_reward)}"
+          "  P1 #{fmt_reward(p1_reward)} #{fmt_components(p1_components)}" +
+          "  P2 #{fmt_reward(p2_reward)} #{fmt_components(p2_components)}"
         event(line)
       end
 
@@ -89,8 +103,18 @@ module FightingAI
         r >= 0 ? s.green : s.red
       end
 
+      def fmt_components(components)
+        parts = COMPONENT_LABELS.filter_map do |key, label|
+          val = components[key]
+          next if val.nil? || val.zero?
+          s = format("%+.0f", val)
+          "#{label}:#{val >= 0 ? s.green : s.red}"
+        end
+        parts.empty? ? "" : "[#{parts.join(' ')}]"
+      end
+
       def event(line)
-        $stdout.print "\r#{' ' * CLEAR_COLS}\r#{line}\n\r#{@last_status}"
+        $stdout.print "\r\e[2K#{line}\n\r\e[2K#{@last_status}"
         $stdout.flush
       end
     end

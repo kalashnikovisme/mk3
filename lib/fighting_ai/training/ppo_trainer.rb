@@ -129,17 +129,21 @@ module FightingAI
       end
 
       def log_episode(result)
-        stale     = result[:stale_rounds].to_i > 0
-        p1_reward = @agents[1].episode_reward
-        p2_reward = @agents[2].episode_reward
+        stale         = result[:stale_rounds].to_i > 0
+        p1_reward     = @agents[1].episode_reward
+        p2_reward     = @agents[2].episode_reward
+        p1_components = @agents[1].episode_components
+        p2_components = @agents[2].episode_components
 
         if @ui
           @ui.episode_done(
-            episode:   @episode,
-            winner:    result[:winner],
-            stale:     stale,
-            p1_reward: p1_reward,
-            p2_reward: p2_reward
+            episode:       @episode,
+            winner:        result[:winner],
+            stale:         stale,
+            p1_reward:     p1_reward,
+            p2_reward:     p2_reward,
+            p1_components: p1_components,
+            p2_components: p2_components
           )
         else
           label = if stale then "Stale"

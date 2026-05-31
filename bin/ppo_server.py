@@ -38,12 +38,12 @@ except ImportError:
 
 # ── Hyperparameters ──────────────────────────────────────────────────────────
 LEARNING_RATE   = 3e-4
-CLIP_EPS        = 0.2
+CLIP_EPS        = 0.3
 VALUE_COEF      = 0.5
-ENTROPY_COEF    = 0.05
+ENTROPY_COEF    = 0.10
 GAE_LAMBDA      = 0.95
 GAMMA           = 0.99
-PPO_EPOCHS      = 4
+PPO_EPOCHS      = 8
 MINI_BATCH_SIZE = 64
 
 

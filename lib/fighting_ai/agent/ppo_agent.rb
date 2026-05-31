@@ -24,7 +24,7 @@ module FightingAI
       FRAME_SKIP  = 6
       IDLE_INDEX  = 0
 
-      attr_reader :episode_reward
+      attr_reader :episode_reward, :episode_components
 
       def initialize(player_index:, policy:, action_translator:, buffer:, exploration: 0.2)
         super(player_index: player_index)
@@ -66,6 +66,9 @@ module FightingAI
       def observe_reward(reward, done: false)
         @accumulated_reward += reward.to_f
         @episode_reward     += reward.to_f
+        reward.components.each do |key, val|
+          @episode_components[key] = (@episode_components[key] || 0.0) + val
+        end
 
         push_transition(done: done) if @pending && (@frames_until_decision.zero? || done)
       end
@@ -99,6 +102,7 @@ module FightingAI
         @frames_until_decision = 0
         @accumulated_reward    = 0.0
         @episode_reward        = 0.0
+        @episode_components    = {}
       end
     end
   end

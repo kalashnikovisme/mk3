@@ -7,6 +7,15 @@ module FightingAI
     SAVE_STATE_SETTLE_WAIT = 0.5
 
     class << self
+      def watch(address, label: nil)
+        @watches ||= []
+        @watches << { address: address, label: label || format("0x%04X", address) }
+      end
+
+      def watches
+        @watches || []
+      end
+
       def save_state(name = nil)
         raise "No emulator attached to Scenario" unless @emulator
 
