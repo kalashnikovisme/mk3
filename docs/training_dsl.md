@@ -112,6 +112,7 @@ Inside a scenario file the following top-level methods are available:
 | `speed(preset_or_multiplier)` | Set emulation speed (`:normal`, `:fast`, `:turbo`, `:slow`, `:slow_mo`, or a numeric multiplier) |
 | `wait(frames)` | Pause all input for the given number of frames |
 | `save_state(name = nil)` | Save the current RetroArch state and copy it to `/app/data/states/<name>.state`. If `name` is omitted, the file is named by timestamp (`YYYYMMDD_HHMMSS.state`). |
+| `save_memory(name = nil)` | Capture a WRAM hex dump and write it to `/app/data/memory/<name>`. Same format as the files produced by `dip learn debug`. If `name` is omitted, named by timestamp. |
 
 Example:
 
