@@ -1,1 +1,2 @@
-P2.ice_ball
+P1.right 20
+P1.combo_1
