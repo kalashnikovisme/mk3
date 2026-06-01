@@ -62,6 +62,11 @@ interaction:
     service: app
     command: bundle exec ruby bin/fight
 
+  fight_watch:
+    description: "PPO vs PPO match with live Xephyr window. Usage: dip fight_watch <state_file> <ppo_file_1> <ppo_file_2>"
+    service: app_watch
+    command: bundle exec ruby bin/fight
+
   learn_watch:
     description: "PPO training with live Xephyr window on host desktop. Usage: dip learn_watch [match-name]"
     service: app_watch

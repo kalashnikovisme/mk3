@@ -34,7 +34,7 @@ abort "State file not found: #{STATE_FILE}" unless File.exist?(STATE_FILE)
 abort "PPO file 1 not found: #{PPO_FILE_1}" unless File.exist?(PPO_FILE_1)
 abort "PPO file 2 not found: #{PPO_FILE_2}" unless File.exist?(PPO_FILE_2)
 
-OBS_DIM    = 18
+OBS_DIM    = 17  # FightingAI::Core::Observation#to_vector element count
 ACTION_DIM = FightingAI::Game::MortalKombat3::ActionTranslator::ACTIONS.size
 
 basename       = File.basename(STATE_FILE, ".state")
