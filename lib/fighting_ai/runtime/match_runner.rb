@@ -62,7 +62,7 @@ module FightingAI
 
       private
 
-      STALL_TIMEOUT = 5.0
+      STALL_TIMEOUT = 2.0
 
       def run_round(match, round)
         prev_game_state = nil
@@ -70,7 +70,6 @@ module FightingAI
         last_status_at  = Time.now - 1
         stall_hp        = nil
         stall_since     = nil
-
         loop do
           snapshot   = @emulator.next_frame_snapshot
           game_state = @game.extract_game_state(snapshot)
@@ -120,8 +119,8 @@ module FightingAI
             stall_since = nil
           end
 
-          if fight_seen && (@game.fight_finished?(game_state) || game_state.round_over?)
-            notify_agents_terminal_reward(game_state, prev_game_state) if prev_game_state
+          if fight_seen && !game_state.fight_active?
+            notify_agents_terminal_reward(game_state, prev_game_state, round_over: true) if prev_game_state
             winner = determine_round_winner(game_state)
             round.finish!(winner: winner)
             log "Round #{round.number} finished. Winner: #{winner}"
@@ -142,8 +141,6 @@ module FightingAI
             Core::Reward::ZERO
           end
 
-          # Deliver reward for the previous step before the agent decides its next action.
-          # This lets RL agents store (obs_t, action_t, reward_{t→t+1}) in the correct order.
           agent.observe_reward(reward)
 
           observation = @game.build_observation(game_state, player_index: player_index)
@@ -169,9 +166,9 @@ module FightingAI
         log button_log.values.join("   ") unless @ui
       end
 
-      def notify_agents_terminal_reward(game_state, prev_game_state, stale: false)
+      def notify_agents_terminal_reward(game_state, prev_game_state, stale: false, round_over: false)
         @agents.each do |player_index, agent|
-          reward = @game.calculate_reward(prev_game_state, game_state, player_index: player_index, stale: stale)
+          reward = @game.calculate_reward(prev_game_state, game_state, player_index: player_index, stale: stale, round_over: round_over)
           agent.observe_reward(reward, done: true)
         end
       end

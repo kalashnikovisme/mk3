@@ -19,7 +19,7 @@ module FightingAI
         end
 
         # Calculate reward for player_index between two consecutive game states.
-        def call(prev_state, next_state, player_index:, stale: false)
+        def call(prev_state, next_state, player_index:, stale: false, round_over: false)
           me_prev  = prev_state.fighter_for(player_index)
           me_next  = next_state.fighter_for(player_index)
           opp_prev = prev_state.opponent_of(player_index)
@@ -35,7 +35,7 @@ module FightingAI
 
           if stale
             components[:stale] = @weights[:stale]
-          elsif next_state.round_over?
+          elsif next_state.round_over? || round_over
             round_winner = determine_round_winner(next_state)
             if round_winner == player_index
               components[:round_win] = @weights[:round_win]

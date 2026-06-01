@@ -65,8 +65,9 @@ module FightingAI
           InputMap.to_logical(logical, player_index: player_index)
         end
 
-        def calculate_reward(prev_game_state, next_game_state, player_index:, stale: false)
-          @reward_function.call(prev_game_state, next_game_state, player_index: player_index, stale: stale)
+
+        def calculate_reward(prev_game_state, next_game_state, player_index:, stale: false, round_over: false)
+          @reward_function.call(prev_game_state, next_game_state, player_index: player_index, stale: stale, round_over: round_over)
         end
 
         def read_memory_debug

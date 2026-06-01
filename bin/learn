@@ -33,7 +33,7 @@ WRAM_DEBUG   = DEBUG
 MATCH_ARG    = ARGV.reject { |a| a == "debug" }.first
 MATCH_FILTER = MATCH_ARG || ENV["MATCH"]
 
-OBS_DIM    = 18  # FightingAI::Core::Observation#to_vector element count
+OBS_DIM    = 17  # FightingAI::Core::Observation#to_vector element count
 ACTION_DIM = FightingAI::Game::MortalKombat3::ActionTranslator::ACTIONS.size
 
 # ── Resolve match state ───────────────────────────────────────────────────────

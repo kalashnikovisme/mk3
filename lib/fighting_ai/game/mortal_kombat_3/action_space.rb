@@ -21,7 +21,7 @@ module FightingAI
           },
           walk_back: ->(_pi) { IS.new.press([:left], hold_frames: 1) },
 
-          # jump: ->(_pi) { IS.new.press([:up], hold_frames: 2) },
+          jump: ->(_pi) { IS.new.press([:up], hold_frames: 2) },
           duck: ->(_pi) { IS.new.press([:down], hold_frames: 2) },
 
           low_punch:  ->(_pi) { IS.new.press([:low_punch], hold_frames: 1) },
@@ -36,8 +36,8 @@ module FightingAI
           crouch_kick:  ->(_pi) { IS.new.press([:down]).press([:low_kick]) },
 
           # Jump attacks
-          # jump_punch: ->(_pi) { IS.new.press([:up]).press([:high_punch]) },
-          # jump_kick:  ->(_pi) { IS.new.press([:up]).press([:high_kick]) },
+          jump_punch: ->(_pi) { IS.new.press([:up]).press([:high_punch]) },
+          jump_kick:  ->(_pi) { IS.new.press([:up]).press([:high_kick]) },
 
           # Throws (forward = toward opponent)
           throw_forward: ->(_pi) { IS.new.press(%i[low_punch high_punch]) },
