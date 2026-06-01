@@ -14,44 +14,44 @@ module FightingAI
             IS.new
               .press([:down],              hold_frames: 1)
               .idle(1)
-              .press([:down, :right, :low_punch], hold_frames: 1)
+              .press([:down, :forward, :low_punch], hold_frames: 1)
 
           },
           # D, F + HP
           # ice_shower: ->(_pi) {
           #   IS.new
           #     .press([:down],               hold_frames: 1)
-          #     .press([:right, :high_punch], hold_frames: 1)
+          #     .press([:forward, :high_punch], hold_frames: 1)
           # },
           # # D, B + LP
           # ice_clone: ->(_pi) {
           #   IS.new
           #     .press([:down],             hold_frames: 1)
           #     .idle(1)
-          #     .press([:down, :left, :low_punch], hold_frames: 1)
+          #     .press([:down, :back, :low_punch], hold_frames: 1)
           # },
           # air_ice_clone: ->(_pi) {
           #   IS.new
           #     .press([:up],             hold_frames: 1)
-          #     .press([:down, :left, :low_punch], hold_frames: 1)
+          #     .press([:down, :back, :low_punch], hold_frames: 1)
           # },
           # # B + BL + LP + LK simultaneously
           # slide: ->(_pi) {
-          #   IS.new.press([:left, :block, :low_punch, :low_kick], hold_frames: 3)
+          #   IS.new.press([:back, :block, :low_punch, :low_kick], hold_frames: 3)
           # },
           # # D, F, B + HP
           # ice_shower_front: ->(_pi) {
           #   IS.new
           #     .press([:down],               hold_frames: 1)
-          #     .press([:right],              hold_frames: 1)
-          #     .press([:left, :high_punch],  hold_frames: 1)
+          #     .press([:forward],              hold_frames: 1)
+          #     .press([:back, :high_punch],  hold_frames: 1)
           # },
           # # D, B, F + HP
           # ice_shower_back: ->(_pi) {
           #   IS.new
           #     .press([:down],               hold_frames: 1)
-          #     .press([:left],               hold_frames: 1)
-          #     .press([:right, :high_punch], hold_frames: 1)
+          #     .press([:back],               hold_frames: 1)
+          #     .press([:forward, :high_punch], hold_frames: 1)
           # },
           # # HP, HP, B + HK
           # combo_1: ->(_pi) {
@@ -59,7 +59,7 @@ module FightingAI
           #     .press([:high_punch],        hold_frames: 1)
           #     .idle(1)
           #     .press([:high_punch],        hold_frames: 1)
-          #     .press([:left, :high_kick], hold_frames: 1)
+          #     .press([:back, :high_kick], hold_frames: 1)
           # },
           # # HP, HP, LP, B + HK
           # combo_2: ->(_pi) {
@@ -68,7 +68,7 @@ module FightingAI
           #     .idle(1)
           #     .press([:high_punch],        hold_frames: 1)
           #     .press([:low_punch],        hold_frames: 1)
-          #     .press([:left, :high_kick], hold_frames: 1)
+          #     .press([:back, :high_kick], hold_frames: 1)
           # },
           # # HP, HP, LK, HK, B + HK
           # combo_3: ->(_pi) {
@@ -79,7 +79,7 @@ module FightingAI
           #     .press([:low_kick],        hold_frames: 1)
           #     .press([:high_kick],        hold_frames: 1)
           #     .idle(1)
-          #     .press([:left, :high_kick], hold_frames: 1)
+          #     .press([:back, :high_kick], hold_frames: 1)
           # },
           # # HP, HP, LP, LK, HK, B + HK
           # combo_4: ->(_pi) {
@@ -91,7 +91,7 @@ module FightingAI
           #     .press([:low_kick],        hold_frames: 1)
           #     .press([:high_kick],        hold_frames: 1)
           #     .idle(1)
-          #     .press([:left, :high_kick], hold_frames: 1)
+          #     .press([:back, :high_kick], hold_frames: 1)
           # },
           # # HK, HK, B + HK
           # combo_5: ->(_pi) {
@@ -100,7 +100,7 @@ module FightingAI
           #     .idle(1)
           #     .press([:high_kick],        hold_frames: 1)
           #     .idle(1)
-          #     .press([:left, :high_kick], hold_frames: 1)
+          #     .press([:back, :high_kick], hold_frames: 1)
           # },
         }.freeze
 

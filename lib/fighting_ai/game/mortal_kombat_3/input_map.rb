@@ -8,11 +8,16 @@ module FightingAI
         }.freeze
 
         # Logical button name => SNES button name (for documentation purposes)
+        # forward/back are direction-agnostic aliases: toward/away from opponent.
+        # Sequences encode moves for a right-facing player; flip_direction resolves
+        # forward→back when the fighter faces left.
         BUTTON_MAP = {
           up:         "Up",
           down:       "Down",
           left:       "Left",
           right:      "Right",
+          forward:    "Right",
+          back:       "Left",
           high_punch: "Y",
           low_punch:  "B",
           low_kick:   "A",

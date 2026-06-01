@@ -156,8 +156,10 @@ module FightingAI
           input_sequence.entries.each do |entry|
             flipped_buttons = entry.buttons.map do |btn|
               case btn
-              when :left  then :right
-              when :right then :left
+              when :left    then :right
+              when :right   then :left
+              when :forward then :back
+              when :back    then :forward
               else btn
               end
             end
