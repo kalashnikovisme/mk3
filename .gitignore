@@ -2,3 +2,5 @@
 /data/memory/
 /data/states/
 /models/
+/data/logs/
+/ready_models/
