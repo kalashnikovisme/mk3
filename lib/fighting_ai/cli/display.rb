@@ -16,12 +16,15 @@ module FightingAI
         stale:        "stl"
       }.freeze
 
+      attr_writer :log_file
+
       def initialize
         @episode       = 0
         @training_step = 0
         @buffer_size   = 0
         @buffer_cap    = 512
         @last_status   = ""
+        @log_file      = nil
       end
 
       def set_context(episode:, training_step:, buffer_size:, buffer_capacity:)
@@ -128,6 +131,10 @@ module FightingAI
         body = lines.map.with_index { |l, i| i.zero? ? "\r\e[2K#{l}" : "\n\e[2K#{l}" }.join
         $stdout.print "#{body}\n\r\e[2K#{@last_status}"
         $stdout.flush
+        if @log_file
+          lines.each { |l| @log_file.puts l.gsub(/\e\[[0-9;]*m/, "") }
+          @log_file.flush
+        end
       end
     end
   end

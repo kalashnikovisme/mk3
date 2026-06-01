@@ -26,6 +26,7 @@ ROM_PATH    = ENV.fetch("ROM_PATH",  File.expand_path("../mk3.sfc", __dir__))
 CORE_PATH   = ENV.fetch("CORE_PATH", "/usr/lib/x86_64-linux-gnu/libretro/snes9x_libretro.so")
 MATCHES_DIR = File.expand_path("../data/matches", __dir__)
 MODELS_DIR  = File.expand_path("../models", __dir__)
+LOGS_DIR    = File.expand_path("../data/logs", __dir__)
 MEMORY_DIR  = File.expand_path("../data/memory", __dir__)
 DEBUG        = ARGV.include?("debug")
 WRAM_DEBUG   = DEBUG
@@ -78,6 +79,13 @@ FightingAI::CLI.trap_sigint(cleanup: -> { trainer_ref&.stop })
 # ── Start emulator ────────────────────────────────────────────────────────────
 
 ppo_ui = DEBUG ? nil : FightingAI::CLI::PPODisplay.new
+unless DEBUG
+  FileUtils.mkdir_p(LOGS_DIR)
+  log_name = "#{Time.now.strftime('%Y%m%d_%H%M%S')}_#{File.basename(match_state[:path], '.state')}.log"
+  log_file = File.open(File.join(LOGS_DIR, log_name), "w")
+  log_file.sync = true
+  ppo_ui.log_file = log_file
+end
 
 emulator = FightingAI::CLI.start_retro_arch(
   rom_path:         ROM_PATH,
