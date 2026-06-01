@@ -27,6 +27,11 @@ module FightingAI
         raise NotImplementedError, "#{self.class}#send_input not implemented"
       end
 
+      # Send a sequence of button-state hashes one game frame apart.
+      def send_input_sequence(player_index, frame_buttons_array)
+        raise NotImplementedError, "#{self.class}#send_input_sequence not implemented"
+      end
+
       def send_noop
         raise NotImplementedError, "#{self.class}#send_noop not implemented"
       end

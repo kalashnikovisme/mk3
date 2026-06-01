@@ -126,6 +126,13 @@ module FightingAI
           @keyboard.send_input(player_index, buttons)
         end
 
+        def send_input_sequence(player_index, frame_buttons_array)
+          frame_buttons_array.each do |buttons|
+            @keyboard.send_input(player_index, buttons)
+            sleep(FRAME_DURATION)
+          end
+        end
+
         def send_noop
           [1, 2].each { |p| @keyboard.release_all(p) }
           sleep(FRAME_DURATION)
