@@ -70,6 +70,7 @@ module FightingAI
         last_status_at  = Time.now - 1
         stall_hp        = nil
         stall_since     = nil
+        @action_queues  = {}
         loop do
           snapshot   = @emulator.next_frame_snapshot
           game_state = @game.extract_game_state(snapshot)
@@ -135,6 +136,13 @@ module FightingAI
         button_log = {}
 
         @agents.each do |player_index, agent|
+          queue = @action_queues[player_index] ||= []
+
+          if queue.any?
+            @emulator.send_input(player_index, queue.shift)
+            next
+          end
+
           reward = if prev_game_state
             @game.calculate_reward(prev_game_state, game_state, player_index: player_index)
           else
@@ -153,9 +161,11 @@ module FightingAI
             reward:       reward
           )
 
-          input_seq = @game.action_to_input_sequence(action, player_index: player_index, game_state: game_state)
-          buttons   = @game.input_sequence_to_buttons(input_seq, player_index: player_index)
+          input_seq  = @game.action_to_input_sequence(action, player_index: player_index, game_state: game_state)
+          all_frames = @game.all_button_frames(input_seq, player_index: player_index)
+          buttons    = all_frames.shift
           @emulator.send_input(player_index, buttons)
+          @action_queues[player_index] = all_frames
 
           if @ui.nil?
             pressed = buttons.select { |_, v| v }.keys

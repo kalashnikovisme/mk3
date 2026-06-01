@@ -65,6 +65,12 @@ module FightingAI
           InputMap.to_logical(logical, player_index: player_index)
         end
 
+        def all_button_frames(input_sequence, player_index:)
+          input_sequence.to_button_frames.map do |logical|
+            logical.empty? ? InputMap.all_released : InputMap.to_logical(logical, player_index: player_index)
+          end
+        end
+
 
         def calculate_reward(prev_game_state, next_game_state, player_index:, stale: false, round_over: false)
           @reward_function.call(prev_game_state, next_game_state, player_index: player_index, stale: stale, round_over: round_over)

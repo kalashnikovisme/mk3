@@ -58,6 +58,10 @@ module FightingAI
         raise NotImplementedError, "#{self.class}#calculate_reward not implemented"
       end
 
+      def all_button_frames(input_sequence, player_index:)
+        raise NotImplementedError, "#{self.class}#all_button_frames not implemented"
+      end
+
       # -------------------------------------------------------------------------
       # Match lifecycle contract (all must be implemented by subclasses)
       # -------------------------------------------------------------------------
