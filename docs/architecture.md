@@ -91,7 +91,7 @@ Manages the emulator process, reads game state from WRAM, and delegates input in
 - `Emulator::RetroArch::Adapter` — main adapter
 - `Emulator::RetroArch::Process` — spawns/monitors the RetroArch process
 - `Emulator::RetroArch::NetworkCommands` — UDP commands (pause/reset/save_state/screenshot/quit)
-- `Emulator::RetroArch::WramReader` — reads `/proc/[pid]/mem`; scans for MK3 WRAM region; provides `read_u8` / `read_u16_le`
+- `Emulator::RetroArch::SaveStateReader` — reads RZIP-compressed save-state files; locates the 128 KB WRAM region using the RASTATE marker, legacy text markers, or an MK3 health/screen signature scan; provides `read_u8` / `read_u16_le` / `raw_wram`; guards against partially-written files by requiring decompressed size ≥ WRAM_SIZE before returning data
 - `Emulator::RetroArch::FrameGrabber` — triggers screenshot, polls for new PNG, returns `FrameObservation`
 - `Emulator::RetroArch::ConfigBuilder` — generates `retroarch.cfg` with network commands and keyboard bindings
 
@@ -140,11 +140,23 @@ See `docs/ppo_training.md` for full hyperparameter reference.
 - `HumanVsAI` — human keyboard passthrough (VirtualInput for P1) + AI agent injection (P2).
 - `AIVsAI` — autonomous series of matches.
 
+## Memory Analysis Tools
+
+`lib/memory_analysis/` is a standalone, game-agnostic toolkit for discovering WRAM addresses via brute-force dump comparison. It sits outside the training loop and is invoked only by the `dip memory:*` commands.
+
+| Class | Role |
+|-------|------|
+| `AddressFinder` | Runs 5 algorithms (monotonic, bracketed, binary-transition, decreasing, stepped) over a set of named WRAM dumps; returns ranked `Candidate` lists |
+| `CandidateVerifier` | Loads 120-frame motion sequences; computes per-address stats (monotonicity, avg_delta, Pearson correlation, mirror groups); writes CSVs |
+| `P2Finder` | Full-WRAM u16le scan correlated against a reference series; also probes struct-offset candidates |
+
+See `docs/training_dsl.md` for the full workflow and Ruby API.
+
 ## Data Flow (one frame)
 
 ```
 RetroArch (snes9x core)
-  → WramReader reads /proc/[pid]/mem
+  → SaveStateReader reads WRAM from save-state file (slot 9)
     → RetroArch::Adapter#next_frame_snapshot → snapshot Hash
       → GameAdapter#extract_game_state → GameState
         → GameAdapter#build_observation → Observation

@@ -10,10 +10,6 @@ module FightingAI
       :round_over,
       :match_over
     ) do
-      def distance
-        fighter1.distance_to(fighter2)
-      end
-
       def fight_active? = fight_active
       def round_over?   = round_over
       def match_over?   = match_over

@@ -66,6 +66,7 @@ See `docs/adding_new_fighting_game.md`.
 - `docs/game_adapter_contract.md` — contract that game adapters must satisfy
 - `docs/adding_new_fighting_game.md` — step-by-step guide for new games
 - `docs/training_dsl.md` — training loop and recorder
+- `docs/ppo_training.md` — PPO self-play config: action space, reward weights, hyperparameters, entropy collapse detection
 
 ## Keeping Docs Current
 

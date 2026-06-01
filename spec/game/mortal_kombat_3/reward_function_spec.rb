@@ -16,8 +16,8 @@ RSpec.describe FightingAI::Game::MortalKombat3::RewardFunction do
   def make_state(h1:, h2:, round_over: false, match_over: false)
     FightingAI::Core::GameState.new(
       frame_number:         1,
-      fighter1:             FightingAI::Core::FighterState.new(**attrs, player_index: 1, health: h1, x: 100, y: 40),
-      fighter2:             FightingAI::Core::FighterState.new(**attrs, player_index: 2, health: h2, x: 200, y: 40),
+      fighter1:             FightingAI::Core::FighterState.new(**attrs, player_index: 1, health: h1, x: 0, y: 40),
+      fighter2:             FightingAI::Core::FighterState.new(**attrs, player_index: 2, health: h2, x: 0, y: 40),
       round_number:         1,
       round_time_remaining: 90,
       fight_active:         !round_over,

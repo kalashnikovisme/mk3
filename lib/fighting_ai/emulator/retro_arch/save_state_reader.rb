@@ -18,6 +18,8 @@ module FightingAI
         # Older snes9x text format fallback.
         TEXT_RAM_MARKERS = [":RAM\n".b, ":WRAM\n".b].freeze
 
+        WRAM_SIZE = 131_072  # 128 KB — SNES WRAM bus address 0x7E0000
+
         attr_reader :watch_dirs, :wram_offset
 
         def initialize(watch_dirs:, rom_basename:)
@@ -30,16 +32,12 @@ module FightingAI
         def read_next(before: nil) = read_current
 
         def read_after_update(before)
-          data = wait_for_update(before)
-          locate_wram(data) unless @wram_offset
-          Snapshot.new(decompress(data).bytes, @wram_offset)
+          data  = wait_for_update(before)
+          build_snapshot(data)
         end
 
-
         def read_current
-          data = latest_state_file_data
-          locate_wram(data) unless @wram_offset
-          Snapshot.new(decompress(data).bytes, @wram_offset)
+          build_snapshot(latest_state_file_data)
         end
 
         def try_locate_any
@@ -58,7 +56,29 @@ module FightingAI
           !@wram_offset.nil?
         end
 
+        def wram_source_info
+          {
+            source:       @wram_source || "snes9x save state (format unknown)",
+            base_address: 0x7E0000,
+            wram_offset:  @wram_offset,
+            size:         WRAM_SIZE
+          }
+        end
+
         private
+
+        # Decompress data, validate/re-locate WRAM offset, return Snapshot.
+        # Clears @wram_offset before re-locating so a failed locate_wram never
+        # leaves a stale offset that passes the nil-guard.
+        def build_snapshot(data)
+          bytes = decompress(data).bytes
+          if @wram_offset.nil? || @wram_offset + WRAM_SIZE > bytes.size
+            @wram_offset = nil
+            locate_wram(data)
+            raise "WRAM not found in state (#{bytes.size} decompressed bytes)" unless @wram_offset
+          end
+          Snapshot.new(bytes, @wram_offset)
+        end
 
         def latest_state_file_data
           files = @watch_dirs.flat_map { |dir| Dir.glob(File.join(dir, "**", "*.state*")) }
@@ -83,10 +103,14 @@ module FightingAI
             @watch_dirs.each do |dir|
               Dir.glob(File.join(dir, "**", "*.state*")).each do |f|
                 mtime = File.mtime(f) rescue next
-                if before[f].nil? || (mtime && mtime > before[f])
-                  data = File.binread(f)
-                  return data if data.bytesize > 0
-                end
+                next unless before[f].nil? || (mtime && mtime > before[f])
+                data = File.binread(f)
+                # Reject partially-written files: RetroArch writes the RZIP
+                # header before the compressed payload, so a non-empty file can
+                # still decompress to 0 bytes.  Spin until the decompressed
+                # content is at least WRAM_SIZE bytes.
+                next if decompress(data).bytesize < WRAM_SIZE
+                return data
               end
             end
             if Time.now > deadline
@@ -129,8 +153,9 @@ module FightingAI
           idx = raw.index(RASTATE_RAM_MARKER)
           if idx
             wram_start = idx + RASTATE_RAM_MARKER.bytesize
-            if wram_start + 0x20000 <= raw.bytesize
+            if wram_start + WRAM_SIZE <= raw.bytesize
               @wram_offset = wram_start
+              @wram_source = "snes9x save state (RASTATE binary)"
               return true
             end
           end
@@ -147,8 +172,9 @@ module FightingAI
             size       = raw[size_start...nl].strip.to_i
             wram_start = nl + 1
 
-            if size >= 0x20000 && wram_start + size <= raw.bytesize
+            if size >= WRAM_SIZE && wram_start + size <= raw.bytesize
               @wram_offset = wram_start
+              @wram_source = "snes9x save state (text format)"
               return true
             end
           end
@@ -156,9 +182,10 @@ module FightingAI
           # Last resort: scan for MK3 health-value signature
           bytes = raw.bytes
           bytes.each_index do |i|
-            break if i + 0x3B00 > bytes.length
+            break if i + WRAM_SIZE > bytes.length
             if mk3_signature?(bytes, i)
               @wram_offset = i
+              @wram_source = "snes9x save state (MK3 signature scan)"
               return true
             end
           end
@@ -191,6 +218,13 @@ module FightingAI
             lo = @bytes[@offset + wram_addr] || 0
             hi = @bytes[@offset + wram_addr + 1] || 0
             lo | (hi << 8)
+          end
+
+          # Returns exactly WRAM_SIZE bytes of raw SNES WRAM as a binary String.
+          def raw_wram
+            slice = @bytes[@offset, SaveStateReader::WRAM_SIZE]
+            raise "WRAM slice out of bounds (offset=#{@offset}, data=#{@bytes.size} bytes)" unless slice
+            slice.pack("C*")
           end
         end
       end

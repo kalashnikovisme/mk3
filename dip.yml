@@ -87,6 +87,26 @@ interaction:
     service: app
     command: bundle exec ruby bin/scenario --memory-debug
 
+  "memory:analyze":
+    description: Auto-discover WRAM addresses (P1/P2 X, distance, facing, health, timer)
+    service: app
+    command: bundle exec ruby bin/memory_analyze
+
+  "memory:verify":
+    description: Verify candidate addresses with 120-frame motion sequences
+    service: app
+    command: bundle exec ruby bin/memory_verify
+
+  "memory:find-p2":
+    description: Discover P2 X coordinate by correlating WRAM against confirmed P1 X series
+    service: app
+    command: bundle exec ruby bin/memory_find_p2
+
+  "memory:verify-known-addresses":
+    description: Verify published candidates — P1 health 0x36D4, P2 health 0x3898, timer 0x3BD4
+    service: app
+    command: bundle exec ruby bin/memory_verify_known
+
   watch-match:
     description: Watch a recorded match replay
     service: app

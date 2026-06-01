@@ -146,7 +146,6 @@ module FightingAI
         def install_match_state(src_path)
           dest = slot0_state_path
           FileUtils.mkdir_p(File.dirname(dest))
-          $stdout.puts "[state] Loading #{File.basename(src_path)}" if @verbose
           FileUtils.cp(src_path, dest)
           NetworkCommands.load_state(slot: 0)
           sleep(LOAD_STATE_WAIT)
@@ -158,6 +157,14 @@ module FightingAI
 
         def reset
           NetworkCommands.reset
+        end
+
+        def wram_binary_dump
+          capture_state_snapshot.raw_wram
+        end
+
+        def wram_source_info
+          @save_state_reader.wram_source_info
         end
 
         def wram_dump(from: 0x0000, to: 0x1FFF)
@@ -199,18 +206,19 @@ module FightingAI
         end
 
         def build_mk3_snapshot(frame_num, wram)
+          mm = Game::MortalKombat3::MemoryMap
           {
-            "type"    => "frame",
-            "frame"   => frame_num,
-            "game"    => "mortal_kombat_3",
-            "screen"  => wram.read_u8(0x3A7E),
-            "timer"   => [99 - wram.read_u8(0x3610), 0].max,
-            "players" => {
+            "type"     => "frame",
+            "frame"    => frame_num,
+            "game"     => "mortal_kombat_3",
+            "screen"   => wram.read_u8(mm::SCREEN_ADDR),
+            "timer"    => [mm::TIMER_MAX - wram.read_u8(mm::LEVEL_TIMER_ADDR), 0].max,
+            "players"  => {
               "1" => {
-                "health"     => wram.read_u8(0x3634),
-                "max_health" => 0xA6,
-                "rounds_won" => wram.read_u8(0x36E0),
-                "x"          => wram.read_u8(Game::MortalKombat3::MemoryMap::P1_X_ADDR),
+                "health"     => wram.read_u8(mm::P1_HEALTH_ADDR),
+                "max_health" => mm::MAX_HEALTH,
+                "rounds_won" => wram.read_u8(mm::P1_ROUNDS_WON),
+                "x"          => wram.read_u16_le(mm::P1_X_ADDR),
                 "y"          => 0,
                 "facing"     => 0,
                 "anim"       => 0,
@@ -218,10 +226,9 @@ module FightingAI
                 "state"      => 0
               },
               "2" => {
-                "health"     => wram.read_u8(0x37F6),
-                "max_health" => 0xA6,
-                "rounds_won" => wram.read_u8(0x38A4),
-                "x"          => wram.read_u8(Game::MortalKombat3::MemoryMap::P2_X_ADDR),
+                "health"     => wram.read_u8(mm::P2_HEALTH_ADDR),
+                "max_health" => mm::MAX_HEALTH,
+                "rounds_won" => wram.read_u8(mm::P2_ROUNDS_WON),
                 "y"          => 0,
                 "facing"     => 0,
                 "anim"       => 0,

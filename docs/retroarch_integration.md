@@ -4,71 +4,82 @@
 
 FightingAI drives RetroArch (with the snes9x core) as the SNES emulator. Communication uses three independent channels:
 
-| Channel  | Direction       | Mechanism                        |
-|----------|-----------------|----------------------------------|
-| Input    | Ruby → RetroArch | xdotool keydown/keyup            |
-| State    | RetroArch → Ruby | `/proc/[pid]/mem` WRAM reads     |
-| Control  | Ruby → RetroArch | UDP network commands (port 55355)|
+| Channel  | Direction        | Mechanism                                              |
+|----------|------------------|--------------------------------------------------------|
+| Input    | Ruby → RetroArch | xdotool keydown/keyup injected to the RetroArch window |
+| State    | RetroArch → Ruby | Save-state file reads via `SaveStateReader`            |
+| Control  | Ruby → RetroArch | UDP network commands (port 55355)                      |
 
 ## Process Lifecycle
 
 1. `RetroArch::ConfigBuilder.build` writes a temp `retroarch.cfg` with network commands enabled and P1/P2 keyboard bindings.
 2. `RetroArch::Adapter#start` starts the `display_server` first — either `XvfbServer` (`Xvfb :99`, headless) or `XephyrServer` (`Xephyr :99`, visible window on host desktop).
 3. `RetroArch::Process#start` spawns `retroarch` with `DISPLAY=:99` in a new process group with stdout/stderr redirected to `/dev/null`.
-4. After a startup pause, `RetroArch::WramReader#attach(pid)` opens `/proc/[pid]/mem`.
-5. `RetroArch::Adapter#wait_for_wram` calls `WramReader#scan_for_wram` in a polling loop until the MK3 WRAM region is found.
-6. On stop, the adapter releases all keys, sends `QUIT` via UDP, kills the process group, then stops Xvfb.
+4. After a startup pause, `RetroArch::Adapter#wait_for_wram` polls slot 9 save-states: it issues `SAVE_STATE` via UDP, then calls `SaveStateReader#try_locate_any` until the MK3 WRAM region is found.
+5. Once WRAM is located, the adapter loads slot 0 (the match state) and the run loop begins.
+6. On stop, the adapter releases all keys, sends `QUIT` via UDP, kills the process group, then stops the display server.
 
 ## UDP Network Commands
 
 Port 55355 (configured in `retroarch.cfg` via `network_cmd_port`).
 
-| Command            | UDP payload           | Notes |
-|--------------------|-----------------------|-------|
-| Pause toggle       | `PAUSE_TOGGLE`        | |
-| Reset              | `RESET`               | |
-| Save state         | `SAVE_STATE`          | Always saves to current slot; no `SAVE_STATE_SLOT N` command exists |
-| Load state (slot N)| `LOAD_STATE_SLOT N`   | Single command — sets slot and loads atomically |
-| Load state (current)| `LOAD_STATE`         | |
-| Screenshot         | `SCREENSHOT`          | |
-| Quit               | `QUIT`                | |
+| Command              | UDP payload         | Notes |
+|----------------------|---------------------|-------|
+| Pause toggle         | `PAUSE_TOGGLE`      | |
+| Reset                | `RESET`             | |
+| Save state           | `SAVE_STATE`        | Always saves to current slot |
+| Load state (slot N)  | `LOAD_STATE_SLOT N` | Sets slot and loads atomically |
+| Load state (current) | `LOAD_STATE`        | |
+| Screenshot           | `SCREENSHOT`        | |
+| Quit                 | `QUIT`              | |
 
 Implemented in `Emulator::RetroArch::NetworkCommands`.
 
 ## WRAM Reading
 
-The snes9x core maps SNES WRAM (bus address `0x7E0000`, 128 KB) into an anonymous `rw-p` region in the RetroArch process address space. The exact host address varies per run.
+The snes9x core stores SNES WRAM (bus address `0x7E0000`, 128 KB) inside RetroArch save-state files. `SaveStateReader` extracts it using three strategies in priority order:
 
-`WramReader` scans `/proc/[pid]/maps` for all `rw-p` regions ≥ 512 bytes. For each region it reads up to 64 KB and tests the MK3 signature:
+1. **RASTATE binary** (RetroArch 1.17+) — scans for the `RAM:131072:` marker and reads the 131072-byte block that follows. This is the normal path.
+2. **snes9x text format** (older) — scans for `:RAM\n` or `:WRAM\n` markers and parses the size/data fields.
+3. **MK3 signature scan** — walks every byte offset looking for the P1/P2 health and screen-ID pattern as a last resort.
 
-- `data[0x011C] == 160` — P1 max health is always 160 in MK3
-- `data[0x014C] == 160` — P2 max health
-- `data[0x0101]` in `0..3` — valid game state enum
-- `data[0x018A]` in `1..5` — valid round number
-- `data[0x011A]` in `0..160` — valid P1 health
-- `data[0x014A]` in `0..160` — valid P2 health
+Once found, the byte offset within the decompressed state blob is cached as `@wram_offset`. On every subsequent read, the offset is re-validated against the actual decompressed size of the current file; if it falls out of bounds (e.g. a partially-written file during an emulator save), WRAM is re-located before the `Snapshot` is built.
 
-Once found, the base address is cached. `read_u8(wram_addr)` and `read_u16_le(wram_addr)` add `wram_addr` to the base and seek `/proc/[pid]/mem` directly.
+`read_u8(wram_addr)` and `read_u16_le(wram_addr)` index into `@bytes` at `@wram_offset + wram_addr`.
 
-`Errno::EIO` and `Errno::ESRCH` from unreadable regions are silently skipped during scanning and return `0` during normal reads.
+`raw_wram` returns exactly 131072 bytes (`WRAM_SIZE`) as a binary `String`. Used by `Adapter#wram_binary_dump` when writing `.bin` snapshot files.
+
+### Partial-write protection
+
+RetroArch writes RZIP state files incrementally (header first, then compressed chunks). `SaveStateReader#wait_for_update` rejects any file whose decompressed content is shorter than `WRAM_SIZE` (128 KB), spinning until a fully-written file is available.
 
 ## Confirmed MK3 WRAM Addresses
 
 Addresses are relative to WRAM base (SNES bus `0x7E0000`).
 
-| Constant | Offset | Description | Confirmed |
-|---|---|---|---|
-| `P1_HEALTH_ADDR` | `0x3634` | Player 1 current health (0–0xA6) | yes |
-| `P2_HEALTH_ADDR` | `0x37F6` | Player 2 current health (0–0xA6) | yes |
-| `P1_ROUNDS_WON`  | `0x36E0` | Player 1 rounds won | yes |
-| `P2_ROUNDS_WON`  | `0x38A4` | Player 2 rounds won | yes |
-| `SCREEN_ADDR`    | `0x3A7E` | Current screen / stage ID | yes |
-| `LEVEL_TIMER_ADDR` | `0x3610` | Round countdown timer (0–99, decrements once per second) | yes — observed 0x09→0x08→0x07→0x06 across sequential snapshots |
-| `FATALITY_TIMER_ADDR` | `0x3BE0` | Fatality timer | unverified |
-| `P1_X_ADDR` | `0x1A0A` | Player 1 horizontal position (0–255) | confirmed |
-| `P2_X_ADDR` | `0x0656` | Player 2 horizontal position (0–255) | confirmed |
+| Constant | Offset | Width | Description | Status |
+|---|---|---|---|---|
+| `P1_HEALTH_ADDR` | `0x3634` | u8 | Player 1 current health (0–0xA6) | confirmed |
+| `P2_HEALTH_ADDR` | `0x37F6` | u8 | Player 2 current health (0–0xA6) | confirmed |
+| `P1_ROUNDS_WON` | `0x36E0` | u8 | Player 1 rounds won | confirmed |
+| `P2_ROUNDS_WON` | `0x38A4` | u8 | Player 2 rounds won | confirmed |
+| `SCREEN_ADDR` | `0x3A7E` | u8 | Current screen / stage ID | confirmed |
+| `LEVEL_TIMER_ADDR` | `0x3610` | u8 | Elapsed round seconds (adapter inverts to remaining = 99 − raw) | confirmed — observed incrementing across sequential snapshots |
+| `FATALITY_TIMER_ADDR` | `0x3BE0` | u8 | Fatality timer | unverified |
+| `DISTANCE_ADDR` | `0x040E` | u8 | Distance between fighters | confirmed |
+| `P1_X_ADDR` | `0x1A0A` | u16le | Player 1 horizontal position | confirmed — Pearson r = 1.0 across 120-frame walk sequence |
 
-Y position, facing direction, and animation state addresses are **not yet located**. They are placeholder zeros in the current snapshot until a RAM search confirms them.
+**Verified but not yet promoted to a named constant:**
+
+| Offset | Width | Description | Evidence |
+|---|---|---|---|
+| `0x0062C` | u8 | P1 facing / binary state flag | Verified by `CandidateVerifier`: toggles exactly once when P1 crosses P2, 2 unique values, direction_changes = 0 |
+
+**Not yet located:**
+
+- Player 2 X position (use `dip memory:find-p2` to discover)
+- Y positions for both players
+- Animation state / frame index for both players
 
 ## Keyboard Input Injection
 

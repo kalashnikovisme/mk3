@@ -27,7 +27,6 @@ module FightingAI
           my_y_normalized:       observation.my_y_normalized,
           opponent_x_normalized: 1.0 - observation.opponent_x_normalized,
           opponent_y_normalized: observation.opponent_y_normalized,
-          distance_normalized:   observation.distance_normalized,
           my_facing:             :right,
           opponent_facing:       :left,
           my_in_hitstun:         observation.my_in_hitstun,

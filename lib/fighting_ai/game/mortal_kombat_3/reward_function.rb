@@ -11,8 +11,7 @@ module FightingAI
           round_win:    RewardCalculator::WIN_REWARD,
           round_loss:   RewardCalculator::LOSS_REWARD,
           round_draw:   RewardCalculator::DRAW_REWARD,
-          stale:        RewardCalculator::STALE_REWARD,
-          distance:     RewardCalculator::DISTANCE_WEIGHT
+          stale:        RewardCalculator::STALE_REWARD
         }.freeze
 
         def initialize(weights: DEFAULT_WEIGHTS)
@@ -29,16 +28,9 @@ module FightingAI
           damage_dealt = [opp_prev.health - opp_next.health, 0].max.to_f
           damage_taken = [me_prev.health  - me_next.health,  0].max.to_f
 
-          max_dist  = MemoryMap::MAX_FIGHT_DISTANCE.to_f
-          dist      = [next_state.distance, max_dist].min
-          # +weight when adjacent, 0 at mid-screen, -weight at maximum separation
-          closeness = 1.0 - dist / max_dist
-          distance_component = (closeness * 2.0 - 1.0) * @weights[:distance]
-
           components = {
             damage_dealt: damage_dealt * @weights[:damage_dealt],
-            damage_taken: damage_taken * @weights[:damage_taken],
-            distance:     distance_component
+            damage_taken: damage_taken * @weights[:damage_taken]
           }
 
           if stale

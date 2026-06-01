@@ -57,7 +57,6 @@ module FightingAI
           my_y:                   obs.my_y_normalized,
           opponent_x:             obs.opponent_x_normalized,
           opponent_y:             obs.opponent_y_normalized,
-          distance:               obs.distance_normalized,
           my_facing:              obs.my_facing,
           opponent_facing:        obs.opponent_facing,
           my_in_hitstun:          obs.my_in_hitstun,

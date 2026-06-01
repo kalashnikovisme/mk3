@@ -5,6 +5,43 @@ Run with `dip scenario` (uses `scenario.rb` in the project root) or `dip scenari
 
 ## Top-level methods
 
+### `save_memory(name = nil)`
+
+Captures a raw binary WRAM snapshot (exactly 131072 bytes) and writes it to `/app/data/memory/<name>.bin`. Intermediate directories are created automatically, so `"p1_x/frame_0"` produces `/app/data/memory/p1_x/frame_0.bin`. If `name` is omitted, the file is named by timestamp.
+
+The first call in each scenario session also prints the memory source, SNES bus base address, and size to stdout.
+
+```ruby
+save_memory "idle"            # → /app/data/memory/idle.bin
+save_memory "p1_x/r1"        # → /app/data/memory/p1_x/r1.bin
+save_memory                   # → /app/data/memory/20260101_120000.bin
+```
+
+### `save_state(name = nil)`
+
+Saves the current RetroArch state and copies it to `/app/data/states/<name>.state`. If `name` is omitted, named by timestamp.
+
+```ruby
+save_state "after_ice_ball"   # → /app/data/states/after_ice_ball.state
+save_state                    # → /app/data/states/20260101_120000.state
+```
+
+### `reload_state`
+
+Reloads the initial match state that was installed when the scenario started. Resets fighter positions, health, timer, and all game variables to the saved state. Use between independent test sections so each section starts from a known baseline.
+
+```ruby
+save_memory "p1_x/idle"
+P1.right 1
+save_memory "p1_x/r1"
+
+reload_state   # ← back to the initial state
+
+save_memory "p2_x/idle"
+P2.left 1
+save_memory "p2_x/l1"
+```
+
 ### `speed(preset_or_multiplier)`
 
 Sets the timing between input frames for all subsequent calls. Call it once at the top of the file.

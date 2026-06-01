@@ -45,7 +45,7 @@ module FightingAI
             player_index:    player_index,
             health:          data.fetch("health").to_i,
             max_health:      data.fetch("max_health", MM::MAX_HEALTH).to_i,
-            x:               data.fetch("x").to_i,
+            x:               data.fetch("x", 0).to_i,
             y:               data.fetch("y").to_i,
             facing:          Core::FacingDirection::RIGHT,
             animation_state: animation_state,

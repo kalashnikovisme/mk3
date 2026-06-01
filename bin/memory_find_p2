@@ -1,0 +1,197 @@
+#!/usr/bin/env ruby
+# Discovers the P2 X coordinate address by:
+#   1. Running a 120-frame scenario where P2 walks left (p2_walk/).
+#   2. Running a left/right cross-validation scenario (p2_left_long/, p2_right_long/).
+#   3. Loading the confirmed P1 X reference series from p1_right/.
+#   4. Building the full P1 mirror exclusion set (hardcoded + auto-detected r ≥ 0.98).
+#   5. Scanning the entire WRAM for correlated u16le addresses.
+#   6. Cross-validating the top 20 scan hits against left and right motion.
+#   7. Printing the final report.
+#
+# Prerequisites:
+#   Run `dip memory:verify` first — it generates the p1_right/ dumps.
+#
+# Usage:
+#   dip memory:find-p2
+#   bundle exec ruby bin/memory_find_p2
+
+$LOAD_PATH.unshift File.expand_path("../lib", __dir__)
+require "fighting_ai/cli/bootstrap"
+require "fighting_ai/scenario/speed"
+require "fighting_ai/scenario/state"
+require "fighting_ai/scenario/player_proxy"
+require_relative "../config/mk3"
+
+require "memory_analysis/dump"
+require "memory_analysis/p2_finder"
+require "memory_analysis/p2_scan_printer"
+
+ROM_PATH             = ENV.fetch("ROM_PATH",  File.expand_path("../mk3.sfc", __dir__))
+CORE_PATH            = ENV.fetch("CORE_PATH", "/usr/lib/x86_64-linux-gnu/libretro/snes9x_libretro.so")
+MATCHES_DIR          = File.expand_path("../data/matches", __dir__)
+MEMORY_DUMP_DIR      = "/app/data/memory"
+P2_WALK_SCENARIO     = File.expand_path("../scenarios/p2_verification.rb",       __dir__)
+CROSS_VAL_SCENARIO   = File.expand_path("../scenarios/p2_cross_validation.rb",   __dir__)
+
+# Confirmed P1 X address and full P1 mirror family to exclude from the scan.
+P1_X_ADDR       = 0x1A0A
+P1_MIRROR_FAMILY = [
+  0x1A0A, 0x1A0E,
+  0x0206, 0x0306, 0x0406, 0x0506, 0x0606, 0x0706, 0x0806, 0x0906
+].freeze
+
+[P2_WALK_SCENARIO, CROSS_VAL_SCENARIO].each do |f|
+  raise "Scenario file not found: #{f}" unless File.exist?(f)
+end
+
+# ── Load match state ──────────────────────────────────────────────────────────
+
+match_states = Dir.glob(File.join(MATCHES_DIR, "*.state")).sort
+raise "No .state files found in #{MATCHES_DIR}" if match_states.empty?
+
+first_state = match_states.first
+states_dir  = FightingAI::Emulator::RetroArch::ConfigBuilder::STATES_DIR
+rom_base    = File.basename(ROM_PATH, ".*")
+FileUtils.mkdir_p(states_dir)
+FileUtils.cp(first_state, File.join(states_dir, "#{rom_base}.state"))
+
+%w[p2_walk p2_left_long p2_right_long].each do |d|
+  FileUtils.rm_rf(File.join(MEMORY_DUMP_DIR, d))
+end
+FileUtils.rm_rf(File.join(MEMORY_DUMP_DIR, "verification", "p2_scan"))
+
+puts FightingAI::CLI::BANNER
+puts "Mode: P2 Coordinate Discovery\n\n"
+puts "State  → #{File.basename(first_state)}"
+puts "Memory → #{MEMORY_DUMP_DIR}"
+puts
+
+FightingAI::CLI.trap_sigint
+
+emulator = FightingAI::CLI.start_retro_arch(
+  rom_path:         ROM_PATH,
+  core_path:        CORE_PATH,
+  extra_watch_dirs: [MATCHES_DIR]
+)
+
+emulator.install_match_state(first_state)
+
+# ── Build DSL context ─────────────────────────────────────────────────────────
+
+FightingAI::Scenario.emulator           = emulator
+FightingAI::Scenario.initial_state_path = first_state
+FightingAI::Scenario.set_speed(:normal)
+
+P1 = FightingAI::Scenario::PlayerProxy.new(1, emulator)
+P2 = FightingAI::Scenario::PlayerProxy.new(2, emulator)
+
+def speed(preset_or_multiplier) = FightingAI::Scenario.set_speed(preset_or_multiplier)
+def wait(frames)                = sleep(frames * FightingAI::Scenario.frame_duration)
+def save_state(name = nil)      = FightingAI::Scenario.save_state(name)
+def save_memory(name = nil)     = FightingAI::Scenario.save_memory(name)
+def reload_state                = FightingAI::Scenario.reload_state
+def watch(address, label: nil)  = FightingAI::Scenario.watch(address, label: label)
+
+status_thread = Thread.new do
+  game    = FightingAI.build_mk3_adapter(emulator_adapter: emulator)
+  display = FightingAI::CLI::PPODisplay.new
+  loop do
+    snapshot   = emulator.next_frame_snapshot
+    game_state = game.extract_game_state(snapshot)
+    display.update(game_state: game_state, stage_name: game.snapshot_stage_name(snapshot), watches: [])
+  rescue => e
+    next if e.is_a?(ThreadError)
+    $stderr.puts "[status] #{e.class}: #{e.message}"
+    next
+  end
+end
+
+# ── Phase 1a: p2_walk sequence ────────────────────────────────────────────────
+
+puts "Phase 1a — P2 walk-left  (120 frames → p2_walk/)..."
+load P2_WALK_SCENARIO
+$stdout.print "\n"
+
+# ── Phase 1b: cross-validation sequences ─────────────────────────────────────
+
+FightingAI::Scenario.reload_state   # fresh start for cross-val
+puts "Phase 1b — left/right cross-validation (120 + 120 frames)..."
+load CROSS_VAL_SCENARIO
+$stdout.print "\n"
+
+status_thread.kill
+puts "Phase 1 complete."
+emulator.stop
+
+# ── Phase 2: check prerequisites ─────────────────────────────────────────────
+
+p1_walk_dir = File.join(MEMORY_DUMP_DIR, "p1_right")
+unless Dir.exist?(p1_walk_dir)
+  abort "\nP1 reference dumps not found at #{p1_walk_dir}.\nRun `dip memory:verify` first."
+end
+
+p2_walk_files  = Dir.glob(File.join(MEMORY_DUMP_DIR, "p2_walk",      "*.bin")).size
+p2_left_files  = Dir.glob(File.join(MEMORY_DUMP_DIR, "p2_left_long", "*.bin")).size
+p2_right_files = Dir.glob(File.join(MEMORY_DUMP_DIR, "p2_right_long","*.bin")).size
+
+puts "\nDumps collected:"
+puts "  p1_right    : #{Dir.glob(File.join(p1_walk_dir, '*.bin')).size} frames (reference)"
+puts "  p2_walk     : #{p2_walk_files} frames"
+puts "  p2_left_long: #{p2_left_files} frames"
+puts "  p2_right_long: #{p2_right_files} frames"
+
+# ── Phase 3: load reference + mirror series ───────────────────────────────────
+
+puts "\nPhase 2 — loading P1 reference and mirror series..."
+
+p1_dumps = Dir.glob(File.join(p1_walk_dir, "*.bin"))
+             .sort_by { |f| File.basename(f, ".bin").to_i }
+             .map { |f| MemoryAnalysis::Dump.new(f) }
+reference_series = p1_dumps.map { |d| d.u16le(P1_X_ADDR) }
+
+finder = MemoryAnalysis::P2Finder.new(
+  dump_dir: MEMORY_DUMP_DIR,
+  sequence: "p2_walk",
+  exclude:  P1_MIRROR_FAMILY
+)
+
+# Build value series for the known P1 mirror family from the p2_walk sequence
+# so we can auto-exclude any additional addresses that mirror them.
+mirror_series = finder.load_mirror_series(P1_MIRROR_FAMILY, "p2_walk")
+
+puts "  P1 reference range : #{reference_series.min}..#{reference_series.max}"
+puts "  Mirror family size : #{P1_MIRROR_FAMILY.size} explicit + auto-detected r ≥ #{MemoryAnalysis::P2Finder::MIRROR_THRESHOLD}"
+
+# ── Phase 4: full-WRAM scan ───────────────────────────────────────────────────
+
+puts "\nPhase 3 — scanning #{MemoryAnalysis::Dump::WRAM_SIZE / 2} u16le addresses..."
+scan_results   = finder.scan(
+  reference_series: reference_series,
+  anchor_address:   P1_X_ADDR,
+  mirror_series:    mirror_series
+)
+struct_results = finder.probe_struct_offsets(anchors: { p1_x: P1_X_ADDR })
+
+# ── Phase 5: cross-validation ─────────────────────────────────────────────────
+
+top_addresses  = scan_results.first(20).map(&:address)
+cross_val      = if p2_left_files > 0 && p2_right_files > 0
+  puts "Phase 4 — cross-validating top #{top_addresses.size} candidates..."
+  finder.cross_validate(
+    addresses:      top_addresses,
+    left_sequence:  "p2_left_long",
+    right_sequence: "p2_right_long"
+  )
+else
+  warn "  [skip] p2_left_long or p2_right_long missing"
+  []
+end
+
+# ── Print report ──────────────────────────────────────────────────────────────
+
+MemoryAnalysis::P2ScanPrinter.print(
+  scan_results,
+  struct_results,
+  cross_validation: cross_val,
+  reference_addr:   P1_X_ADDR
+)

@@ -17,7 +17,6 @@ RSpec.describe FightingAI::Training::Recorder do
       my_y_normalized:        0.0,
       opponent_x_normalized:  0.5,
       opponent_y_normalized:  0.0,
-      distance_normalized:    0.3,
       my_facing:              :right,
       opponent_facing:        :left,
       my_in_hitstun:          false,

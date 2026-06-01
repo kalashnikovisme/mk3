@@ -19,7 +19,7 @@ module FightingAI
       LOW_HEALTH      = 0.30
 
       def act(observation)
-        distance = observation.distance_normalized
+        distance = (observation.my_x_normalized - observation.opponent_x_normalized).abs
         my_health = observation.my_health_pct
         opp_stunned = observation.opponent_in_hitstun || observation.opponent_knocked_down
 

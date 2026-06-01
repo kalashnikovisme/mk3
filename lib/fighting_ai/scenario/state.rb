@@ -7,6 +7,8 @@ module FightingAI
     SAVE_STATE_SETTLE_WAIT = 0.5
 
     class << self
+      attr_writer :initial_state_path
+
       def watch(address, label: nil)
         @watches ||= []
         @watches << { address: address, label: label || format("0x%04X", address) }
@@ -14,6 +16,12 @@ module FightingAI
 
       def watches
         @watches || []
+      end
+
+      def reload_state
+        raise "No emulator attached to Scenario" unless @emulator
+        raise "initial_state_path not set"        unless @initial_state_path
+        @emulator.install_match_state(@initial_state_path)
       end
 
       def save_state(name = nil)
@@ -36,11 +44,21 @@ module FightingAI
       def save_memory(name = nil)
         raise "No emulator attached to Scenario" unless @emulator
 
-        FileUtils.mkdir_p(MEMORY_EXPORT_DIR)
+        unless @wram_info_printed
+          info = @emulator.wram_source_info
+          puts "memory source: #{info[:source]}"
+          puts "base address:  0x%06X (SNES bus)" % info[:base_address]
+          puts "size:          #{info[:size]} bytes"
+          puts
+          @wram_info_printed = true
+        end
+
         label = (name || Time.now.strftime("%Y%m%d_%H%M%S")).to_s
-        dest  = File.join(MEMORY_EXPORT_DIR, label)
-        File.write(dest, @emulator.wram_hex_dump)
-        puts "[memory] Saved → #{dest}"
+        dest  = File.join(MEMORY_EXPORT_DIR, "#{label}.bin")
+        FileUtils.mkdir_p(File.dirname(dest))
+        data  = @emulator.wram_binary_dump
+        File.binwrite(dest, data)
+        puts "[memory] Saved → #{File.basename(dest)} (#{data.bytesize} bytes)"
         dest
       end
     end

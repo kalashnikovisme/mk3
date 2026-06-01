@@ -46,6 +46,14 @@ module FightingAI
       def read_memory(address, byte_count: 1)
         raise NotImplementedError, "#{self.class}#read_memory not implemented"
       end
+
+      def wram_binary_dump
+        raise NotImplementedError, "#{self.class}#wram_binary_dump not implemented"
+      end
+
+      def wram_source_info
+        raise NotImplementedError, "#{self.class}#wram_source_info not implemented"
+      end
     end
   end
 end

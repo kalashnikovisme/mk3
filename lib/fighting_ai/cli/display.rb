@@ -3,13 +3,13 @@ require "colorize"
 module FightingAI
   module CLI
     class PPODisplay
-      BAR_WIDTH  = 16
-      MAX_HEALTH = 0xA6  # 166
+      BAR_WIDTH      = 16
+      MAX_HEALTH     = 0xA6  # 166
+      P1_COL_WIDTH   = 55    # visible chars reserved for the P1 reward column
 
       COMPONENT_LABELS = {
         damage_dealt: "dmg",
         damage_taken: "tkn",
-        distance:     "dst",
         round_win:    "win",
         round_loss:   "loss",
         round_draw:   "draw",
@@ -68,16 +68,15 @@ module FightingAI
         out_plain = stale ? "Stale  " : (winner ? "P#{winner} wins" : "Draw   ")
         out_color = stale ? out_plain.red : (winner ? out_plain.green : out_plain.yellow)
 
-        ep_plain = "✓ Ep #{episode.to_s.rjust(4)}"
-        prefix   = "#{ep_plain}  #{out_plain}  "
-        indent   = " " * prefix.length
+        p1_str = "P1 #{fmt_reward(p1_reward)} #{fmt_components(p1_components)}"
+        p2_str = "P2 #{fmt_reward(p2_reward)} #{fmt_components(p2_components)}"
 
-        line1 = ep_plain.cyan + "  #{out_color}  " +
-                "P1 #{fmt_reward(p1_reward)} #{fmt_components(p1_components)}"
-        line2 = indent +
-                "P2 #{fmt_reward(p2_reward)} #{fmt_components(p2_components)}"
+        line = "✓ Ep #{episode.to_s.rjust(4)}".cyan +
+               "  #{out_color}  " +
+               pad_col(p1_str, P1_COL_WIDTH) +
+               "  " + p2_str
 
-        event(line1, line2)
+        event(line)
       end
 
       def ppo_update(step:, stats:, n:)
@@ -94,11 +93,20 @@ module FightingAI
         event "💾 #{File.basename(path)}".yellow
       end
 
+      def log(message)
+        event message
+      end
+
       private
 
       def health_bar(hp)
         filled = [(hp.to_f / MAX_HEALTH * BAR_WIDTH).round, BAR_WIDTH].min
         "█" * filled + "░" * (BAR_WIDTH - filled)
+      end
+
+      def pad_col(str, width)
+        visible = str.gsub(/\e\[[0-9;]*m/, '').length
+        str + " " * [width - visible, 0].max
       end
 
       def fmt_reward(r)

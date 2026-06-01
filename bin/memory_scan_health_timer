@@ -1,0 +1,150 @@
+#!/usr/bin/env ruby
+# Discovers health and timer WRAM addresses from actual in-game state changes.
+# Does NOT rely on published address tables.
+#
+# Phase 1 — scenario:
+#   Starts RetroArch, checks the match state is an active fight, then runs
+#   scenarios/health_timer_scan.rb to collect:
+#     scan/health/p1_dmg/{idle,hit}/   — 60 + 120 frames, P2 attacks P1
+#     scan/health/p2_dmg/{idle,hit}/   — 60 + 120 frames, P1 attacks P2
+#     scan/timer/                       — 600 frames, timer running
+#
+# Phase 2 — analysis:
+#   Scans all WRAM u8 and u16le addresses for health and timer signatures and
+#   prints a ranked report.
+#
+# Usage:
+#   dip memory:scan-health-timer
+#   bundle exec ruby bin/memory_scan_health_timer
+
+$LOAD_PATH.unshift File.expand_path("../lib", __dir__)
+require "fighting_ai/cli/bootstrap"
+require "fighting_ai/scenario/speed"
+require "fighting_ai/scenario/state"
+require "fighting_ai/scenario/player_proxy"
+require_relative "../config/mk3"
+
+require "memory_analysis/health_timer_scanner"
+require "memory_analysis/health_timer_printer"
+
+ROM_PATH        = ENV.fetch("ROM_PATH",  File.expand_path("../mk3.sfc", __dir__))
+CORE_PATH       = ENV.fetch("CORE_PATH", "/usr/lib/x86_64-linux-gnu/libretro/snes9x_libretro.so")
+MATCHES_DIR     = File.expand_path("../data/matches", __dir__)
+MEMORY_DUMP_DIR = "/app/data/memory"
+SCENARIO_FILE   = File.expand_path("../scenarios/health_timer_scan.rb", __dir__)
+
+raise "Scenario file not found: #{SCENARIO_FILE}" unless File.exist?(SCENARIO_FILE)
+
+# ── Load match state ──────────────────────────────────────────────────────────
+
+match_states = Dir.glob(File.join(MATCHES_DIR, "*.state")).sort
+raise "No .state files found in #{MATCHES_DIR}" if match_states.empty?
+
+first_state = match_states.first
+states_dir  = FightingAI::Emulator::RetroArch::ConfigBuilder::STATES_DIR
+rom_base    = File.basename(ROM_PATH, ".*")
+FileUtils.mkdir_p(states_dir)
+FileUtils.cp(first_state, File.join(states_dir, "#{rom_base}.state"))
+
+FileUtils.rm_rf(File.join(MEMORY_DUMP_DIR, "scan"))
+
+puts FightingAI::CLI::BANNER
+puts "Mode: Health & Timer Scan (brute-force, no prior address knowledge)\n\n"
+puts "State  → #{File.basename(first_state)}"
+puts "Memory → #{MEMORY_DUMP_DIR}"
+puts
+
+FightingAI::CLI.trap_sigint
+
+emulator = FightingAI::CLI.start_retro_arch(
+  rom_path:         ROM_PATH,
+  core_path:        CORE_PATH,
+  extra_watch_dirs: [MATCHES_DIR]
+)
+
+emulator.install_match_state(first_state)
+
+# ── Pre-scenario sanity check (live WRAM read) ────────────────────────────────
+
+puts "Pre-check — reading live WRAM..."
+raw     = emulator.wram_binary_dump
+screen  = raw.getbyte(0x3A7E)
+p1_x    = raw.getbyte(0x1A0A) | (raw.getbyte(0x1A0B) << 8)
+p1_h    = raw.getbyte(0x3634)
+
+in_fight = (0x00..0x09).include?(screen)
+puts "  screen=0x#{screen.to_s(16).rjust(2,'0')}  p1_x=#{p1_x}  p1_health=#{p1_h}"
+
+unless in_fight && p1_x > 0
+  warn "\n⚠  Match state does not appear to be an active fight."
+  warn "   screen=0x#{screen.to_s(16).rjust(2,'0')} is not a fight screen (0x00..0x09)." unless in_fight
+  warn "   P1 X = #{p1_x} (expected > 0)." if p1_x == 0
+  warn "   The scan will run but results may be meaningless."
+  warn "   Use a state file saved mid-round with fighters active.\n"
+end
+
+# ── Build DSL context ─────────────────────────────────────────────────────────
+
+FightingAI::Scenario.emulator           = emulator
+FightingAI::Scenario.initial_state_path = first_state
+FightingAI::Scenario.set_speed(:normal)
+
+P1 = FightingAI::Scenario::PlayerProxy.new(1, emulator)
+P2 = FightingAI::Scenario::PlayerProxy.new(2, emulator)
+
+def speed(preset_or_multiplier) = FightingAI::Scenario.set_speed(preset_or_multiplier)
+def wait(frames)                = sleep(frames * FightingAI::Scenario.frame_duration)
+def save_state(name = nil)      = FightingAI::Scenario.save_state(name)
+def save_memory(name = nil)     = FightingAI::Scenario.save_memory(name)
+def reload_state                = FightingAI::Scenario.reload_state
+def watch(address, label: nil)  = FightingAI::Scenario.watch(address, label: label)
+
+game    = FightingAI.build_mk3_adapter(emulator_adapter: emulator)
+display = FightingAI::CLI::PPODisplay.new
+
+status_thread = Thread.new do
+  loop do
+    snapshot   = emulator.next_frame_snapshot
+    game_state = game.extract_game_state(snapshot)
+    display.update(game_state: game_state, stage_name: game.snapshot_stage_name(snapshot), watches: [])
+  rescue => e
+    next if e.is_a?(ThreadError)
+    $stderr.puts "[status] #{e.class}: #{e.message}"
+    next
+  end
+end
+
+# ── Phase 1: run scenario ─────────────────────────────────────────────────────
+
+total_dumps = 60 + 120 + 60 + 120 + 600  # 960
+puts "\nPhase 1 — collecting #{total_dumps} WRAM dumps..."
+puts "  60 idle + 120 hit (P1 dmg)"
+puts "  60 idle + 120 hit (P2 dmg)"
+puts "  600 frames (timer)"
+puts "  Estimated time: 8–12 minutes at normal speed.\n\n"
+
+load SCENARIO_FILE
+
+status_thread.kill
+$stdout.print "\n"
+puts "Phase 1 complete."
+
+p1_idle  = Dir.glob(File.join(MEMORY_DUMP_DIR, "scan/health/p1_dmg/idle", "*.bin")).size
+p1_hit   = Dir.glob(File.join(MEMORY_DUMP_DIR, "scan/health/p1_dmg/hit",  "*.bin")).size
+p2_idle  = Dir.glob(File.join(MEMORY_DUMP_DIR, "scan/health/p2_dmg/idle", "*.bin")).size
+p2_hit   = Dir.glob(File.join(MEMORY_DUMP_DIR, "scan/health/p2_dmg/hit",  "*.bin")).size
+t_files  = Dir.glob(File.join(MEMORY_DUMP_DIR, "scan/timer",              "*.bin")).size
+
+puts "  p1_dmg idle=#{p1_idle} hit=#{p1_hit}  p2_dmg idle=#{p2_idle} hit=#{p2_hit}  timer=#{t_files}"
+
+emulator.stop
+
+# ── Phase 2: scan ─────────────────────────────────────────────────────────────
+
+puts "\nPhase 2 — scanning #{MemoryAnalysis::HealthTimerScanner::WRAM_SIZE / 2} u8 + u16le addresses..."
+puts "  Loading ~#{(960 * 128.0 / 1024).round} MB of dumps into memory..."
+
+scanner = MemoryAnalysis::HealthTimerScanner.new(dump_dir: MEMORY_DUMP_DIR)
+report  = scanner.report
+
+MemoryAnalysis::HealthTimerPrinter.print(report)

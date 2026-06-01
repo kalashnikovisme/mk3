@@ -11,8 +11,6 @@ module FightingAI
           me  = game_state.fighter_for(player_index)
           opp = game_state.opponent_of(player_index)
 
-          max_distance = MM::X_MAX.to_f
-
           Core::Observation.new(
             frame_number:               game_state.frame_number,
             my_health_pct:              me.health_pct,
@@ -21,7 +19,6 @@ module FightingAI
             my_y_normalized:            me.y.to_f / MM::Y_MAX,
             opponent_x_normalized:      opp.x.to_f / MM::X_MAX,
             opponent_y_normalized:      opp.y.to_f / MM::Y_MAX,
-            distance_normalized:        game_state.distance.to_f / max_distance,
             my_facing:                  me.facing.value,
             opponent_facing:            opp.facing.value,
             my_in_hitstun:              me.in_hitstun,

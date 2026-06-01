@@ -1,0 +1,150 @@
+#!/usr/bin/env ruby
+# Verifies candidate WRAM addresses discovered by dip memory:analyze.
+# Runs a 120-frame motion scenario (P1 right, P2 left) then scores every
+# candidate for monotonicity, average delta, delta variance, and direction
+# changes.  Confirms or rejects each address and writes per-address CSVs.
+#
+# Candidates are read from data/candidates.json (written by dip memory:analyze).
+# You can also edit that file manually before running.
+#
+# Usage:
+#   dip memory:verify
+#   bundle exec ruby bin/memory_verify [candidates_json]
+
+$LOAD_PATH.unshift File.expand_path("../lib", __dir__)
+require "json"
+require "fighting_ai/cli/bootstrap"
+require "fighting_ai/scenario/speed"
+require "fighting_ai/scenario/state"
+require "fighting_ai/scenario/player_proxy"
+require_relative "../config/mk3"
+
+require "memory_analysis/candidate_verifier"
+require "memory_analysis/verification_printer"
+
+ROM_PATH          = ENV.fetch("ROM_PATH",  File.expand_path("../mk3.sfc", __dir__))
+CORE_PATH         = ENV.fetch("CORE_PATH", "/usr/lib/x86_64-linux-gnu/libretro/snes9x_libretro.so")
+MATCHES_DIR       = File.expand_path("../data/matches", __dir__)
+MEMORY_DUMP_DIR   = "/app/data/memory"
+SCENARIO_FILE     = File.expand_path("../scenarios/candidate_verification.rb", __dir__)
+DEFAULT_CANDS     = File.expand_path("../data/candidates.json", __dir__)
+CANDIDATES_PATH   = ARGV[0] || DEFAULT_CANDS
+
+raise "Scenario file not found: #{SCENARIO_FILE}"   unless File.exist?(SCENARIO_FILE)
+raise "Candidates file not found: #{CANDIDATES_PATH}\nRun `dip memory:analyze` first." \
+  unless File.exist?(CANDIDATES_PATH)
+
+# ── Load candidates ───────────────────────────────────────────────────────────
+
+raw = JSON.parse(File.read(CANDIDATES_PATH))
+candidates = raw.each_with_object({}) do |(k, addrs), h|
+  h[k.to_sym] = Array(addrs).map(&:to_i)
+end
+
+raise "candidates.json is empty" if candidates.empty?
+
+# ── Load match state ──────────────────────────────────────────────────────────
+
+match_states = Dir.glob(File.join(MATCHES_DIR, "*.state")).sort
+raise "No .state files found in #{MATCHES_DIR}" if match_states.empty?
+
+first_state = match_states.first
+states_dir  = FightingAI::Emulator::RetroArch::ConfigBuilder::STATES_DIR
+rom_base    = File.basename(ROM_PATH, ".*")
+FileUtils.mkdir_p(states_dir)
+FileUtils.cp(first_state, File.join(states_dir, "#{rom_base}.state"))
+
+# Clean previous verification dumps but keep other memory dirs intact.
+FileUtils.rm_rf(File.join(MEMORY_DUMP_DIR, "p1_right"))
+FileUtils.rm_rf(File.join(MEMORY_DUMP_DIR, "p2_left"))
+FileUtils.rm_rf(File.join(MEMORY_DUMP_DIR, "verification"))
+
+puts FightingAI::CLI::BANNER
+puts "Mode: Candidate Verification\n\n"
+puts "State      → #{File.basename(first_state)}"
+puts "Candidates → #{CANDIDATES_PATH}"
+puts "Memory     → #{MEMORY_DUMP_DIR}"
+puts
+puts "Categories to verify:"
+candidates.each do |cat, addrs|
+  puts "  #{cat}: #{addrs.map { |a| '0x%05X' % a }.join(', ')}"
+end
+puts
+
+FightingAI::CLI.trap_sigint
+
+emulator = FightingAI::CLI.start_retro_arch(
+  rom_path:         ROM_PATH,
+  core_path:        CORE_PATH,
+  extra_watch_dirs: [MATCHES_DIR]
+)
+
+emulator.install_match_state(first_state)
+
+# ── Build DSL context ─────────────────────────────────────────────────────────
+
+FightingAI::Scenario.emulator           = emulator
+FightingAI::Scenario.initial_state_path = first_state
+FightingAI::Scenario.set_speed(:normal)
+
+P1 = FightingAI::Scenario::PlayerProxy.new(1, emulator)
+P2 = FightingAI::Scenario::PlayerProxy.new(2, emulator)
+
+def speed(preset_or_multiplier) = FightingAI::Scenario.set_speed(preset_or_multiplier)
+def wait(frames)                = sleep(frames * FightingAI::Scenario.frame_duration)
+def save_state(name = nil)      = FightingAI::Scenario.save_state(name)
+def save_memory(name = nil)     = FightingAI::Scenario.save_memory(name)
+def reload_state                = FightingAI::Scenario.reload_state
+def watch(address, label: nil)  = FightingAI::Scenario.watch(address, label: label)
+
+# ── Phase 1: collect motion dumps ────────────────────────────────────────────
+
+game    = FightingAI.build_mk3_adapter(emulator_adapter: emulator)
+display = FightingAI::CLI::PPODisplay.new
+
+status_thread = Thread.new do
+  loop do
+    snapshot   = emulator.next_frame_snapshot
+    game_state = game.extract_game_state(snapshot)
+    display.update(game_state: game_state, stage_name: game.snapshot_stage_name(snapshot), watches: [])
+  rescue => e
+    next if e.is_a?(ThreadError)
+    $stderr.puts "[status] #{e.class}: #{e.message}"
+    next
+  end
+end
+
+puts "Phase 1 — collecting 120-frame motion dumps (P1 right, then P2 left)..."
+puts "  This will take ~4 minutes at normal speed.\n\n"
+load SCENARIO_FILE
+
+status_thread.kill
+$stdout.print "\n"
+puts "Phase 1 complete."
+
+emulator.stop
+
+# ── Phase 2: verify all candidates ───────────────────────────────────────────
+
+p1_files  = Dir.glob(File.join(MEMORY_DUMP_DIR, "p1_right", "*.bin")).size
+p2_files  = Dir.glob(File.join(MEMORY_DUMP_DIR, "p2_left",  "*.bin")).size
+puts "\nDumps: p1_right=#{p1_files}  p2_left=#{p2_files}\n\n"
+
+puts "Phase 2 — computing verification statistics...\n\n"
+
+# Addresses verified unconditionally as u16le.
+EXPLICIT_U16LE = [
+  0x1A0A, 0x1A0C, 0x1A0E,
+  0x0206, 0x0306, 0x0406, 0x0506, 0x0606, 0x0706, 0x0806, 0x0906,
+  0x2B24, 0x040E
+].freeze
+
+verifier = MemoryAnalysis::CandidateVerifier.new(
+  dump_dir:       MEMORY_DUMP_DIR,
+  candidates:     candidates,
+  explicit_u16le: EXPLICIT_U16LE
+)
+results       = verifier.verify
+mirror_groups = verifier.detect_mirrors(results)
+
+MemoryAnalysis::VerificationPrinter.print(results, mirror_groups: mirror_groups)

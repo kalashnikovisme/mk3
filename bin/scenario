@@ -44,8 +44,9 @@ rom_base    = File.basename(ROM_PATH, ".*")
 FileUtils.mkdir_p(states_dir)
 FileUtils.cp(first_state, File.join(states_dir, "#{rom_base}.state"))
 
+FileUtils.mkdir_p(MEMORY_DUMP_DIR)
+FileUtils.rm_f(Dir.glob("#{MEMORY_DUMP_DIR}/*.bin"))
 if MEMORY_DEBUG
-  FileUtils.mkdir_p(MEMORY_DUMP_DIR)
   FileUtils.rm_f(Dir.glob("#{MEMORY_DUMP_DIR}/*"))
 end
 
@@ -53,7 +54,7 @@ puts FightingAI::CLI::BANNER
 puts "Mode: Scenario#{MEMORY_DEBUG ? " [memory debug]" : ""}\n\n"
 puts "State  → #{File.basename(first_state)}"
 puts "Script → #{SCENARIO_FILE}"
-puts "Memory → #{MEMORY_DUMP_DIR}" if MEMORY_DEBUG
+puts "Memory → #{MEMORY_DUMP_DIR}"
 puts
 
 FightingAI::CLI.trap_sigint
@@ -68,7 +69,8 @@ emulator.install_match_state(first_state)
 
 # ── Build DSL context ─────────────────────────────────────────────────────────
 
-FightingAI::Scenario.emulator = emulator
+FightingAI::Scenario.emulator           = emulator
+FightingAI::Scenario.initial_state_path = first_state
 FightingAI::Scenario.set_speed(:normal)   # ensure clean state before scenario runs
 
 P1 = FightingAI::Scenario::PlayerProxy.new(1, emulator)
@@ -92,6 +94,10 @@ end
 
 def watch(address, label: nil)
   FightingAI::Scenario.watch(address, label: label)
+end
+
+def reload_state
+  FightingAI::Scenario.reload_state
 end
 
 # ── Status display ────────────────────────────────────────────────────────────
@@ -120,7 +126,7 @@ memory_thread = MEMORY_DEBUG ? Thread.new do
     frame_index += 1
     path = File.join(MEMORY_DUMP_DIR, format("%06d", frame_index))
     File.write(path, emulator.wram_hex_dump)
-    $stderr.puts "[memory] #{File.basename(path)}"
+    display.log("💾 [memory] #{File.basename(path)}".yellow)
   rescue => e
     next if e.is_a?(ThreadError)
     $stderr.puts "[memory thread] #{e.class}: #{e.message}"
@@ -137,5 +143,20 @@ status_thread.kill
 memory_thread&.kill
 $stdout.print "\n"
 puts "Scenario complete."
+
+# ── Verify binary dump sizes ──────────────────────────────────────────────────
+
+bin_files = Dir.glob(File.join(MEMORY_DUMP_DIR, "*.bin")).sort
+if bin_files.any?
+  sizes = bin_files.map { |f| [File.basename(f), File.size(f)] }
+  unique_sizes = sizes.map(&:last).uniq
+  puts "\nMemory dump size verification:"
+  sizes.each { |name, size| puts "  #{name}: #{size} bytes" }
+  if unique_sizes.size == 1
+    puts "✓ All #{bin_files.size} dumps: #{unique_sizes.first} bytes (#{unique_sizes.first / 1024} KB)"
+  else
+    puts "✗ Size mismatch — unique sizes: #{unique_sizes.inspect}"
+  end
+end
 
 emulator.stop

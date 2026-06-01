@@ -38,12 +38,6 @@ RSpec.describe FightingAI::Core::GameState do
     )
   end
 
-  describe "#distance" do
-    it "returns the x distance between fighters" do
-      expect(state.distance).to eq(120)
-    end
-  end
-
   describe "#fighter_for" do
     it "returns fighter1 for player 1" do
       expect(state.fighter_for(1)).to eq(fighter1)

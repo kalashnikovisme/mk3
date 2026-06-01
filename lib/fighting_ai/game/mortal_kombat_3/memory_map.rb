@@ -61,9 +61,9 @@ module FightingAI
         # --- Health constant ---
         MAX_HEALTH = 0xA6  # 166 — same for both players
 
-        # --- Player X positions ---
-        P1_X_ADDR = 0x1A0A
-        P2_X_ADDR = 0x0656
+        # --- Fighter positions ---
+        P1_X_ADDR    = 0x1A0A  # Player 1 horizontal position — u16le, confirmed
+        DISTANCE_ADDR = 0x040E  # distance between fighters — confirmed
 
         # --- Normalization ranges ---
         TIMER_MAX          = 99    # MK3 round timer counts down from 99
@@ -72,6 +72,7 @@ module FightingAI
         MAX_FIGHT_DISTANCE = X_MAX # maximum possible distance between fighters
 
         # --- Not yet located (need RAM search) ---
+        # P2_X_ADDR (individual position)
         # P1_Y_ADDR, P1_FACING_ADDR, P1_ANIM_ADDR
         # P2_Y_ADDR, P2_FACING_ADDR, P2_ANIM_ADDR
 
@@ -80,7 +81,7 @@ module FightingAI
           when 1
             { health: P1_HEALTH_ADDR, rounds_won: P1_ROUNDS_WON, x: P1_X_ADDR }
           when 2
-            { health: P2_HEALTH_ADDR, rounds_won: P2_ROUNDS_WON, x: P2_X_ADDR }
+            { health: P2_HEALTH_ADDR, rounds_won: P2_ROUNDS_WON }
           else
             raise ArgumentError, "player_index must be 1 or 2"
           end
