@@ -134,6 +134,13 @@ interaction:
     compose:
       run_options: [no-deps]
 
+  "vision:detect":
+    description: "Run Sub-Zero template detection against screenshot PNGs. Usage: dip vision:detect <screenshot.png> [more.png ...]"
+    service: app
+    command: bundle exec ruby bin/vision_detect
+    compose:
+      run_options: [no-deps]
+
 provision:
   - dip compose build
   - dip compose run --rm --no-deps app bundle install

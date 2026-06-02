@@ -95,6 +95,7 @@ Inside a scenario file the following top-level methods are available:
 | `wait(frames)` | Pause all input for the given number of frames |
 | `save_state(name = nil)` | Save the current RetroArch state to `/app/data/states/<name>.state`. If `name` is omitted, named by timestamp. |
 | `save_memory(name = nil)` | Capture a raw binary WRAM dump (exactly 131072 bytes) and write it to `/app/data/memory/<name>.bin`. Subdirectories are created automatically — e.g. `"p1_x/idle"` → `/app/data/memory/p1_x/idle.bin`. The first call in each session also prints the memory source, SNES bus base address (`0x7E0000`), and size. If `name` is omitted, named by timestamp. |
+| `screenshot(name = nil)` | Capture the current RetroArch frame and write it to `/app/data/screenshots/<name>.png`. Subdirectories are created automatically — e.g. `"vision/idle"` → `/app/data/screenshots/vision/idle.png`. If `name` is omitted, named by timestamp. |
 | `reload_state` | Reload the initial match state that was installed at scenario start. Use between test sections to reset fighter positions, health, and timer. |
 
 See `docs/scenario_dsl.md` for the full player-input API (`P1.right`, `P2.block`, etc.).

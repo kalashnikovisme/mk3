@@ -1,2 +1,3 @@
-P1.right 20
-P1.combo_1
+wait 60
+screenshot
+wait 60

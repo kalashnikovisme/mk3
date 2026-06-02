@@ -1,0 +1,63 @@
+#!/usr/bin/env ruby
+# Run Sub-Zero template detection against one or more screenshot PNG files.
+
+$LOAD_PATH.unshift File.expand_path("../lib", __dir__)
+
+require "fighting_ai"
+
+DEFAULT_TEMPLATE_ROOT = File.expand_path("../data/vision/templates", __dir__).freeze
+DEFAULT_CHARACTER = :sub_zero
+DEFAULT_MIN_CONFIDENCE = FightingAI::Vision::TemplateMatcher::DEFAULT_MIN_CONFIDENCE
+EXPECTED_ARGUMENT_COUNT = 1
+FIRST_HUMAN_INDEX = 1
+
+if ARGV.size < EXPECTED_ARGUMENT_COUNT
+  abort "Usage: dip vision:detect <screenshot.png> [more.png ...]"
+end
+
+Frame = Struct.new(:path)
+
+detector = FightingAI::Vision::CharacterPositionDetector.new(
+  character: DEFAULT_CHARACTER,
+  template_root: ENV.fetch("TEMPLATE_ROOT", DEFAULT_TEMPLATE_ROOT),
+  min_confidence: ENV.fetch("MIN_CONFIDENCE", DEFAULT_MIN_CONFIDENCE).to_f
+)
+
+unless detector.available?
+  abort "No templates found for #{DEFAULT_CHARACTER}. Run `dip vision:prepare-sprites data/vision/sprites/subzero` first."
+end
+
+ARGV.each do |path|
+  unless File.exist?(path)
+    warn "#{path}: file not found"
+    next
+  end
+
+  result = detector.detect(Frame.new(path))
+  puts path
+  if result[:detections].empty?
+    puts "  no detections"
+    next
+  end
+
+  result[:detections].each_with_index do |detection, index|
+    scaled = FightingAI::Vision::CharacterPositionDetector.scale_position(
+      detection,
+      image_width: result.fetch(:image_width),
+      image_height: result.fetch(:image_height),
+      x_max: FightingAI::Game::MortalKombat3::MemoryMap::X_MAX,
+      y_max: FightingAI::Game::MortalKombat3::MemoryMap::Y_MAX
+    )
+
+    puts format(
+      "  #%<index>d template=%<template>s screen=(%<screen_x>d,%<screen_y>d) mk3=(%<mk3_x>d,%<mk3_y>d) confidence=%<confidence>.3f",
+      index: index + FIRST_HUMAN_INDEX,
+      template: detection.template_name,
+      screen_x: detection.center_x,
+      screen_y: detection.bottom_y,
+      mk3_x: scaled.fetch(:x),
+      mk3_y: scaled.fetch(:y),
+      confidence: detection.confidence
+    )
+  end
+end

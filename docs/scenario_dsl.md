@@ -26,6 +26,15 @@ save_state "after_ice_ball"   # → /app/data/states/after_ice_ball.state
 save_state                    # → /app/data/states/20260101_120000.state
 ```
 
+### `screenshot(name = nil)`
+
+Captures the current RetroArch frame and copies the PNG to `/app/data/screenshots/<name>.png`. Intermediate directories are created automatically, so `"vision/idle"` produces `/app/data/screenshots/vision/idle.png`. If `name` is omitted, the file is named by timestamp.
+
+```ruby
+screenshot "vision/idle"      # → /app/data/screenshots/vision/idle.png
+screenshot                    # → /app/data/screenshots/20260101_120000.png
+```
+
 ### `reload_state`
 
 Reloads the initial match state that was installed when the scenario started. Resets fighter positions, health, timer, and all game variables to the saved state. Use between independent test sections so each section starts from a known baseline.

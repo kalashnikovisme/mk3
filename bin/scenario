@@ -16,6 +16,7 @@
 #   save_state          # same, auto-named by timestamp
 #   save_memory "label" # save WRAM hex dump to /app/data/memory/<label>
 #   save_memory         # same, auto-named by timestamp
+#   screenshot "label"  # save screenshot PNG to /app/data/screenshots/<label>.png
 
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 require "fighting_ai/cli/bootstrap"
@@ -93,6 +94,10 @@ end
 
 def save_memory(name = nil)
   FightingAI::Scenario.save_memory(name)
+end
+
+def screenshot(name = nil)
+  FightingAI::Scenario.screenshot(name)
 end
 
 def watch(address, label: nil)

@@ -4,10 +4,12 @@ module FightingAI
   module Scenario
     STATES_EXPORT_DIR      = "/app/data/states"
     MEMORY_EXPORT_DIR      = "/app/data/memory"
+    SCREENSHOT_EXPORT_DIR  = "/app/data/screenshots"
     SAVE_STATE_SETTLE_WAIT = 0.5
+    TIMESTAMP_FORMAT       = "%Y%m%d_%H%M%S"
 
     class << self
-      attr_writer :initial_state_path
+      attr_writer :emulator, :initial_state_path
 
       def watch(address, label: nil)
         @watches ||= []
@@ -34,7 +36,7 @@ module FightingAI
         raise "State file not found after save: #{src}" unless File.exist?(src)
 
         FileUtils.mkdir_p(STATES_EXPORT_DIR)
-        label = (name || Time.now.strftime("%Y%m%d_%H%M%S")).to_s
+        label = timestamped_label(name)
         dest  = File.join(STATES_EXPORT_DIR, "#{label}.state")
         FileUtils.cp(src, dest)
         puts "[state] Saved → #{dest}"
@@ -53,13 +55,31 @@ module FightingAI
           @wram_info_printed = true
         end
 
-        label = (name || Time.now.strftime("%Y%m%d_%H%M%S")).to_s
+        label = timestamped_label(name)
         dest  = File.join(MEMORY_EXPORT_DIR, "#{label}.bin")
         FileUtils.mkdir_p(File.dirname(dest))
         data  = @emulator.wram_binary_dump
         File.binwrite(dest, data)
         puts "[memory] Saved → #{File.basename(dest)} (#{data.bytesize} bytes)"
         dest
+      end
+
+      def screenshot(name = nil)
+        raise "No emulator attached to Scenario" unless @emulator
+
+        frame = @emulator.capture_frame
+        label = timestamped_label(name)
+        dest  = File.join(SCREENSHOT_EXPORT_DIR, "#{label}.png")
+        FileUtils.mkdir_p(File.dirname(dest))
+        FileUtils.cp(frame.path, dest)
+        puts "[screenshot] Saved → #{dest}"
+        dest
+      end
+
+      private
+
+      def timestamped_label(name)
+        (name || Time.now.strftime(TIMESTAMP_FORMAT)).to_s
       end
     end
   end

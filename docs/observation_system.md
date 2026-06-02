@@ -83,3 +83,20 @@ adapter runs `Vision::CharacterPositionDetector` for Sub-Zero templates and scal
 detected screen-space foot positions into the existing normalized MK3 coordinate
 range. Only fighter `x/y` positions are overridden by vision; the rest of the
 state remains WRAM-derived.
+
+## Detection Debugging
+
+Prepared templates can be tested against screenshot PNGs without starting
+training:
+
+```bash
+dip vision:detect data/screenshots/example.png
+```
+
+For each screenshot, the command prints the matched template name, screen-space
+foot position, scaled MK3 `x/y` position, and confidence. The default minimum
+confidence is `0.82`; override it for tuning:
+
+```bash
+MIN_CONFIDENCE=0.75 dip vision:detect data/screenshots/example.png
+```

@@ -73,6 +73,7 @@ def speed(preset_or_multiplier) = FightingAI::Scenario.set_speed(preset_or_multi
 def wait(frames)                = sleep(frames * FightingAI::Scenario.frame_duration)
 def save_state(name = nil)      = FightingAI::Scenario.save_state(name)
 def save_memory(name = nil)     = FightingAI::Scenario.save_memory(name)
+def screenshot(name = nil)      = FightingAI::Scenario.screenshot(name)
 def reload_state                = FightingAI::Scenario.reload_state
 def watch(address, label: nil)  = FightingAI::Scenario.watch(address, label: label)
 

@@ -8,6 +8,7 @@ module FightingAI
       PLAYER_ONE = 1
       PLAYER_TWO = 2
       IMAGE_MAX_INDEX_ADJUSTMENT = 1
+      MIN_AXIS_VALUE = 0
       DEFAULT_AXIS_MAX = 255
 
       attr_reader :character
@@ -49,7 +50,8 @@ module FightingAI
 
       def self.scale_axis(value, image_size, axis_max)
         denominator = [image_size - IMAGE_MAX_INDEX_ADJUSTMENT, IMAGE_MAX_INDEX_ADJUSTMENT].max
-        (value.to_f * axis_max / denominator).round
+        scaled = (value.to_f * axis_max / denominator).round
+        [[scaled, MIN_AXIS_VALUE].max, axis_max].min
       end
     end
   end
