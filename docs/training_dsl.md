@@ -40,7 +40,7 @@ Sub-Zero template recognition can be enabled during training after preparing
 templates:
 
 ```bash
-dip vision:prepare-sprites data/vision/source/sub_zero -- --mirror
+dip vision:prepare-sprites data/vision/source/sub_zero
 VISION=1 dip learn sub-zero-vs-sub-zero
 ```
 

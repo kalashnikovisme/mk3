@@ -66,9 +66,9 @@ def parse_args() -> argparse.Namespace:
         help="Grayscale value at or above this threshold becomes white in binary templates.",
     )
     parser.add_argument(
-        "--mirror",
+        "--no-mirror",
         action="store_true",
-        help="Also write horizontally mirrored templates.",
+        help="Only write source-orientation templates.",
     )
     parser.add_argument(
         "--no-trim",
@@ -196,7 +196,7 @@ def convert_all(paths: Iterable[Path], args: argparse.Namespace) -> int:
             alpha_threshold=args.alpha_threshold,
             write_binary=args.binary,
             binary_threshold=args.binary_threshold,
-            mirror=args.mirror,
+            mirror=not args.no_mirror,
             trim=not args.no_trim,
         )
         converted_count += CONVERTED_SPRITE_INCREMENT
