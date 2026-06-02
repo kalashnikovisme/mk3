@@ -30,6 +30,7 @@ LOGS_DIR    = File.expand_path("../data/logs", __dir__)
 MEMORY_DIR  = File.expand_path("../data/memory", __dir__)
 DEBUG        = ARGV.include?("debug")
 WRAM_DEBUG   = DEBUG
+VISION_ENABLED = ENV.fetch(FightingAI::VISION_ENV_KEY, nil) == FightingAI::VISION_ENABLED_VALUE
 # First non-flag argument is the match name, e.g. "sub-zero-vs-sindel"
 MATCH_ARG    = ARGV.reject { |a| a == "debug" }.first
 MATCH_FILTER = MATCH_ARG || ENV["MATCH"]
@@ -69,6 +70,7 @@ puts "Mode: PPO Self-Play Training\n\n"
 puts "Match  → #{File.basename(match_state[:path])}"
 puts "Models → #{MODELS_DIR}"
 puts "Obs dim: #{OBS_DIM}  |  Actions: #{ACTION_DIM}"
+puts "Vision: #{VISION_ENABLED ? "ON" : "off"}"
 puts "WRAM debug: #{WRAM_DEBUG ? "ON → #{MEMORY_DIR}" : "off"}\n\n"
 
 # ── Signal handling ───────────────────────────────────────────────────────────
@@ -98,7 +100,8 @@ emulator = FightingAI::CLI.start_retro_arch(
 
 game = FightingAI.build_mk3_adapter(
   emulator_adapter: emulator,
-  reward_weights:   FightingAI::Game::RewardCalculator.weights
+  reward_weights:   FightingAI::Game::RewardCalculator.weights,
+  vision:           VISION_ENABLED
 )
 
 # ── Build training components ─────────────────────────────────────────────────

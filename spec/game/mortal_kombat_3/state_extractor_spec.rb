@@ -1,6 +1,13 @@
 require "spec_helper"
 
 RSpec.describe FightingAI::Game::MortalKombat3::StateExtractor do
+  PLAYER_ONE = 1
+  PLAYER_TWO = 2
+  VISION_P1_X = 42
+  VISION_P1_Y = 91
+  VISION_P2_X = 210
+  VISION_P2_Y = 88
+
   let(:snapshot) do
     {
       "type"       => "frame",
@@ -72,6 +79,21 @@ RSpec.describe FightingAI::Game::MortalKombat3::StateExtractor do
 
     it "sets round timer" do
       expect(game_state.round_time_remaining).to eq(90)
+    end
+
+    it "uses vision positions when they are provided" do
+      vision_game_state = described_class.extract(
+        snapshot,
+        vision_positions: {
+          PLAYER_ONE => { x: VISION_P1_X, y: VISION_P1_Y },
+          PLAYER_TWO => { x: VISION_P2_X, y: VISION_P2_Y }
+        }
+      )
+
+      expect(vision_game_state.fighter1.x).to eq(VISION_P1_X)
+      expect(vision_game_state.fighter1.y).to eq(VISION_P1_Y)
+      expect(vision_game_state.fighter2.x).to eq(VISION_P2_X)
+      expect(vision_game_state.fighter2.y).to eq(VISION_P2_Y)
     end
   end
 end

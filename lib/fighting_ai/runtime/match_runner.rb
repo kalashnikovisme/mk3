@@ -25,6 +25,11 @@ module FightingAI
 
       # Run a full match and return the completed Core::Match.
       def run(player1_character:, player2_character:)
+        @game.configure_vision_characters(
+          player1_character: player1_character,
+          player2_character: player2_character
+        ) if @game.respond_to?(:configure_vision_characters)
+
         match = Core::Match.new(
           game_id:            @game.class::GAME_ID,
           player1_character:  player1_character,
@@ -71,8 +76,9 @@ module FightingAI
         stall_hp        = nil
         stall_since     = nil
         loop do
-          snapshot   = @emulator.next_frame_snapshot
-          game_state = @game.extract_game_state(snapshot)
+          snapshot = @emulator.next_frame_snapshot
+          frame_observation = capture_frame_observation
+          game_state = @game.extract_game_state(snapshot, frame_observation: frame_observation)
 
           if @ui
             @ui.update(game_state: game_state, stage_name: @game.snapshot_stage_name(snapshot))
@@ -129,6 +135,12 @@ module FightingAI
 
           prev_game_state = game_state
         end
+      end
+
+      def capture_frame_observation
+        return nil unless @game.respond_to?(:vision_enabled?) && @game.vision_enabled?
+
+        @emulator.capture_frame
       end
 
       def step_agents(game_state, prev_game_state, match_id)

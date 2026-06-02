@@ -8,10 +8,21 @@ Every game adapter must inherit from `FightingAI::Game::Adapter` and implement t
 
 ```ruby
 # Parse a raw frame snapshot Hash into a Core::GameState.
-def extract_game_state(raw_snapshot)
+def extract_game_state(raw_snapshot, frame_observation: nil)
 
 # Build a Core::Observation from a Core::GameState for the given player.
 def build_observation(game_state, player_index:)
+```
+
+Adapters that support image recognition may consume `frame_observation` to derive
+game-specific fields before constructing `Core::GameState`. Agents still never
+receive `Observation::FrameObservation`; they receive only `Core::Observation`.
+
+Optional vision hooks:
+
+```ruby
+def vision_enabled? # → true when frame capture should run
+def configure_vision_characters(player1_character:, player2_character:)
 ```
 
 ### Action Translation
@@ -73,6 +84,8 @@ def character_pools
 - Use an `ActionSpace` module for action → InputSequence mapping.
 - Character-specific special moves live in `characters/<name>.rb` modules. Each module exposes `SPECIAL_MOVES` (action_name → InputSequence builder) and `DIRECTION_SENSITIVE_MOVES`. `ActionSpace::ACTIONS` and `ActionTranslator::ACTIONS`/`GAME_ACTION_MAP` merge them in via splat so specials appear in the flat RL action space alongside normal actions. The adapter's `DIRECTION_SENSITIVE_ACTIONS` constant lists all actions that need `flip_direction` applied when the player faces left.
 - Use an `ObservationSpace` module for GameState → Observation normalization.
+- If using vision, keep detector output game-specific and merge it in the adapter
+  or state extractor before building `Core::Observation`.
 - Use a `RewardFunction` class for configurable reward calculation.
 - Use a `StateExtractor` module for raw snapshot → GameState parsing.
 - Use a `MenuNavigator` class for autonomous menu driving.

@@ -80,6 +80,7 @@ Wraps emulator output into observation objects for downstream use.
 
 - `Observation::FrameObservation` — wraps a PNG path; lazy-loads pixels, dimensions, and normalized tensor
 - `Observation::MemoryObservation` — future WRAM-based structured observation (stub)
+- `Vision::CharacterPositionDetector` — optional masked template matcher that reads `FrameObservation` screenshots and returns detected character positions before `Core::Observation` is built
 
 **Rule**: Lives outside Core and outside the emulator layer.
 
@@ -105,6 +106,7 @@ Encodes all knowledge of a specific game.
 - Input map (logical button → SNES button name, for documentation; `to_logical` converts button arrays to `{ symbol => bool }` hashes)
 - Action space (action name → InputSequence)
 - Observation space (GameState → Observation)
+- Optional vision position merge (FrameObservation → fighter x/y override)
 - Reward function
 - State extractor (raw snapshot Hash → GameState)
 - Menu navigator (autonomous menu driving via timed button sequences)
@@ -157,8 +159,9 @@ See `docs/training_dsl.md` for the full workflow and Ruby API.
 ```
 RetroArch (snes9x core)
   → SaveStateReader reads WRAM from save-state file (slot 9)
+  → optionally FrameGrabber captures PNG when vision is enabled
     → RetroArch::Adapter#next_frame_snapshot → snapshot Hash
-      → GameAdapter#extract_game_state → GameState
+      → GameAdapter#extract_game_state(snapshot, frame_observation:) → GameState
         → GameAdapter#build_observation → Observation
           → Agent#act → Action
             → GameAdapter#action_to_input_sequence → InputSequence
@@ -168,3 +171,9 @@ RetroArch (snes9x core)
                     → xdotool keydown/keyup → RetroArch window
                       → snes9x advances one frame
 ```
+
+When `VISION=1` is set and `data/vision/templates/sub_zero/` contains prepared
+templates, the MK3 adapter runs Sub-Zero template matching on each captured frame.
+Detected positions override WRAM `x/y` values for the corresponding Sub-Zero
+player before normalization. Health, timer, rounds, and other fight state still
+come from WRAM.

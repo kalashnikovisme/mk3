@@ -8,6 +8,7 @@ require_relative "state_extractor"
 require_relative "menu_navigator"
 require_relative "characters"
 require_relative "characters/sub_zero"
+require_relative "../../vision/character_position_detector"
 
 module FightingAI
   module Game
@@ -16,11 +17,17 @@ module FightingAI
         GAME_ID             = :mortal_kombat_3
         VERSUS_SAVE_STATE   = 1
         FIGHT_START_TIMEOUT = 600
+        PLAYER_ONE          = 1
+        PLAYER_TWO          = 2
+        MIDPOINT_DIVISOR    = 2
+        SUB_ZERO_CHARACTER  = :sub_zero
 
-        def initialize(emulator_adapter:, game_definition:, reward_weights: {})
+        def initialize(emulator_adapter:, game_definition:, reward_weights: {}, vision_detector: nil)
           super(emulator_adapter: emulator_adapter, game_definition: game_definition)
           @reward_function = RewardFunction.new(weights: reward_weights)
           @navigator       = MenuNavigator.new(emulator_adapter)
+          @vision_detector = vision_detector
+          @vision_characters = {}
         end
 
         def describe_snapshot(raw_snapshot)
@@ -35,8 +42,19 @@ module FightingAI
           MemoryMap.stage_name(raw_snapshot["screen"].to_i)
         end
 
-        def extract_game_state(raw_snapshot)
-          StateExtractor.extract(raw_snapshot)
+        def vision_enabled?
+          @vision_detector&.available?
+        end
+
+        def configure_vision_characters(player1_character:, player2_character:)
+          @vision_characters = {
+            PLAYER_ONE => player1_character.to_sym,
+            PLAYER_TWO => player2_character.to_sym
+          }
+        end
+
+        def extract_game_state(raw_snapshot, frame_observation: nil)
+          StateExtractor.extract(raw_snapshot, vision_positions: vision_positions(frame_observation))
         end
 
         def build_observation(game_state, player_index:)
@@ -150,6 +168,47 @@ module FightingAI
         end
 
         private
+
+        def vision_positions(frame_observation)
+          return nil unless vision_enabled? && frame_observation
+
+          result = @vision_detector.detect(frame_observation)
+          image_width = result.fetch(:image_width)
+          image_height = result.fetch(:image_height)
+          assign_vision_positions(result[:detections], image_width: image_width, image_height: image_height)
+        end
+
+        def assign_vision_positions(detections, image_width:, image_height:)
+          return nil if detections.empty?
+
+          sub_zero_players = @vision_characters.select { |_, character| character == SUB_ZERO_CHARACTER }.keys
+          player_positions = {}
+
+          if sub_zero_players.size == PLAYER_TWO && detections.size >= PLAYER_TWO
+            player_positions[PLAYER_ONE] = scale_detection(detections.first, image_width, image_height)
+            player_positions[PLAYER_TWO] = scale_detection(detections.last, image_width, image_height)
+          elsif sub_zero_players.size == PLAYER_ONE
+            player_positions[sub_zero_players.first] = scale_detection(detections.max_by(&:confidence), image_width, image_height)
+          elsif detections.size >= PLAYER_TWO
+            player_positions[PLAYER_ONE] = scale_detection(detections.first, image_width, image_height)
+            player_positions[PLAYER_TWO] = scale_detection(detections.last, image_width, image_height)
+          else
+            inferred_player = detections.first.center_x <= image_width / MIDPOINT_DIVISOR ? PLAYER_ONE : PLAYER_TWO
+            player_positions[inferred_player] = scale_detection(detections.first, image_width, image_height)
+          end
+
+          player_positions
+        end
+
+        def scale_detection(detection, image_width, image_height)
+          Vision::CharacterPositionDetector.scale_position(
+            detection,
+            image_width: image_width,
+            image_height: image_height,
+            x_max: MemoryMap::X_MAX,
+            y_max: MemoryMap::Y_MAX
+          )
+        end
 
         def flip_direction(input_sequence)
           flipped = Core::InputSequence.new

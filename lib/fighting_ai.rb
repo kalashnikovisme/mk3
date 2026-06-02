@@ -28,6 +28,11 @@ require_relative "fighting_ai/observation/provider"
 require_relative "fighting_ai/observation/frame_observation"
 require_relative "fighting_ai/observation/memory_observation"
 
+# Vision
+require_relative "fighting_ai/vision/png_image"
+require_relative "fighting_ai/vision/template_matcher"
+require_relative "fighting_ai/vision/character_position_detector"
+
 # Emulator adapters
 require_relative "fighting_ai/emulator/adapter"
 require_relative "fighting_ai/emulator/retro_arch/config_builder"
@@ -76,6 +81,9 @@ require_relative "fighting_ai/runtime/human_vs_ai"
 require_relative "fighting_ai/runtime/ai_vs_ai"
 
 module FightingAI
+  VISION_ENV_KEY = "VISION"
+  VISION_ENABLED_VALUE = "1"
+
   class << self
     def game_definitions
       @game_definitions ||= {}
@@ -129,12 +137,14 @@ module FightingAI
       )
     end
 
-    def build_mk3_adapter(emulator_adapter:, reward_weights: {})
+    def build_mk3_adapter(emulator_adapter:, reward_weights: {}, vision: ENV.fetch(VISION_ENV_KEY, nil) == VISION_ENABLED_VALUE)
       game_def = game(:mortal_kombat_3)
+      vision_detector = vision ? Vision::CharacterPositionDetector.new : nil
       Game::MortalKombat3::Adapter.new(
         emulator_adapter: emulator_adapter,
         game_definition:  game_def,
-        reward_weights:   reward_weights
+        reward_weights:   reward_weights,
+        vision_detector:  vision_detector
       )
     end
 

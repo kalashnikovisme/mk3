@@ -36,6 +36,17 @@ end
 
 The active training mode is PPO self-play via `dip learn`. See `docs/ppo_training.md` for the full configuration reference including reward weights, hyperparameters, action space, and entropy collapse detection.
 
+Sub-Zero template recognition can be enabled during training after preparing
+templates:
+
+```bash
+dip vision:prepare-sprites data/vision/source/sub_zero -- --mirror
+VISION=1 dip learn sub-zero-vs-sub-zero
+```
+
+Vision currently affects fighter position detection only. Other state fields still
+come from WRAM snapshots.
+
 ## Match Setup
 
 ```ruby

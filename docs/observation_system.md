@@ -65,3 +65,18 @@ The converter writes templates to `data/vision/templates/sub_zero/` by default:
 The default workflow uses grayscale templates plus masks. Pure black/white templates
 are available for experiments, but grayscale keeps sprite shading and usually gives
 more stable matches against varied MK3 backgrounds.
+
+## Runtime Vision Flow
+
+MK3 vision is opt-in:
+
+```bash
+VISION=1 dip learn sub-zero-vs-sub-zero
+```
+
+When enabled, `Runtime::MatchRunner` captures a `FrameObservation` after each WRAM
+snapshot and passes it to `Game::MortalKombat3::Adapter#extract_game_state`. The
+adapter runs `Vision::CharacterPositionDetector` for Sub-Zero templates and scales
+detected screen-space foot positions into the existing normalized MK3 coordinate
+range. Only fighter `x/y` positions are overridden by vision; the rest of the
+state remains WRAM-derived.
