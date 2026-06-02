@@ -1,0 +1,218 @@
+#!/usr/bin/env python3
+"""Prepare sprite PNGs for grayscale masked template matching."""
+
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+from typing import Iterable
+
+from PIL import Image, ImageOps
+
+
+DEFAULT_INPUT_DIR = Path("data/vision/source/sub_zero")
+DEFAULT_OUTPUT_DIR = Path("data/vision/templates/sub_zero")
+PNG_PATTERN = "*.png"
+
+ALPHA_THRESHOLD = 1
+BINARY_THRESHOLD = 128
+MASK_BLACK = 0
+MASK_WHITE = 255
+NO_ALPHA_OPAQUE_VALUE = MASK_WHITE
+EMPTY_BBOX = None
+NO_CONVERTED_SPRITES = 0
+CONVERTED_SPRITE_INCREMENT = 1
+
+LEFT_SUFFIX = "_left"
+RIGHT_SUFFIX = "_right"
+GRAY_SUFFIX = "_gray"
+MASK_SUFFIX = "_mask"
+BINARY_SUFFIX = "_binary"
+PNG_SUFFIX = ".png"
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Convert character sprites into grayscale templates and alpha masks."
+    )
+    parser.add_argument(
+        "input",
+        nargs="?",
+        type=Path,
+        default=DEFAULT_INPUT_DIR,
+        help=f"Source PNG file or directory. Default: {DEFAULT_INPUT_DIR}",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=DEFAULT_OUTPUT_DIR,
+        help=f"Directory for converted templates. Default: {DEFAULT_OUTPUT_DIR}",
+    )
+    parser.add_argument(
+        "--alpha-threshold",
+        type=int,
+        default=ALPHA_THRESHOLD,
+        help="Alpha value at or above this threshold is included in the mask.",
+    )
+    parser.add_argument(
+        "--binary",
+        action="store_true",
+        help="Also write a black/white thresholded template for each sprite.",
+    )
+    parser.add_argument(
+        "--binary-threshold",
+        type=int,
+        default=BINARY_THRESHOLD,
+        help="Grayscale value at or above this threshold becomes white in binary templates.",
+    )
+    parser.add_argument(
+        "--mirror",
+        action="store_true",
+        help="Also write horizontally mirrored templates.",
+    )
+    parser.add_argument(
+        "--no-trim",
+        action="store_true",
+        help="Keep the source canvas instead of cropping to the alpha mask bounds.",
+    )
+    return parser.parse_args()
+
+
+def source_paths(input_path: Path) -> list[Path]:
+    if input_path.is_file():
+        return [input_path]
+
+    return sorted(input_path.rglob(PNG_PATTERN))
+
+
+def alpha_mask(image: Image.Image, alpha_threshold: int) -> Image.Image:
+    if "A" in image.getbands():
+        alpha = image.getchannel("A")
+    else:
+        alpha = Image.new("L", image.size, NO_ALPHA_OPAQUE_VALUE)
+
+    return alpha.point(lambda value: MASK_WHITE if value >= alpha_threshold else MASK_BLACK)
+
+
+def masked_grayscale(image: Image.Image, mask: Image.Image) -> Image.Image:
+    grayscale = ImageOps.grayscale(image)
+    black_canvas = Image.new("L", image.size, MASK_BLACK)
+    black_canvas.paste(grayscale, mask=mask)
+    return black_canvas
+
+
+def binary_template(grayscale: Image.Image, binary_threshold: int) -> Image.Image:
+    return grayscale.point(lambda value: MASK_WHITE if value >= binary_threshold else MASK_BLACK)
+
+
+def trim_to_mask(image: Image.Image, mask: Image.Image) -> tuple[Image.Image, Image.Image]:
+    bbox = mask.getbbox()
+    if bbox is EMPTY_BBOX:
+        return image, mask
+
+    return image.crop(bbox), mask.crop(bbox)
+
+
+def stem_for(path: Path, mirrored: bool) -> str:
+    stem = path.stem
+    if mirrored:
+        if stem.endswith(LEFT_SUFFIX):
+            return f"{stem.removesuffix(LEFT_SUFFIX)}{RIGHT_SUFFIX}"
+        if stem.endswith(RIGHT_SUFFIX):
+            return f"{stem.removesuffix(RIGHT_SUFFIX)}{LEFT_SUFFIX}"
+        return f"{stem}{RIGHT_SUFFIX}"
+
+    if stem.endswith(LEFT_SUFFIX) or stem.endswith(RIGHT_SUFFIX):
+        return stem
+
+    return f"{stem}{LEFT_SUFFIX}"
+
+
+def save_template_set(
+    source_path: Path,
+    output_dir: Path,
+    grayscale: Image.Image,
+    mask: Image.Image,
+    write_binary: bool,
+    binary_threshold: int,
+    mirrored: bool = False,
+) -> None:
+    stem = stem_for(source_path, mirrored)
+    grayscale.save(output_dir / f"{stem}{GRAY_SUFFIX}{PNG_SUFFIX}")
+    mask.save(output_dir / f"{stem}{MASK_SUFFIX}{PNG_SUFFIX}")
+
+    if write_binary:
+        binary_template(grayscale, binary_threshold).save(
+            output_dir / f"{stem}{BINARY_SUFFIX}{PNG_SUFFIX}"
+        )
+
+
+def convert_one(
+    source_path: Path,
+    output_dir: Path,
+    alpha_threshold: int,
+    write_binary: bool,
+    binary_threshold: int,
+    mirror: bool,
+    trim: bool,
+) -> None:
+    image = Image.open(source_path).convert("RGBA")
+    mask = alpha_mask(image, alpha_threshold)
+    grayscale = masked_grayscale(image, mask)
+
+    if trim:
+        grayscale, mask = trim_to_mask(grayscale, mask)
+
+    save_template_set(
+        source_path,
+        output_dir,
+        grayscale,
+        mask,
+        write_binary,
+        binary_threshold,
+    )
+
+    if mirror:
+        mirrored_grayscale = ImageOps.mirror(grayscale)
+        mirrored_mask = ImageOps.mirror(mask)
+        save_template_set(
+            source_path,
+            output_dir,
+            mirrored_grayscale,
+            mirrored_mask,
+            write_binary,
+            binary_threshold,
+            mirrored=True,
+        )
+
+
+def convert_all(paths: Iterable[Path], args: argparse.Namespace) -> int:
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    converted_count = NO_CONVERTED_SPRITES
+    for path in paths:
+        convert_one(
+            source_path=path,
+            output_dir=args.output_dir,
+            alpha_threshold=args.alpha_threshold,
+            write_binary=args.binary,
+            binary_threshold=args.binary_threshold,
+            mirror=args.mirror,
+            trim=not args.no_trim,
+        )
+        converted_count += CONVERTED_SPRITE_INCREMENT
+
+    return converted_count
+
+
+def main() -> None:
+    args = parse_args()
+    paths = source_paths(args.input)
+    if not paths:
+        raise SystemExit(f"No PNG files found in {args.input}")
+
+    converted_count = convert_all(paths, args)
+    print(f"Converted {converted_count} sprite(s) into {args.output_dir}")
+
+
+if __name__ == "__main__":
+    main()

@@ -127,6 +127,13 @@ interaction:
     service: app
     command: bundle exec ruby bin/play-vs-ai
 
+  "vision:prepare-sprites":
+    description: "Convert source sprite PNGs into grayscale templates and alpha masks. Usage: dip vision:prepare-sprites [input] -- --mirror --binary"
+    service: app
+    command: python3 bin/prepare_sprite_templates
+    compose:
+      run_options: [no-deps]
+
 provision:
   - dip compose build
   - dip compose run --rm --no-deps app bundle install

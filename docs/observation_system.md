@@ -44,3 +44,24 @@ obs.snapshot  # → Hash
 ## Relationship to `Core::Observation`
 
 `Core::Observation` is the normalized float vector that agents receive. It is produced by `Game::Adapter#build_observation` from a `Core::GameState`. `FrameObservation` is a separate concept — raw pixels for potential future vision-based agents — and is never passed to agents directly in the current architecture.
+
+## Vision Template Assets
+
+Sprite templates for image-based character position detection are prepared outside the
+agent boundary. Source sprites should be placed under
+`data/vision/source/<character>/` and converted with:
+
+```bash
+dip provision
+dip vision:prepare-sprites data/vision/source/sub_zero -- --mirror --binary
+```
+
+The converter writes templates to `data/vision/templates/sub_zero/` by default:
+
+- `*_gray.png` — grayscale template with transparent source pixels painted black.
+- `*_mask.png` — black/white alpha mask for masked template matching.
+- `*_binary.png` — optional black/white thresholded template when `--binary` is used.
+
+The default workflow uses grayscale templates plus masks. Pure black/white templates
+are available for experiments, but grayscale keeps sprite shading and usually gives
+more stable matches against varied MK3 backgrounds.
