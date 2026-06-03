@@ -132,6 +132,21 @@ confidence is `0.82`; override it for tuning:
 MIN_CONFIDENCE=0.75 dip vision:detect data/screenshots/example.png
 ```
 
+`dip vision:detect` is exhaustive: it scans every non-reference template across
+the full screenshot and is intended for debugging template quality, not for
+real-time frame-by-frame use. For idle-stance screenshots, use the fast command:
+
+```bash
+dip vision:detect-fast data/screenshots/example.png
+```
+
+Fast mode sets `VISION_FAST=1`, scans only `idle_fighting_stance_*` templates,
+and uses the fast-mode stride defined in `bin/vision_detect.py`. It is suitable
+for confirming idle fighter positions quickly, but it will not detect attacks,
+jumps, knockdowns, or other non-idle poses. The detector warms up CUDA after
+loading templates so reported per-frame matching time does not include the first
+CUDA kernel initialization cost.
+
 Other useful debug knobs:
 
 ```bash
@@ -139,6 +154,8 @@ MAX_DETECTIONS=4 dip vision:detect data/screenshots/example.png
 SEARCH_STRIDE=2 dip vision:detect data/screenshots/example.png
 TEMPLATE_ROOT=data/vision/templates dip vision:detect data/screenshots/example.png
 VISION_DEVICE=cpu dip vision:detect data/screenshots/example.png
+TEMPLATE_NAME_PREFIXES=idle_fighting_stance_ dip vision:detect data/screenshots/example.png
+TEMPLATE_NAME_EXCLUDE_SUBSTRINGS=reference dip vision:detect data/screenshots/example.png
 ```
 
 If detection appears stuck, it is usually scanning many large templates across a

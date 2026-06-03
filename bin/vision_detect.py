@@ -19,6 +19,7 @@ DEFAULT_CHARACTER = "sub_zero"
 DEFAULT_MIN_CONFIDENCE = 0.82
 DEFAULT_MAX_DETECTIONS = 2
 DEFAULT_SEARCH_STRIDE = 1
+DEFAULT_FAST_SEARCH_STRIDE = 4
 TOP_CANDIDATE_COUNT = 10
 FIRST_HUMAN_INDEX = 1
 SECONDS_TO_MS = 1000.0
@@ -31,15 +32,22 @@ CENTER_DIVISOR = 2
 IMAGE_MAX_INDEX_ADJUSTMENT = 1
 MIN_AXIS_VALUE = 0
 MK3_AXIS_MAX = 255
+ENV_TRUE_VALUES = frozenset(("1", "true", "yes", "on"))
+ENV_LIST_SEPARATOR = ","
+REFERENCE_TEMPLATE_MARKER = "reference"
 
 GRAY_SUFFIX = "_gray.png"
 MASK_SUFFIX = "_mask.png"
+IDLE_TEMPLATE_PREFIX = "idle_fighting_stance_"
 
 TEMPLATE_ROOT_ENV = "TEMPLATE_ROOT"
 MIN_CONFIDENCE_ENV = "MIN_CONFIDENCE"
 MAX_DETECTIONS_ENV = "MAX_DETECTIONS"
 SEARCH_STRIDE_ENV = "SEARCH_STRIDE"
 VISION_DEVICE_ENV = "VISION_DEVICE"
+VISION_FAST_ENV = "VISION_FAST"
+TEMPLATE_NAME_PREFIXES_ENV = "TEMPLATE_NAME_PREFIXES"
+TEMPLATE_NAME_EXCLUDE_SUBSTRINGS_ENV = "TEMPLATE_NAME_EXCLUDE_SUBSTRINGS"
 
 
 @dataclass(frozen=True)
@@ -72,6 +80,18 @@ def env_int(name: str, default: int) -> int:
     return int(os.environ.get(name, str(default)))
 
 
+def env_bool(name: str) -> bool:
+    return os.environ.get(name, "").lower() in ENV_TRUE_VALUES
+
+
+def env_list(name: str, default: tuple[str, ...] = ()) -> tuple[str, ...]:
+    raw_value = os.environ.get(name)
+    if raw_value is None:
+        return default
+
+    return tuple(value.strip() for value in raw_value.split(ENV_LIST_SEPARATOR) if value.strip())
+
+
 def choose_device() -> torch.device:
     requested = os.environ.get(VISION_DEVICE_ENV)
     if requested:
@@ -84,10 +104,25 @@ def load_grayscale(path: Path) -> torch.Tensor:
     return torch.tensor(list(image.getdata()), dtype=torch.float32).reshape(image.height, image.width)
 
 
-def load_templates(template_dir: Path, device: torch.device) -> list[Template]:
+def template_included(name: str, include_prefixes: tuple[str, ...], exclude_substrings: tuple[str, ...]) -> bool:
+    if include_prefixes and not name.startswith(include_prefixes):
+        return False
+
+    return not any(substring in name for substring in exclude_substrings)
+
+
+def load_templates(
+    template_dir: Path,
+    device: torch.device,
+    include_prefixes: tuple[str, ...] = (),
+    exclude_substrings: tuple[str, ...] = (),
+) -> list[Template]:
     templates: list[Template] = []
     for gray_path in sorted(template_dir.glob(f"*{GRAY_SUFFIX}")):
         name = gray_path.name.removesuffix(GRAY_SUFFIX)
+        if not template_included(name, include_prefixes, exclude_substrings):
+            continue
+
         mask_path = template_dir / f"{name}{MASK_SUFFIX}"
         if not mask_path.exists():
             continue
@@ -118,6 +153,20 @@ def load_image(path: Path, device: torch.device) -> torch.Tensor:
     image = Image.open(path).convert("L")
     data = torch.tensor(list(image.getdata()), dtype=torch.float32, device=device)
     return data.reshape(image.height, image.width)
+
+
+def warm_up_device(templates: list[Template], device: torch.device) -> None:
+    if device.type != "cuda" or not templates:
+        return
+
+    template = templates[NO_CANDIDATES]
+    match_template(
+        image=template.grayscale,
+        template=template,
+        min_confidence=DEFAULT_MIN_CONFIDENCE,
+        search_stride=DEFAULT_SEARCH_STRIDE,
+    )
+    torch.cuda.synchronize()
 
 
 def match_template(
@@ -303,7 +352,13 @@ def main() -> int:
     template_dir = template_root / DEFAULT_CHARACTER
     min_confidence = env_float(MIN_CONFIDENCE_ENV, DEFAULT_MIN_CONFIDENCE)
     max_detections = env_int(MAX_DETECTIONS_ENV, DEFAULT_MAX_DETECTIONS)
-    search_stride = env_int(SEARCH_STRIDE_ENV, DEFAULT_SEARCH_STRIDE)
+    fast_mode = env_bool(VISION_FAST_ENV)
+    default_search_stride = DEFAULT_FAST_SEARCH_STRIDE if fast_mode else DEFAULT_SEARCH_STRIDE
+    default_include_prefixes = (IDLE_TEMPLATE_PREFIX,) if fast_mode else ()
+    default_exclude_substrings = (REFERENCE_TEMPLATE_MARKER,)
+    search_stride = env_int(SEARCH_STRIDE_ENV, default_search_stride)
+    include_prefixes = env_list(TEMPLATE_NAME_PREFIXES_ENV, default_include_prefixes)
+    exclude_substrings = env_list(TEMPLATE_NAME_EXCLUDE_SUBSTRINGS_ENV, default_exclude_substrings)
     device = choose_device()
 
     print("Vision detect", flush=True)
@@ -312,12 +367,21 @@ def main() -> int:
     print(f"  device:         {device}", flush=True)
     if device.type == "cuda":
         print(f"  gpu:            {torch.cuda.get_device_name(device)}", flush=True)
+    print(f"  fast_mode:      {fast_mode}", flush=True)
     print(f"  min_confidence: {min_confidence:.3f}", flush=True)
     print(f"  max_detections: {max_detections}", flush=True)
     print(f"  search_stride:  {search_stride}", flush=True)
+    print(f"  include_prefix: {','.join(include_prefixes) if include_prefixes else '(all)'}", flush=True)
+    print(f"  exclude_text:   {','.join(exclude_substrings) if exclude_substrings else '(none)'}", flush=True)
 
     templates_started_at = time.perf_counter()
-    templates = load_templates(template_dir, device)
+    templates = load_templates(
+        template_dir,
+        device,
+        include_prefixes=include_prefixes,
+        exclude_substrings=exclude_substrings,
+    )
+    warm_up_device(templates, device)
     if device.type == "cuda":
         torch.cuda.synchronize()
     print(f"  templates:      {len(templates)}", flush=True)

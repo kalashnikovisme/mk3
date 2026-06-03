@@ -141,6 +141,13 @@ interaction:
     compose:
       run_options: [no-deps]
 
+  "vision:detect-fast":
+    description: "Run fast idle-stance Sub-Zero template detection against screenshot PNGs. Usage: dip vision:detect-fast <screenshot.png>"
+    service: app_gpu
+    command: env VISION_FAST=1 python3 bin/vision_detect.py
+    compose:
+      run_options: [no-deps]
+
   "vision:detect-cpu":
     description: "Run Sub-Zero template detection without Docker GPU access. Usage: dip vision:detect-cpu <screenshot.png>"
     service: app
