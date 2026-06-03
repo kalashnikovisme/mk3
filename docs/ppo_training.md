@@ -33,6 +33,22 @@ startup-stance-only detection. When `VISION_AREAS` is omitted, the detector uses
 the default initial stance ROIs. `dip learn` runs through the GPU Compose service
 so the detector can use CUDA.
 
+## Training Status Bar
+
+During non-debug `dip learn` runs, the PPO status bar prints the latest
+post-extraction fighter positions. When vision is enabled, these are the
+vision-detected positions after scaling into the MK3 coordinate range; when
+vision is disabled, they are the WRAM-derived positions.
+
+The `screen` segment draws a fixed-width horizontal line for the MK3 screen
+coordinate range (`PPODisplay::POSITION_MIN..MemoryMap::X_MAX`). The blue dot is
+the left detected character and the red dot is the right detected character, so
+the dots move as the detected `x` positions change:
+
+```text
+screen |-----●-------------------●------|
+```
+
 ## Action Space
 
 Defined in `lib/fighting_ai/game/mortal_kombat_3/action_translator.rb`.

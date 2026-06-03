@@ -6,6 +6,16 @@ module FightingAI
       BAR_WIDTH      = 16
       MAX_HEALTH     = 0xA6  # 166
       P1_COL_WIDTH   = 55    # visible chars reserved for the P1 reward column
+      SCREEN_TRACK_WIDTH = 32
+      SCREEN_LEFT_BOUNDARY = '|'.freeze
+      SCREEN_RIGHT_BOUNDARY = '|'.freeze
+      SCREEN_EMPTY_CELL = '-'.freeze
+      SCREEN_LEFT_CHARACTER_DOT = '●'.freeze
+      SCREEN_RIGHT_CHARACTER_DOT = '●'.freeze
+      SCREEN_OVERLAP_DOT = '●'.freeze
+      POSITION_MIN = 0
+      POSITION_MAX = FightingAI::Game::MortalKombat3::MemoryMap::X_MAX
+      TRACK_LAST_INDEX = SCREEN_TRACK_WIDTH - 1
 
       COMPONENT_LABELS = {
         damage_dealt: "dmg",
@@ -54,6 +64,7 @@ module FightingAI
           "│ t:#{timer.to_s.rjust(2)} ".white +
           "│ P1 #{health_bar(f1.health).green} #{f1.health.to_s.rjust(3)} x:#{f1.x.to_s.rjust(3)} " +
           "│ P2 #{health_bar(f2.health).red} #{f2.health.to_s.rjust(3)} x:#{f2.x.to_s.rjust(3)} " +
+          "│ screen #{screen_track(f1.x, f2.x)} " +
           "│ [#{state_tag}] " +
           "│ buf #{buf}"
 
@@ -105,6 +116,27 @@ module FightingAI
       def health_bar(hp)
         filled = [(hp.to_f / MAX_HEALTH * BAR_WIDTH).round, BAR_WIDTH].min
         "█" * filled + "░" * (BAR_WIDTH - filled)
+      end
+
+      def screen_track(p1_x, p2_x)
+        cells = Array.new(SCREEN_TRACK_WIDTH, SCREEN_EMPTY_CELL)
+        left_x, right_x = [p1_x, p2_x].sort
+        left_index = screen_track_index(left_x)
+        right_index = screen_track_index(right_x)
+
+        if left_index == right_index
+          cells[left_index] = SCREEN_OVERLAP_DOT.magenta
+        else
+          cells[left_index] = SCREEN_LEFT_CHARACTER_DOT.blue
+          cells[right_index] = SCREEN_RIGHT_CHARACTER_DOT.red
+        end
+
+        "#{SCREEN_LEFT_BOUNDARY}#{cells.join}#{SCREEN_RIGHT_BOUNDARY}"
+      end
+
+      def screen_track_index(position_x)
+        clamped_x = [[position_x.to_i, POSITION_MIN].max, POSITION_MAX].min
+        (clamped_x.to_f * TRACK_LAST_INDEX / POSITION_MAX).round
       end
 
       def pad_col(str, width)

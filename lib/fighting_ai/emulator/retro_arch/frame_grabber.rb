@@ -6,6 +6,8 @@ module FightingAI
   module Emulator
     module RetroArch
       class FrameGrabber
+        TimeoutError = Class.new(RuntimeError)
+
         SCREENSHOT_DIR    = ConfigBuilder::SCREENSHOT_DIR
         POLL_INTERVAL     = 0.05
         POLL_TIMEOUT      = 5.0
@@ -30,18 +32,22 @@ module FightingAI
             candidate = (new_files + changed).first
             return Observation::FrameObservation.new(wait_for_complete_png(candidate, deadline)) if candidate
 
-            raise "Screenshot timeout after #{POLL_TIMEOUT}s" if Time.now > deadline
+            raise_timeout if Time.now > deadline
             sleep POLL_INTERVAL
           end
         end
 
         private
 
+        def raise_timeout
+          raise TimeoutError, "Screenshot timeout after #{POLL_TIMEOUT}s"
+        end
+
         def wait_for_complete_png(path, deadline)
           previous_size = nil
 
           loop do
-            raise "Screenshot timeout after #{POLL_TIMEOUT}s" if Time.now > deadline
+            raise_timeout if Time.now > deadline
 
             current_size = File.exist?(path) ? File.size(path) : EMPTY_FILE_SIZE
             return path if current_size > EMPTY_FILE_SIZE && current_size == previous_size

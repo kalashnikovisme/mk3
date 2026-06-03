@@ -88,6 +88,12 @@ rules as `dip vision:detect`. Detected screen-space foot positions are scaled
 into the existing normalized MK3 coordinate range. Only fighter `x/y` positions
 are overridden by vision; the rest of the state remains WRAM-derived.
 
+If RetroArch does not produce a screenshot before
+`FrameGrabber::POLL_TIMEOUT`, runtime training treats that frame as a vision
+miss instead of aborting the episode. `MatchRunner` logs one warning and passes
+no `FrameObservation` to the game adapter, so the extracted state falls back to
+WRAM-derived fighter positions until screenshot capture succeeds again.
+
 Runtime vision is enabled by default for `dip learn` and `dip learn_from_ppo`.
 Use `VISION=0` to force WRAM-only training. Action and area settings are
 controlled by environment variables:

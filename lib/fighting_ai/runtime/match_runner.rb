@@ -20,6 +20,7 @@ module FightingAI
         @wram_dump       = wram_dump
         @wram_dump_index = 0
         @max_rounds      = max_rounds
+        @vision_capture_warning_logged = false
         FileUtils.mkdir_p(WRAM_DUMP_DIR) if @wram_dump
       end
 
@@ -141,6 +142,18 @@ module FightingAI
         return nil unless @game.respond_to?(:vision_enabled?) && @game.vision_enabled?
 
         @emulator.capture_frame
+      rescue Emulator::RetroArch::FrameGrabber::TimeoutError => e
+        log_vision_capture_warning(e)
+        nil
+      end
+
+      def log_vision_capture_warning(error)
+        return if @vision_capture_warning_logged
+
+        message = "Vision screenshot capture failed (#{error.message}); falling back to WRAM positions."
+        @ui&.log(message)
+        log(message) unless @ui
+        @vision_capture_warning_logged = true
       end
 
       def step_agents(game_state, prev_game_state, match_id)
