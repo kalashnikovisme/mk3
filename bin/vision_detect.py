@@ -22,6 +22,7 @@ DEFAULT_SEARCH_STRIDE = 1
 DEFAULT_ACTION_SEARCH_STRIDE = 4
 TOP_CANDIDATE_COUNT = 10
 FIRST_HUMAN_INDEX = 1
+ROI_COMPONENT_COUNT = 4
 SECONDS_TO_MS = 1000.0
 BYTE_MAX = 255.0
 MASK_THRESHOLD = 1
@@ -34,6 +35,15 @@ MIN_AXIS_VALUE = 0
 MK3_AXIS_MAX = 255
 ENV_LIST_SEPARATOR = ","
 REFERENCE_TEMPLATE_MARKER = "reference"
+AREA_ARG = "--area"
+ROI_ARG = "--roi"
+FULL_SCREEN_ARG = "--full-screen"
+P1_INITIAL_STANCE_ROI_X = 40
+P1_INITIAL_STANCE_ROI_Y = 104
+P2_INITIAL_STANCE_ROI_X = 152
+P2_INITIAL_STANCE_ROI_Y = 104
+INITIAL_STANCE_ROI_WIDTH = 72
+INITIAL_STANCE_ROI_HEIGHT = 120
 
 GRAY_SUFFIX = "_gray.png"
 MASK_SUFFIX = "_mask.png"
@@ -178,6 +188,30 @@ class Detection:
     confidence: float
 
 
+@dataclass(frozen=True)
+class Roi:
+    x: int
+    y: int
+    width: int
+    height: int
+
+
+DEFAULT_INITIAL_STANCE_ROIS = (
+    Roi(
+        x=P1_INITIAL_STANCE_ROI_X,
+        y=P1_INITIAL_STANCE_ROI_Y,
+        width=INITIAL_STANCE_ROI_WIDTH,
+        height=INITIAL_STANCE_ROI_HEIGHT,
+    ),
+    Roi(
+        x=P2_INITIAL_STANCE_ROI_X,
+        y=P2_INITIAL_STANCE_ROI_Y,
+        width=INITIAL_STANCE_ROI_WIDTH,
+        height=INITIAL_STANCE_ROI_HEIGHT,
+    ),
+)
+
+
 def env_float(name: str, default: float) -> float:
     return float(os.environ.get(name, str(default)))
 
@@ -201,15 +235,59 @@ def choose_device() -> torch.device:
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def parse_mode_and_paths(raw_args: list[str]) -> tuple[str, list[str]]:
+def parse_roi(raw_value: str) -> Roi:
+    raw_components = raw_value.split(ENV_LIST_SEPARATOR)
+    if len(raw_components) != ROI_COMPONENT_COUNT:
+        raise ValueError(f"ROI must have {ROI_COMPONENT_COUNT} comma-separated integers: {raw_value}")
+
+    x, y, width, height = (int(component.strip()) for component in raw_components)
+    if width <= MIN_AXIS_VALUE or height <= MIN_AXIS_VALUE:
+        raise ValueError(f"ROI width and height must be positive: {raw_value}")
+
+    return Roi(x=x, y=y, width=width, height=height)
+
+
+def usage() -> str:
+    return (
+        f"Usage: dip vision:detect [action] [--area x,y,w,h ...] [{FULL_SCREEN_ARG}] "
+        "<screenshot.png> [more.png ...]\n"
+        f"Actions: {', '.join(ACTION_MODE_NAMES)}"
+    )
+
+
+def parse_mode_paths_and_rois(raw_args: list[str]) -> tuple[str, list[str], tuple[Roi, ...]]:
     if not raw_args:
-        return ACTION_MODE_ALL, []
+        return ACTION_MODE_ALL, [], DEFAULT_INITIAL_STANCE_ROIS
 
-    requested_mode = raw_args[NO_CANDIDATES]
+    remaining_args = list(raw_args)
+    requested_mode = remaining_args[NO_CANDIDATES]
     if requested_mode in ACTION_TEMPLATE_PREFIXES:
-        return requested_mode, raw_args[FIRST_HUMAN_INDEX:]
+        action_mode = requested_mode
+        remaining_args = remaining_args[FIRST_HUMAN_INDEX:]
+    else:
+        action_mode = ACTION_MODE_ALL
 
-    return ACTION_MODE_ALL, raw_args
+    screenshot_paths: list[str] = []
+    rois: list[Roi] = []
+    full_screen = False
+    index = NO_CANDIDATES
+    while index < len(remaining_args):
+        arg = remaining_args[index]
+        if arg in (AREA_ARG, ROI_ARG):
+            index += FIRST_HUMAN_INDEX
+            if index >= len(remaining_args):
+                raise ValueError(f"{arg} requires x,y,w,h")
+            rois.append(parse_roi(remaining_args[index]))
+        elif arg == FULL_SCREEN_ARG:
+            full_screen = True
+        else:
+            screenshot_paths.append(arg)
+        index += FIRST_HUMAN_INDEX
+
+    if full_screen:
+        return action_mode, screenshot_paths, ()
+
+    return action_mode, screenshot_paths, tuple(rois) if rois else DEFAULT_INITIAL_STANCE_ROIS
 
 
 def load_grayscale(path: Path) -> torch.Tensor:
@@ -287,6 +365,8 @@ def match_template(
     template: Template,
     min_confidence: float,
     search_stride: int,
+    origin_x: int = MIN_AXIS_VALUE,
+    origin_y: int = MIN_AXIS_VALUE,
 ) -> list[Detection]:
     image_height, image_width = image.shape
     if template.width > image_width or template.height > image_height:
@@ -316,19 +396,38 @@ def match_template(
         col = raw_index % output_width
         x = col * search_stride
         y = row * search_stride
+        screen_x = origin_x + x
+        screen_y = origin_y + y
         detections.append(
             Detection(
                 template_name=template.name,
-                x=x,
-                y=y,
+                x=screen_x,
+                y=screen_y,
                 width=template.width,
                 height=template.height,
-                center_x=x + (template.width // CENTER_DIVISOR),
-                bottom_y=y + template.height,
+                center_x=screen_x + (template.width // CENTER_DIVISOR),
+                bottom_y=screen_y + template.height,
                 confidence=float(confidences_cpu[raw_index].item()),
             )
         )
     return detections
+
+
+def clamp_roi(roi: Roi, image_width: int, image_height: int) -> Roi | None:
+    x = min(max(roi.x, MIN_AXIS_VALUE), image_width)
+    y = min(max(roi.y, MIN_AXIS_VALUE), image_height)
+    right = min(max(roi.x + roi.width, MIN_AXIS_VALUE), image_width)
+    bottom = min(max(roi.y + roi.height, MIN_AXIS_VALUE), image_height)
+    width = right - x
+    height = bottom - y
+    if width <= MIN_AXIS_VALUE or height <= MIN_AXIS_VALUE:
+        return None
+
+    return Roi(x=x, y=y, width=width, height=height)
+
+
+def crop_image(image: torch.Tensor, roi: Roi) -> torch.Tensor:
+    return image[roi.y : roi.y + roi.height, roi.x : roi.x + roi.width]
 
 
 def overlap_ratio(left: Detection, right: Detection) -> float:
@@ -387,6 +486,7 @@ def detect_path(
     min_confidence: float,
     max_detections: int,
     search_stride: int,
+    rois: tuple[Roi, ...],
 ) -> None:
     print(path, flush=True)
     if not path.exists():
@@ -402,13 +502,36 @@ def detect_path(
     load_seconds = time.perf_counter() - load_started_at
     image_height, image_width = image.shape
     print(f"  image_loaded: {image_width}x{image_height} in {load_seconds * SECONDS_TO_MS:.1f}ms", flush=True)
+    active_rois = tuple(filter(None, (clamp_roi(roi, image_width, image_height) for roi in rois)))
+    if active_rois:
+        print(
+            "  areas:        "
+            + " ".join(f"({roi.x},{roi.y} {roi.width}x{roi.height})" for roi in active_rois),
+            flush=True,
+        )
+    else:
+        print("  areas:        full-screen", flush=True)
 
     print(f"  matching: {len(templates)} templates", flush=True)
     match_started_at = time.perf_counter()
     candidates: list[Detection] = []
     for index, template in enumerate(templates, start=FIRST_HUMAN_INDEX):
         template_started_at = time.perf_counter()
-        matches = match_template(image, template, min_confidence, search_stride)
+        if active_rois:
+            matches = []
+            for roi in active_rois:
+                matches.extend(
+                    match_template(
+                        crop_image(image, roi),
+                        template,
+                        min_confidence,
+                        search_stride,
+                        origin_x=roi.x,
+                        origin_y=roi.y,
+                    )
+                )
+        else:
+            matches = match_template(image, template, min_confidence, search_stride)
         if device.type == "cuda":
             torch.cuda.synchronize()
         candidates.extend(matches)
@@ -458,20 +581,18 @@ def detect_path(
 
 def main() -> int:
     if len(sys.argv) <= FIRST_HUMAN_INDEX:
-        print(
-            "Usage: dip vision:detect [action] <screenshot.png> [more.png ...]\n"
-            f"Actions: {', '.join(ACTION_MODE_NAMES)}",
-            file=sys.stderr,
-        )
+        print(usage(), file=sys.stderr)
         return FIRST_HUMAN_INDEX
 
-    action_mode, screenshot_paths = parse_mode_and_paths(sys.argv[FIRST_HUMAN_INDEX:])
+    try:
+        action_mode, screenshot_paths, rois = parse_mode_paths_and_rois(sys.argv[FIRST_HUMAN_INDEX:])
+    except ValueError as error:
+        print(error, file=sys.stderr)
+        print(usage(), file=sys.stderr)
+        return FIRST_HUMAN_INDEX
+
     if not screenshot_paths:
-        print(
-            "Usage: dip vision:detect [action] <screenshot.png> [more.png ...]\n"
-            f"Actions: {', '.join(ACTION_MODE_NAMES)}",
-            file=sys.stderr,
-        )
+        print(usage(), file=sys.stderr)
         return FIRST_HUMAN_INDEX
 
     template_root = Path(os.environ.get(TEMPLATE_ROOT_ENV, str(DEFAULT_TEMPLATE_ROOT)))
@@ -499,6 +620,15 @@ def main() -> int:
     print(f"  search_stride:  {search_stride}", flush=True)
     print(f"  include_prefix: {','.join(include_prefixes) if include_prefixes else '(all)'}", flush=True)
     print(f"  exclude_text:   {','.join(exclude_substrings) if exclude_substrings else '(none)'}", flush=True)
+    print(
+        "  default_areas:  "
+        + (
+            "full-screen"
+            if not rois
+            else " ".join(f"({roi.x},{roi.y} {roi.width}x{roi.height})" for roi in rois)
+        ),
+        flush=True,
+    )
 
     templates_started_at = time.perf_counter()
     templates = load_templates(
@@ -522,7 +652,7 @@ def main() -> int:
         return FIRST_HUMAN_INDEX
 
     for raw_path in screenshot_paths:
-        detect_path(Path(raw_path), templates, device, min_confidence, max_detections, search_stride)
+        detect_path(Path(raw_path), templates, device, min_confidence, max_detections, search_stride, rois)
 
     return 0
 

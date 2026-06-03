@@ -95,6 +95,7 @@ container has GPU access:
 ```bash
 dip vision:detect data/screenshots/example.png
 dip vision:detect idle data/screenshots/example.png
+dip vision:detect idle --area 40,104,72,120 --area 152,104,72,120 data/screenshots/example.png
 ```
 
 `dip vision:detect` runs through the `app_gpu` Compose service, which requests
@@ -156,6 +157,23 @@ and `ice_blast_casting`. Prefer exact sprite-group modes when you need the
 fastest targeted check; broad modes scan more templates. The detector warms up
 CUDA after loading templates so reported per-frame matching time does not
 include the first CUDA kernel initialization cost.
+
+Detection uses regions of interest by default. If no `--area`/`--roi` arguments
+are provided, the detector searches the two initial Sub-Zero stance regions:
+`40,104,72,120` for P1 and `152,104,72,120` for P2. These defaults cover the
+startup idle detections around `box=(52,116 33x94)` and
+`box=(164,116 32x95)`. Override them with one or more explicit areas:
+
+```bash
+dip vision:detect idle --area 40,104,72,120 --area 152,104,72,120 data/screenshots/example.png
+dip vision:detect idle --roi 32,96,88,128 --roi 144,96,88,128 data/screenshots/example.png
+```
+
+Use `--full-screen` only for exhaustive debugging:
+
+```bash
+dip vision:detect idle --full-screen data/screenshots/example.png
+```
 
 Other useful debug knobs:
 
