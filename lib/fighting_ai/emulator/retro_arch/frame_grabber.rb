@@ -9,6 +9,7 @@ module FightingAI
         SCREENSHOT_DIR    = ConfigBuilder::SCREENSHOT_DIR
         POLL_INTERVAL     = 0.05
         POLL_TIMEOUT      = 5.0
+        EMPTY_FILE_SIZE   = 0
 
         def initialize(host: NetworkCommands::DEFAULT_HOST, port: NetworkCommands::DEFAULT_PORT)
           @host = host
@@ -27,7 +28,7 @@ module FightingAI
             changed   = after.select { |f, t| before_mtimes[f] && t > before_mtimes[f] }.keys
 
             candidate = (new_files + changed).first
-            return Observation::FrameObservation.new(candidate) if candidate
+            return Observation::FrameObservation.new(wait_for_complete_png(candidate, deadline)) if candidate
 
             raise "Screenshot timeout after #{POLL_TIMEOUT}s" if Time.now > deadline
             sleep POLL_INTERVAL
@@ -35,6 +36,20 @@ module FightingAI
         end
 
         private
+
+        def wait_for_complete_png(path, deadline)
+          previous_size = nil
+
+          loop do
+            raise "Screenshot timeout after #{POLL_TIMEOUT}s" if Time.now > deadline
+
+            current_size = File.exist?(path) ? File.size(path) : EMPTY_FILE_SIZE
+            return path if current_size > EMPTY_FILE_SIZE && current_size == previous_size
+
+            previous_size = current_size
+            sleep POLL_INTERVAL
+          end
+        end
 
         def current_png_mtimes
           Dir.glob(File.join(SCREENSHOT_DIR, "*.png")).each_with_object({}) do |f, h|

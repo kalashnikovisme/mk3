@@ -17,6 +17,8 @@ capture  # → an Observation object
 ### `Observation::FrameObservation`
 
 Wraps a path to a PNG screenshot captured by `RetroArch::FrameGrabber`.
+`FrameGrabber` waits for the screenshot file to become non-empty and stable before
+returning the observation.
 
 ```ruby
 frame = Observation::FrameObservation.new("/tmp/fighting_ai/screenshots/frame_001.png")
@@ -87,16 +89,50 @@ state remains WRAM-derived.
 ## Detection Debugging
 
 Prepared templates can be tested against screenshot PNGs without starting
-training:
+training. The command uses a Torch backend and runs on CUDA when the dip
+container has GPU access:
 
 ```bash
 dip vision:detect data/screenshots/example.png
 ```
 
+`dip vision:detect` runs through the `app_gpu` Compose service, which requests
+`gpus: all`. If Docker is not configured for NVIDIA GPU containers, the command
+fails before detection starts with an error such as:
+
+```text
+failed to discover GPU vendor from CDI: no known GPU vendor found
+```
+
+In that case, verify the host Docker GPU runtime first:
+
+```bash
+nvidia-smi
+docker run --rm --gpus all ubuntu:24.04 nvidia-smi
+```
+
+The first command confirms the host driver. The second command must work before
+`dip vision:detect` can use CUDA. Use `dip vision:detect-cpu ...` as a fallback
+while Docker GPU support is being configured.
+
 For each screenshot, the command prints the matched template name, screen-space
-foot position, scaled MK3 `x/y` position, and confidence. The default minimum
+foot position, scaled MK3 `x/y` position, confidence, image dimensions, template
+count, candidate count, timing, and selected device. The default minimum
 confidence is `0.82`; override it for tuning:
 
 ```bash
 MIN_CONFIDENCE=0.75 dip vision:detect data/screenshots/example.png
 ```
+
+Other useful debug knobs:
+
+```bash
+MAX_DETECTIONS=4 dip vision:detect data/screenshots/example.png
+SEARCH_STRIDE=2 dip vision:detect data/screenshots/example.png
+TEMPLATE_ROOT=data/vision/templates dip vision:detect data/screenshots/example.png
+VISION_DEVICE=cpu dip vision:detect data/screenshots/example.png
+```
+
+If detection appears stuck, it is usually scanning many large templates across a
+full screenshot. The command prints progress at least once per second. Increase
+`SEARCH_STRIDE` to trade precision for speed while debugging.

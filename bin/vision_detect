@@ -8,8 +8,20 @@ require "fighting_ai"
 DEFAULT_TEMPLATE_ROOT = File.expand_path("../data/vision/templates", __dir__).freeze
 DEFAULT_CHARACTER = :sub_zero
 DEFAULT_MIN_CONFIDENCE = FightingAI::Vision::TemplateMatcher::DEFAULT_MIN_CONFIDENCE
+DEFAULT_MAX_DETECTIONS = FightingAI::Vision::TemplateMatcher::DEFAULT_MAX_DETECTIONS
+DEFAULT_SEARCH_STRIDE = FightingAI::Vision::TemplateMatcher::DEFAULT_SEARCH_STRIDE
 EXPECTED_ARGUMENT_COUNT = 1
 FIRST_HUMAN_INDEX = 1
+SECONDS_TO_MS = 1000.0
+TOP_CANDIDATE_COUNT = 10
+NO_CANDIDATES = 0
+PROGRESS_INTERVAL_SECONDS = 1.0
+MIN_CONFIDENCE_ENV = "MIN_CONFIDENCE"
+MAX_DETECTIONS_ENV = "MAX_DETECTIONS"
+SEARCH_STRIDE_ENV = "SEARCH_STRIDE"
+TEMPLATE_ROOT_ENV = "TEMPLATE_ROOT"
+
+$stdout.sync = true
 
 if ARGV.size < EXPECTED_ARGUMENT_COUNT
   abort "Usage: dip vision:detect <screenshot.png> [more.png ...]"
@@ -17,13 +29,29 @@ end
 
 Frame = Struct.new(:path)
 
-detector = FightingAI::Vision::CharacterPositionDetector.new(
-  character: DEFAULT_CHARACTER,
-  template_root: ENV.fetch("TEMPLATE_ROOT", DEFAULT_TEMPLATE_ROOT),
-  min_confidence: ENV.fetch("MIN_CONFIDENCE", DEFAULT_MIN_CONFIDENCE).to_f
+template_root = ENV.fetch(TEMPLATE_ROOT_ENV, DEFAULT_TEMPLATE_ROOT)
+template_dir = File.join(template_root, DEFAULT_CHARACTER.to_s)
+min_confidence = ENV.fetch(MIN_CONFIDENCE_ENV, DEFAULT_MIN_CONFIDENCE).to_f
+max_detections = ENV.fetch(MAX_DETECTIONS_ENV, DEFAULT_MAX_DETECTIONS).to_i
+search_stride = ENV.fetch(SEARCH_STRIDE_ENV, DEFAULT_SEARCH_STRIDE).to_i
+
+matcher = FightingAI::Vision::TemplateMatcher.new(
+  template_dir: template_dir,
+  min_confidence: min_confidence,
+  max_detections: max_detections,
+  search_stride: search_stride
 )
 
-unless detector.available?
+puts "Vision detect"
+puts "  character:      #{DEFAULT_CHARACTER}"
+puts "  template_dir:   #{template_dir}"
+puts "  templates:      #{matcher.templates.size}"
+puts "  min_confidence: #{format('%.3f', min_confidence)}"
+puts "  max_detections: #{max_detections}"
+puts "  search_stride:  #{search_stride}"
+puts
+
+if matcher.templates.empty?
   abort "No templates found for #{DEFAULT_CHARACTER}. Run `dip vision:prepare-sprites data/vision/sprites/subzero` first."
 end
 
@@ -33,26 +61,86 @@ ARGV.each do |path|
     next
   end
 
-  result = detector.detect(Frame.new(path))
   puts path
-  if result[:detections].empty?
-    puts "  no detections"
+  puts "  file_size: #{File.size(path)} bytes"
+
+  last_progress_at = Process.clock_gettime(Process::CLOCK_MONOTONIC) - PROGRESS_INTERVAL_SECONDS
+  progress = lambda do |event, payload|
+    now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+    case event
+    when :image_load_start
+      puts "  loading_image: #{payload.fetch(:path)}"
+    when :image_load_finish
+      puts "  image_loaded: #{payload.fetch(:width)}x#{payload.fetch(:height)} in #{format('%.1f', payload.fetch(:seconds) * SECONDS_TO_MS)}ms"
+    when :match_start
+      puts "  matching: #{payload.fetch(:template_count)} templates"
+    when :template_start
+      next if now - last_progress_at < PROGRESS_INTERVAL_SECONDS
+
+      last_progress_at = now
+      puts format(
+        "  progress: template %<current>d/%<total>d %<name>s (%<width>dx%<height>d)",
+        current: payload.fetch(:index) + FIRST_HUMAN_INDEX,
+        total: payload.fetch(:template_count),
+        name: payload.fetch(:template_name),
+        width: payload.fetch(:width),
+        height: payload.fetch(:height)
+      )
+    when :template_finish
+      next if payload.fetch(:match_count).zero? && now - last_progress_at < PROGRESS_INTERVAL_SECONDS
+
+      last_progress_at = now
+      puts format(
+        "  progress: finished %<current>d/%<total>d %<name>s matches=%<matches>d total_candidates=%<candidates>d time=%<ms>.1fms",
+        current: payload.fetch(:index) + FIRST_HUMAN_INDEX,
+        total: payload.fetch(:template_count),
+        name: payload.fetch(:template_name),
+        matches: payload.fetch(:match_count),
+        candidates: payload.fetch(:total_candidate_count),
+        ms: payload.fetch(:seconds) * SECONDS_TO_MS
+      )
+    when :match_finish
+      puts format(
+        "  matching_done: candidates=%<candidates>d detections=%<detections>d time=%<ms>.1fms",
+        candidates: payload.fetch(:candidate_count),
+        detections: payload.fetch(:detection_count),
+        ms: payload.fetch(:seconds) * SECONDS_TO_MS
+      )
+    end
+  end
+
+  result = matcher.debug_detect(Frame.new(path), progress: progress)
+  puts "  image:     #{result.image_width}x#{result.image_height}"
+  puts "  timings:   load=#{format('%.1f', result.image_load_seconds * SECONDS_TO_MS)}ms match=#{format('%.1f', result.match_seconds * SECONDS_TO_MS)}ms"
+  puts "  candidates_above_threshold: #{result.candidates.size}"
+
+  if result.detections.empty?
+    puts "  detections: none"
+    if result.candidates.size == NO_CANDIDATES
+      puts "  hint: lower #{MIN_CONFIDENCE_ENV}, verify screenshot is native game pixels, or reduce templates to known visible poses."
+    end
     next
   end
 
-  result[:detections].each_with_index do |detection, index|
+  puts "  detections:"
+  result.detections.each_with_index do |detection, index|
     scaled = FightingAI::Vision::CharacterPositionDetector.scale_position(
       detection,
-      image_width: result.fetch(:image_width),
-      image_height: result.fetch(:image_height),
+      image_width: result.image_width,
+      image_height: result.image_height,
       x_max: FightingAI::Game::MortalKombat3::MemoryMap::X_MAX,
       y_max: FightingAI::Game::MortalKombat3::MemoryMap::Y_MAX
     )
 
     puts format(
-      "  #%<index>d template=%<template>s screen=(%<screen_x>d,%<screen_y>d) mk3=(%<mk3_x>d,%<mk3_y>d) confidence=%<confidence>.3f",
+      "    #%<index>d template=%<template>s box=(%<x>d,%<y>d %<width>dx%<height>d) foot=(%<screen_x>d,%<screen_y>d) mk3=(%<mk3_x>d,%<mk3_y>d) confidence=%<confidence>.3f",
       index: index + FIRST_HUMAN_INDEX,
       template: detection.template_name,
+      x: detection.x,
+      y: detection.y,
+      width: detection.width,
+      height: detection.height,
       screen_x: detection.center_x,
       screen_y: detection.bottom_y,
       mk3_x: scaled.fetch(:x),
@@ -60,4 +148,19 @@ ARGV.each do |path|
       confidence: detection.confidence
     )
   end
+
+  puts "  top_candidates:"
+  result.candidates.first(TOP_CANDIDATE_COUNT).each_with_index do |candidate, index|
+    puts format(
+      "    #%<index>d confidence=%<confidence>.3f template=%<template>s box=(%<x>d,%<y>d %<width>dx%<height>d)",
+      index: index + FIRST_HUMAN_INDEX,
+      confidence: candidate.confidence,
+      template: candidate.template_name,
+      x: candidate.x,
+      y: candidate.y,
+      width: candidate.width,
+      height: candidate.height
+    )
+  end
+  puts
 end

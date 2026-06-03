@@ -123,6 +123,7 @@ dip learn-watch [match-name]
 network_cmd_enable = "true"
 network_cmd_port = "55355"
 video_fullscreen = "false"
+video_gpu_screenshot = "false"
 savestate_auto_load = "false"
 savestate_auto_save = "false"
 screenshot_directory = "/tmp/fighting_ai/screenshots"
@@ -130,4 +131,4 @@ screenshot_directory = "/tmp/fighting_ai/screenshots"
 # P2 keyboard: t/g/f/h + v/b/c/n/r/y
 ```
 
-Screenshots land in `/tmp/fighting_ai/screenshots/`. `FrameGrabber` monitors that directory for new or modified PNGs after sending the `SCREENSHOT` UDP command.
+Screenshots land in `/tmp/fighting_ai/screenshots/`. `video_gpu_screenshot = "false"` forces screenshots to come from the core framebuffer, so dimensions match the game's native output rather than the scaled RetroArch window. `FrameGrabber` monitors that directory for new or modified PNGs after sending the `SCREENSHOT` UDP command.

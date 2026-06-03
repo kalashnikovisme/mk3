@@ -35,6 +35,10 @@ screenshot "vision/idle"      # → /app/data/screenshots/vision/idle.png
 screenshot                    # → /app/data/screenshots/20260101_120000.png
 ```
 
+The capture waits for RetroArch to finish writing a non-empty PNG before copying it.
+RetroArch is configured to use core-framebuffer screenshots, so the PNG dimensions
+match the game's native output rather than the scaled RetroArch window.
+
 ### `reload_state`
 
 Reloads the initial match state that was installed when the scenario started. Resets fighter positions, health, timer, and all game variables to the saved state. Use between independent test sections so each section starts from a known baseline.

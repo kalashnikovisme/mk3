@@ -21,6 +21,7 @@ module FightingAI
             network_cmd_enable = "true"
             network_cmd_port = "55355"
             video_driver = "gl"
+            video_gpu_screenshot = "false"
             input_driver = "x11"
             video_fullscreen = "false"
             audio_sync = "true"

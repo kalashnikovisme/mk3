@@ -4,6 +4,18 @@ module FightingAI
   module Vision
     Detection = Data.define(:template_name, :x, :y, :width, :height, :center_x, :bottom_y, :confidence)
     Template = Data.define(:name, :width, :height, :grayscale_pixels, :mask_pixels, :opaque_pixel_count)
+    MatchDebugResult = Data.define(
+      :detections,
+      :candidates,
+      :image_width,
+      :image_height,
+      :template_count,
+      :min_confidence,
+      :max_detections,
+      :search_stride,
+      :image_load_seconds,
+      :match_seconds
+    )
 
     class TemplateMatcher
       DEFAULT_MIN_CONFIDENCE = 0.82
@@ -38,10 +50,68 @@ module FightingAI
       end
 
       def detect_with_size(frame_observation)
+        result = debug_detect(frame_observation)
+        [result.detections, result.image_width, result.image_height]
+      end
+
+      def debug_detect(frame_observation, progress: nil)
+        progress&.call(:image_load_start, path: frame_observation.path)
+        image_load_started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         image = PngImage.load(frame_observation.path)
-        candidates = @templates.flat_map { |template| matches_for_template(image, template) }
+        image_load_seconds = Process.clock_gettime(Process::CLOCK_MONOTONIC) - image_load_started_at
+        progress&.call(
+          :image_load_finish,
+          width: image.width,
+          height: image.height,
+          seconds: image_load_seconds
+        )
+
+        progress&.call(:match_start, template_count: @templates.size)
+        match_started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        candidates = []
+        @templates.each_with_index do |template, index|
+          progress&.call(
+            :template_start,
+            index: index,
+            template_count: @templates.size,
+            template_name: template.name,
+            width: template.width,
+            height: template.height
+          )
+          template_started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+          matches = matches_for_template(image, template)
+          candidates.concat(matches)
+          progress&.call(
+            :template_finish,
+            index: index,
+            template_count: @templates.size,
+            template_name: template.name,
+            match_count: matches.size,
+            total_candidate_count: candidates.size,
+            seconds: Process.clock_gettime(Process::CLOCK_MONOTONIC) - template_started_at
+          )
+        end
         detections = select_non_overlapping(candidates.sort_by { |detection| -detection.confidence }).sort_by(&:center_x)
-        [detections, image.width, image.height]
+        match_seconds = Process.clock_gettime(Process::CLOCK_MONOTONIC) - match_started_at
+        progress&.call(
+          :match_finish,
+          candidate_count: candidates.size,
+          detection_count: detections.size,
+          seconds: match_seconds
+        )
+
+        MatchDebugResult.new(
+          detections: detections,
+          candidates: candidates.sort_by { |detection| -detection.confidence },
+          image_width: image.width,
+          image_height: image.height,
+          template_count: @templates.size,
+          min_confidence: @min_confidence,
+          max_detections: @max_detections,
+          search_stride: @search_stride,
+          image_load_seconds: image_load_seconds,
+          match_seconds: match_seconds
+        )
       end
 
       private

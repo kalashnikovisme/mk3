@@ -12,6 +12,13 @@ services:
     environment:
       ROM_PATH: /app/mk3.sfc
       CORE_PATH: /usr/lib/x86_64-linux-gnu/libretro/snes9x_libretro.so
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+
+  app_gpu:
+    extends:
+      service: app
+    gpus: all
 
   app_watch:
     extends:
