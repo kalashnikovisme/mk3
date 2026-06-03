@@ -162,7 +162,9 @@ Detection uses regions of interest by default. If no `--area`/`--roi` arguments
 are provided, the detector searches the two initial Sub-Zero stance regions:
 `40,104,72,120` for P1 and `152,104,72,120` for P2. These defaults cover the
 startup idle detections around `box=(52,116 33x94)` and
-`box=(164,116 32x95)`. Override them with one or more explicit areas:
+`box=(164,116 32x95)`. Each area is treated as one character slot: once an area
+produces a detection above `MIN_CONFIDENCE`, that area is skipped for the
+remaining templates. Override the default areas with one or more explicit areas:
 
 ```bash
 dip vision:detect idle --area 40,104,72,120 --area 152,104,72,120 data/screenshots/example.png

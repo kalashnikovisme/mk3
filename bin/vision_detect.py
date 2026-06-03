@@ -515,29 +515,44 @@ def detect_path(
     print(f"  matching: {len(templates)} templates", flush=True)
     match_started_at = time.perf_counter()
     candidates: list[Detection] = []
+    completed_roi_indexes: set[int] = set()
     for index, template in enumerate(templates, start=FIRST_HUMAN_INDEX):
+        if active_rois and len(completed_roi_indexes) >= len(active_rois):
+            break
+
         template_started_at = time.perf_counter()
         if active_rois:
             matches = []
-            for roi in active_rois:
-                matches.extend(
-                    match_template(
-                        crop_image(image, roi),
-                        template,
-                        min_confidence,
-                        search_stride,
-                        origin_x=roi.x,
-                        origin_y=roi.y,
-                    )
+            for roi_index, roi in enumerate(active_rois):
+                if roi_index in completed_roi_indexes:
+                    continue
+
+                roi_matches = match_template(
+                    crop_image(image, roi),
+                    template,
+                    min_confidence,
+                    search_stride,
+                    origin_x=roi.x,
+                    origin_y=roi.y,
                 )
+                if roi_matches:
+                    completed_roi_indexes.add(roi_index)
+
+                matches.extend(roi_matches)
         else:
             matches = match_template(image, template, min_confidence, search_stride)
         if device.type == "cuda":
             torch.cuda.synchronize()
         candidates.extend(matches)
+        area_progress = (
+            f"completed_areas={len(completed_roi_indexes)}/{len(active_rois)} "
+            if active_rois
+            else ""
+        )
         print(
             f"  progress: finished {index}/{len(templates)} {template.name} "
             f"matches={len(matches)} total_candidates={len(candidates)} "
+            f"{area_progress}"
             f"time={(time.perf_counter() - template_started_at) * SECONDS_TO_MS:.1f}ms",
             flush=True,
         )
