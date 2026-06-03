@@ -151,4 +151,4 @@ interaction:
 provision:
   - dip compose build
   - dip compose run --rm --no-deps app bundle install
-  - dip compose run --rm --no-deps app pip3 install -r requirements.txt
+  - dip compose run --rm --no-deps app pip3 install --upgrade --force-reinstall -r requirements.txt

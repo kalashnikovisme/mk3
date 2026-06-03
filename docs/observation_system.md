@@ -115,6 +115,14 @@ The first command confirms the host driver. The second command must work before
 `dip vision:detect` can use CUDA. Use `dip vision:detect-cpu ...` as a fallback
 while Docker GPU support is being configured.
 
+`requirements.txt` pins PyTorch to the CUDA 12.1 wheel (`torch==2.5.1+cu121`)
+from the official PyTorch wheel index. Keep this pin unless the host NVIDIA
+driver is also upgraded for newer CUDA runtimes; otherwise `dip provision` can
+install a newer Torch wheel whose compiled CUDA runtime is newer than the host
+driver, causing `dip vision:detect` to fall back to CPU. The provision command
+force-reinstalls Python packages so an existing `pip` volume is corrected when
+the pinned Torch wheel changes.
+
 For each screenshot, the command prints the matched template name, screen-space
 foot position, scaled MK3 `x/y` position, confidence, image dimensions, template
 count, candidate count, timing, and selected device. The default minimum
