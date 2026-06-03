@@ -81,10 +81,28 @@ VISION=1 dip learn sub-zero-vs-sub-zero
 
 When enabled, `Runtime::MatchRunner` captures a `FrameObservation` after each WRAM
 snapshot and passes it to `Game::MortalKombat3::Adapter#extract_game_state`. The
-adapter runs `Vision::CharacterPositionDetector` for Sub-Zero templates and scales
-detected screen-space foot positions into the existing normalized MK3 coordinate
-range. Only fighter `x/y` positions are overridden by vision; the rest of the
-state remains WRAM-derived.
+adapter runs `Vision::CharacterPositionDetector`, which keeps a persistent
+`python3 bin/vision_detect.py --server` process alive. Runtime vision therefore
+uses the same Python CUDA detector, action modes, ROI defaults, and early-stop
+rules as `dip vision:detect`. Detected screen-space foot positions are scaled
+into the existing normalized MK3 coordinate range. Only fighter `x/y` positions
+are overridden by vision; the rest of the state remains WRAM-derived.
+
+Runtime vision is enabled by default for `dip learn` and `dip learn_from_ppo`.
+Use `VISION=0` to force WRAM-only training. Action and area settings are
+controlled by environment variables:
+
+```bash
+dip learn sub-zero-vs-sub-zero
+VISION_ACTION=front_kick VISION_AREAS="40,104,72,120;152,104,72,120" dip learn sub-zero-vs-sub-zero
+VISION_ACTION=idle dip learn sub-zero-vs-sub-zero
+VISION=0 dip learn sub-zero-vs-sub-zero
+```
+
+If `VISION_ACTION` is omitted, runtime vision uses `all`, so learning scans every
+non-reference action template inside the active ROIs. Use `VISION_ACTION=idle`
+for the faster startup-stance-only workflow. If `VISION_AREAS` is omitted, the
+detector uses the same two default initial stance ROIs as the CLI.
 
 ## Detection Debugging
 
@@ -134,15 +152,16 @@ confidence is `0.82`; override it for tuning:
 MIN_CONFIDENCE=0.75 dip vision:detect data/screenshots/example.png
 ```
 
-Without an action argument, `dip vision:detect` is exhaustive: it scans every
-non-reference template across the full screenshot and is intended for debugging
-template quality, not for real-time frame-by-frame use. For targeted checks,
-pass an action mode as the first argument:
+Without an action argument, `dip vision:detect` scans every non-reference
+template inside the active ROIs. Use `all --full-screen` only when you need an
+exhaustive full-screenshot debug pass. For targeted checks, pass an action mode
+as the first argument:
 
 ```bash
 dip vision:detect idle data/screenshots/example.png
 dip vision:detect walk data/screenshots/example.png
 dip vision:detect kick data/screenshots/example.png
+dip vision:detect all --full-screen data/screenshots/example.png
 ```
 
 Action modes scan only templates for that action and use the action-mode stride

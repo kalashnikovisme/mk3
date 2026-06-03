@@ -31,6 +31,10 @@ MODELS_DIR  = File.expand_path("../models", __dir__)
 MEMORY_DIR  = File.expand_path("../data/memory", __dir__)
 DEBUG        = REST_ARGS.include?("debug")
 WRAM_DEBUG   = DEBUG
+VISION_ENABLED = ENV.fetch(FightingAI::VISION_ENV_KEY, FightingAI::VISION_LEARN_DEFAULT_VALUE) == FightingAI::VISION_ENABLED_VALUE
+VISION_ACTION = ENV.fetch("VISION_ACTION", FightingAI::Vision::CharacterPositionDetector::DEFAULT_ACTION_MODE)
+VISION_AREAS = ENV.fetch("VISION_AREAS", "(default)")
+VISION_FULL_SCREEN = ENV.fetch("VISION_FULL_SCREEN", "0")
 MATCH_ARG    = REST_ARGS.reject { |a| a == "debug" }.first
 MATCH_FILTER = MATCH_ARG || ENV["MATCH"]
 
@@ -64,7 +68,10 @@ puts "Mode: PPO Self-Play Training (from checkpoint)\n\n"
 puts "Checkpoint → #{PPO_PATH}"
 puts "Match      → #{File.basename(match_state[:path])}"
 puts "Models     → #{MODELS_DIR}"
-puts "Obs dim: #{OBS_DIM}  |  Actions: #{ACTION_DIM}\n\n"
+puts "Obs dim: #{OBS_DIM}  |  Actions: #{ACTION_DIM}"
+puts "Vision: #{VISION_ENABLED ? "ON" : "off"}"
+puts "Vision action: #{VISION_ACTION}  |  areas: #{VISION_AREAS}  |  full-screen: #{VISION_FULL_SCREEN}" if VISION_ENABLED
+puts
 
 trainer_ref = nil
 FightingAI::CLI.trap_sigint(cleanup: -> { trainer_ref&.stop })
@@ -77,7 +84,11 @@ emulator = FightingAI::CLI.start_retro_arch(
   verbose:          DEBUG
 )
 
-game       = FightingAI.build_mk3_adapter(emulator_adapter: emulator, reward_weights: FightingAI::Game::RewardCalculator.weights)
+game       = FightingAI.build_mk3_adapter(
+  emulator_adapter: emulator,
+  reward_weights:   FightingAI::Game::RewardCalculator.weights,
+  vision:           VISION_ENABLED
+)
 policy     = FightingAI::Training::Policy.new(obs_dim: OBS_DIM, action_dim: ACTION_DIM)
 buffer     = FightingAI::Training::TrajectoryBuffer.new(min_size: 512)
 checkpoint = FightingAI::Training::CheckpointManager.new(dir: MODELS_DIR)

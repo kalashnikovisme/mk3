@@ -30,7 +30,10 @@ LOGS_DIR    = File.expand_path("../data/logs", __dir__)
 MEMORY_DIR  = File.expand_path("../data/memory", __dir__)
 DEBUG        = ARGV.include?("debug")
 WRAM_DEBUG   = DEBUG
-VISION_ENABLED = ENV.fetch(FightingAI::VISION_ENV_KEY, nil) == FightingAI::VISION_ENABLED_VALUE
+VISION_ENABLED = ENV.fetch(FightingAI::VISION_ENV_KEY, FightingAI::VISION_LEARN_DEFAULT_VALUE) == FightingAI::VISION_ENABLED_VALUE
+VISION_ACTION = ENV.fetch("VISION_ACTION", FightingAI::Vision::CharacterPositionDetector::DEFAULT_ACTION_MODE)
+VISION_AREAS = ENV.fetch("VISION_AREAS", "(default)")
+VISION_FULL_SCREEN = ENV.fetch("VISION_FULL_SCREEN", "0")
 # First non-flag argument is the match name, e.g. "sub-zero-vs-sindel"
 MATCH_ARG    = ARGV.reject { |a| a == "debug" }.first
 MATCH_FILTER = MATCH_ARG || ENV["MATCH"]
@@ -71,6 +74,7 @@ puts "Match  → #{File.basename(match_state[:path])}"
 puts "Models → #{MODELS_DIR}"
 puts "Obs dim: #{OBS_DIM}  |  Actions: #{ACTION_DIM}"
 puts "Vision: #{VISION_ENABLED ? "ON" : "off"}"
+puts "Vision action: #{VISION_ACTION}  |  areas: #{VISION_AREAS}  |  full-screen: #{VISION_FULL_SCREEN}" if VISION_ENABLED
 puts "WRAM debug: #{WRAM_DEBUG ? "ON → #{MEMORY_DIR}" : "off"}\n\n"
 
 # ── Signal handling ───────────────────────────────────────────────────────────

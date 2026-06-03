@@ -22,7 +22,7 @@ services:
 
   app_watch:
     extends:
-      service: app
+      service: app_gpu
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - ${XAUTHORITY:-~/.Xauthority}:/root/.Xauthority:ro

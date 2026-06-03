@@ -16,6 +16,23 @@ dip learn sub-zero-vs-sindel       # specific match state
 dip learn sub-zero-vs-sindel debug # verbose + per-second WRAM dump to data/memory/
 ```
 
+Vision training is enabled by default and uses the same persistent Python CUDA
+detector as `dip vision:detect`:
+
+```bash
+dip learn sub-zero-vs-sub-zero
+VISION_ACTION=front_kick VISION_AREAS="40,104,72,120;152,104,72,120" dip learn sub-zero-vs-sub-zero
+VISION_ACTION=idle dip learn sub-zero-vs-sub-zero
+VISION=0 dip learn sub-zero-vs-sub-zero
+```
+
+If `VISION_ACTION` is omitted, learning uses `all` and scans every non-reference
+action template inside the active ROIs. `VISION_ACTION` accepts the same action
+modes as `dip vision:detect`; use `VISION_ACTION=idle` for faster
+startup-stance-only detection. When `VISION_AREAS` is omitted, the detector uses
+the default initial stance ROIs. `dip learn` runs through the GPU Compose service
+so the detector can use CUDA.
+
 ## Action Space
 
 Defined in `lib/fighting_ai/game/mortal_kombat_3/action_translator.rb`.

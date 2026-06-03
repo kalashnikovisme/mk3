@@ -80,7 +80,7 @@ Wraps emulator output into observation objects for downstream use.
 
 - `Observation::FrameObservation` — wraps a PNG path; lazy-loads pixels, dimensions, and normalized tensor
 - `Observation::MemoryObservation` — future WRAM-based structured observation (stub)
-- `Vision::CharacterPositionDetector` — optional masked template matcher that reads `FrameObservation` screenshots and returns detected character positions before `Core::Observation` is built
+- `Vision::CharacterPositionDetector` — optional Ruby wrapper around the Python CUDA detector (`bin/vision_detect.py --server`) that reads `FrameObservation` screenshots and returns detected character positions before `Core::Observation` is built
 
 **Rule**: Lives outside Core and outside the emulator layer.
 
@@ -173,7 +173,8 @@ RetroArch (snes9x core)
 ```
 
 When `VISION=1` is set and `data/vision/templates/sub_zero/` contains prepared
-templates, the MK3 adapter runs Sub-Zero template matching on each captured frame.
-Detected positions override WRAM `x/y` values for the corresponding Sub-Zero
-player before normalization. Health, timer, rounds, and other fight state still
-come from WRAM.
+templates, the MK3 adapter sends each captured frame to the persistent Python
+CUDA detector. The runtime detector uses the same action-mode and ROI logic as
+`dip vision:detect`. Detected positions override WRAM `x/y` values for the
+corresponding Sub-Zero player before normalization. Health, timer, rounds, and
+other fight state still come from WRAM.
