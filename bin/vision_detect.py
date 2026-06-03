@@ -19,7 +19,7 @@ DEFAULT_CHARACTER = "sub_zero"
 DEFAULT_MIN_CONFIDENCE = 0.82
 DEFAULT_MAX_DETECTIONS = 2
 DEFAULT_SEARCH_STRIDE = 1
-DEFAULT_FAST_SEARCH_STRIDE = 4
+DEFAULT_ACTION_SEARCH_STRIDE = 4
 TOP_CANDIDATE_COUNT = 10
 FIRST_HUMAN_INDEX = 1
 SECONDS_TO_MS = 1000.0
@@ -32,20 +32,126 @@ CENTER_DIVISOR = 2
 IMAGE_MAX_INDEX_ADJUSTMENT = 1
 MIN_AXIS_VALUE = 0
 MK3_AXIS_MAX = 255
-ENV_TRUE_VALUES = frozenset(("1", "true", "yes", "on"))
 ENV_LIST_SEPARATOR = ","
 REFERENCE_TEMPLATE_MARKER = "reference"
 
 GRAY_SUFFIX = "_gray.png"
 MASK_SUFFIX = "_mask.png"
-IDLE_TEMPLATE_PREFIX = "idle_fighting_stance_"
+ACTION_MODE_ALL = "all"
+ACTION_MODE_IDLE = "idle"
+ACTION_MODE_WALK = "walk"
+ACTION_MODE_RUN = "run"
+ACTION_MODE_CROUCH = "crouch"
+ACTION_MODE_GUARD = "guard"
+ACTION_MODE_PUNCH = "punch"
+ACTION_MODE_KICK = "kick"
+ACTION_MODE_JUMP = "jump"
+ACTION_MODE_HURT = "hurt"
+ACTION_MODE_KNOCKDOWN = "knockdown"
+ACTION_MODE_PROJECTILE = "projectile"
+ACTION_MODE_SLIDE = "slide"
+ACTION_MODE_ROLL = "roll"
+ACTION_MODE_VICTORY = "victory"
+ACTION_MODE_SPECIAL = "special"
+ACTION_MODE_AIRBORNE_FALL_KNOCKDOWN = "airborne_fall_knockdown"
+ACTION_MODE_CROUCH_GUARD = "crouch_guard"
+ACTION_MODE_CROUCH_PUNCH = "crouch_punch"
+ACTION_MODE_CROUCHING = "crouching"
+ACTION_MODE_DIZZY_OR_RECOVERING = "dizzy_or_recovering"
+ACTION_MODE_FATALITY_DIZZY_BENT_OVER = "fatality_dizzy_bent_over"
+ACTION_MODE_FORWARD_ROLL_FLIP = "forward_roll_flip"
+ACTION_MODE_FRONT_KICK = "front_kick"
+ACTION_MODE_FROZEN_STANDING = "frozen_standing"
+ACTION_MODE_GUARD_READY = "guard_ready"
+ACTION_MODE_HIGH_KICK = "high_kick"
+ACTION_MODE_HIT_REACTION = "hit_reaction"
+ACTION_MODE_ICE_BLAST_CASTING = "ice_blast_casting"
+ACTION_MODE_ICE_CLONE_CROUCH = "ice_clone_crouch"
+ACTION_MODE_IDLE_FIGHTING_STANCE = "idle_fighting_stance"
+ACTION_MODE_JUMP_KICK_OR_AERIAL_ATTACK = "jump_kick_or_aerial_attack"
+ACTION_MODE_JUMP_UP_REACHING = "jump_up_reaching"
+ACTION_MODE_KNOCKED_DOWN_FALL = "knocked_down_fall"
+ACTION_MODE_LOW_KICK_COMBO = "low_kick_combo"
+ACTION_MODE_LYING_ON_GROUND = "lying_on_ground"
+ACTION_MODE_RISING_KICK = "rising_kick"
+ACTION_MODE_ROUNDHOUSE_KICK = "roundhouse_kick"
+ACTION_MODE_RUNNING = "running"
+ACTION_MODE_SLIDE_ATTACK = "slide_attack"
+ACTION_MODE_STANDING_HURT_OR_DIZZY = "standing_hurt_or_dizzy"
+ACTION_MODE_STANDING_PUNCH_COMBO = "standing_punch_combo"
+ACTION_MODE_STRAIGHT_PUNCH = "straight_punch"
+ACTION_MODE_SWEEP_OR_LOW_ATTACK = "sweep_or_low_attack"
+ACTION_MODE_TURN_OR_STEP = "turn_or_step"
+ACTION_MODE_VICTORY_OR_TURNAROUND = "victory_or_turnaround"
+ACTION_MODE_VICTORY_POSE_RAISE_ARMS = "victory_pose_raise_arms"
+ACTION_MODE_VICTORY_RAISE_ARMS = "victory_raise_arms"
+ACTION_MODE_WALKING = "walking"
+ACTION_TEMPLATE_PREFIXES = {
+    ACTION_MODE_ALL: (),
+    ACTION_MODE_IDLE: ("idle_fighting_stance_",),
+    ACTION_MODE_WALK: ("walking_",),
+    ACTION_MODE_RUN: ("running_",),
+    ACTION_MODE_CROUCH: ("crouching_", "crouch_guard_", "crouch_punch_"),
+    ACTION_MODE_GUARD: ("guard_ready_", "crouch_guard_"),
+    ACTION_MODE_PUNCH: ("standing_punch_combo_", "straight_punch_", "crouch_punch_"),
+    ACTION_MODE_KICK: (
+        "front_kick_",
+        "high_kick_",
+        "low_kick_combo_",
+        "roundhouse_kick_",
+        "rising_kick_",
+        "sweep_or_low_attack_",
+        "jump_kick_or_aerial_attack_",
+    ),
+    ACTION_MODE_JUMP: ("jump_up_reaching_", "jump_kick_or_aerial_attack_"),
+    ACTION_MODE_HURT: ("hit_reaction_", "standing_hurt_or_dizzy_", "dizzy_or_recovering_", "fatality_dizzy_bent_over_"),
+    ACTION_MODE_KNOCKDOWN: ("knocked_down_fall_", "airborne_fall_knockdown_", "lying_on_ground_"),
+    ACTION_MODE_PROJECTILE: ("ice_blast_casting_",),
+    ACTION_MODE_SLIDE: ("slide_attack_",),
+    ACTION_MODE_ROLL: ("forward_roll_flip_",),
+    ACTION_MODE_VICTORY: ("victory_or_turnaround_", "victory_pose_raise_arms_", "victory_raise_arms_"),
+    ACTION_MODE_SPECIAL: ("ice_blast_casting_", "ice_clone_crouch_", "slide_attack_"),
+    ACTION_MODE_AIRBORNE_FALL_KNOCKDOWN: ("airborne_fall_knockdown_",),
+    ACTION_MODE_CROUCH_GUARD: ("crouch_guard_",),
+    ACTION_MODE_CROUCH_PUNCH: ("crouch_punch_",),
+    ACTION_MODE_CROUCHING: ("crouching_",),
+    ACTION_MODE_DIZZY_OR_RECOVERING: ("dizzy_or_recovering_",),
+    ACTION_MODE_FATALITY_DIZZY_BENT_OVER: ("fatality_dizzy_bent_over_",),
+    ACTION_MODE_FORWARD_ROLL_FLIP: ("forward_roll_flip_",),
+    ACTION_MODE_FRONT_KICK: ("front_kick_",),
+    ACTION_MODE_FROZEN_STANDING: ("frozen_standing_",),
+    ACTION_MODE_GUARD_READY: ("guard_ready_",),
+    ACTION_MODE_HIGH_KICK: ("high_kick_",),
+    ACTION_MODE_HIT_REACTION: ("hit_reaction_",),
+    ACTION_MODE_ICE_BLAST_CASTING: ("ice_blast_casting_",),
+    ACTION_MODE_ICE_CLONE_CROUCH: ("ice_clone_crouch_",),
+    ACTION_MODE_IDLE_FIGHTING_STANCE: ("idle_fighting_stance_",),
+    ACTION_MODE_JUMP_KICK_OR_AERIAL_ATTACK: ("jump_kick_or_aerial_attack_",),
+    ACTION_MODE_JUMP_UP_REACHING: ("jump_up_reaching_",),
+    ACTION_MODE_KNOCKED_DOWN_FALL: ("knocked_down_fall_",),
+    ACTION_MODE_LOW_KICK_COMBO: ("low_kick_combo_",),
+    ACTION_MODE_LYING_ON_GROUND: ("lying_on_ground_",),
+    ACTION_MODE_RISING_KICK: ("rising_kick_",),
+    ACTION_MODE_ROUNDHOUSE_KICK: ("roundhouse_kick_",),
+    ACTION_MODE_RUNNING: ("running_",),
+    ACTION_MODE_SLIDE_ATTACK: ("slide_attack_",),
+    ACTION_MODE_STANDING_HURT_OR_DIZZY: ("standing_hurt_or_dizzy_",),
+    ACTION_MODE_STANDING_PUNCH_COMBO: ("standing_punch_combo_",),
+    ACTION_MODE_STRAIGHT_PUNCH: ("straight_punch_",),
+    ACTION_MODE_SWEEP_OR_LOW_ATTACK: ("sweep_or_low_attack_",),
+    ACTION_MODE_TURN_OR_STEP: ("turn_or_step_",),
+    ACTION_MODE_VICTORY_OR_TURNAROUND: ("victory_or_turnaround_",),
+    ACTION_MODE_VICTORY_POSE_RAISE_ARMS: ("victory_pose_raise_arms_",),
+    ACTION_MODE_VICTORY_RAISE_ARMS: ("victory_raise_arms_",),
+    ACTION_MODE_WALKING: ("walking_",),
+}
+ACTION_MODE_NAMES = tuple(ACTION_TEMPLATE_PREFIXES.keys())
 
 TEMPLATE_ROOT_ENV = "TEMPLATE_ROOT"
 MIN_CONFIDENCE_ENV = "MIN_CONFIDENCE"
 MAX_DETECTIONS_ENV = "MAX_DETECTIONS"
 SEARCH_STRIDE_ENV = "SEARCH_STRIDE"
 VISION_DEVICE_ENV = "VISION_DEVICE"
-VISION_FAST_ENV = "VISION_FAST"
 TEMPLATE_NAME_PREFIXES_ENV = "TEMPLATE_NAME_PREFIXES"
 TEMPLATE_NAME_EXCLUDE_SUBSTRINGS_ENV = "TEMPLATE_NAME_EXCLUDE_SUBSTRINGS"
 
@@ -80,10 +186,6 @@ def env_int(name: str, default: int) -> int:
     return int(os.environ.get(name, str(default)))
 
 
-def env_bool(name: str) -> bool:
-    return os.environ.get(name, "").lower() in ENV_TRUE_VALUES
-
-
 def env_list(name: str, default: tuple[str, ...] = ()) -> tuple[str, ...]:
     raw_value = os.environ.get(name)
     if raw_value is None:
@@ -97,6 +199,17 @@ def choose_device() -> torch.device:
     if requested:
         return torch.device(requested)
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+def parse_mode_and_paths(raw_args: list[str]) -> tuple[str, list[str]]:
+    if not raw_args:
+        return ACTION_MODE_ALL, []
+
+    requested_mode = raw_args[NO_CANDIDATES]
+    if requested_mode in ACTION_TEMPLATE_PREFIXES:
+        return requested_mode, raw_args[FIRST_HUMAN_INDEX:]
+
+    return ACTION_MODE_ALL, raw_args
 
 
 def load_grayscale(path: Path) -> torch.Tensor:
@@ -345,16 +458,29 @@ def detect_path(
 
 def main() -> int:
     if len(sys.argv) <= FIRST_HUMAN_INDEX:
-        print("Usage: dip vision:detect <screenshot.png> [more.png ...]", file=sys.stderr)
+        print(
+            "Usage: dip vision:detect [action] <screenshot.png> [more.png ...]\n"
+            f"Actions: {', '.join(ACTION_MODE_NAMES)}",
+            file=sys.stderr,
+        )
+        return FIRST_HUMAN_INDEX
+
+    action_mode, screenshot_paths = parse_mode_and_paths(sys.argv[FIRST_HUMAN_INDEX:])
+    if not screenshot_paths:
+        print(
+            "Usage: dip vision:detect [action] <screenshot.png> [more.png ...]\n"
+            f"Actions: {', '.join(ACTION_MODE_NAMES)}",
+            file=sys.stderr,
+        )
         return FIRST_HUMAN_INDEX
 
     template_root = Path(os.environ.get(TEMPLATE_ROOT_ENV, str(DEFAULT_TEMPLATE_ROOT)))
     template_dir = template_root / DEFAULT_CHARACTER
     min_confidence = env_float(MIN_CONFIDENCE_ENV, DEFAULT_MIN_CONFIDENCE)
     max_detections = env_int(MAX_DETECTIONS_ENV, DEFAULT_MAX_DETECTIONS)
-    fast_mode = env_bool(VISION_FAST_ENV)
-    default_search_stride = DEFAULT_FAST_SEARCH_STRIDE if fast_mode else DEFAULT_SEARCH_STRIDE
-    default_include_prefixes = (IDLE_TEMPLATE_PREFIX,) if fast_mode else ()
+    action_mode_enabled = action_mode != ACTION_MODE_ALL
+    default_search_stride = DEFAULT_ACTION_SEARCH_STRIDE if action_mode_enabled else DEFAULT_SEARCH_STRIDE
+    default_include_prefixes = ACTION_TEMPLATE_PREFIXES.get(action_mode, ())
     default_exclude_substrings = (REFERENCE_TEMPLATE_MARKER,)
     search_stride = env_int(SEARCH_STRIDE_ENV, default_search_stride)
     include_prefixes = env_list(TEMPLATE_NAME_PREFIXES_ENV, default_include_prefixes)
@@ -363,11 +489,11 @@ def main() -> int:
 
     print("Vision detect", flush=True)
     print(f"  character:      {DEFAULT_CHARACTER}", flush=True)
+    print(f"  action_mode:    {action_mode}", flush=True)
     print(f"  template_dir:   {template_dir}", flush=True)
     print(f"  device:         {device}", flush=True)
     if device.type == "cuda":
         print(f"  gpu:            {torch.cuda.get_device_name(device)}", flush=True)
-    print(f"  fast_mode:      {fast_mode}", flush=True)
     print(f"  min_confidence: {min_confidence:.3f}", flush=True)
     print(f"  max_detections: {max_detections}", flush=True)
     print(f"  search_stride:  {search_stride}", flush=True)
@@ -395,7 +521,7 @@ def main() -> int:
         )
         return FIRST_HUMAN_INDEX
 
-    for raw_path in sys.argv[FIRST_HUMAN_INDEX:]:
+    for raw_path in screenshot_paths:
         detect_path(Path(raw_path), templates, device, min_confidence, max_detections, search_stride)
 
     return 0

@@ -94,6 +94,7 @@ container has GPU access:
 
 ```bash
 dip vision:detect data/screenshots/example.png
+dip vision:detect idle data/screenshots/example.png
 ```
 
 `dip vision:detect` runs through the `app_gpu` Compose service, which requests
@@ -132,20 +133,29 @@ confidence is `0.82`; override it for tuning:
 MIN_CONFIDENCE=0.75 dip vision:detect data/screenshots/example.png
 ```
 
-`dip vision:detect` is exhaustive: it scans every non-reference template across
-the full screenshot and is intended for debugging template quality, not for
-real-time frame-by-frame use. For idle-stance screenshots, use the fast command:
+Without an action argument, `dip vision:detect` is exhaustive: it scans every
+non-reference template across the full screenshot and is intended for debugging
+template quality, not for real-time frame-by-frame use. For targeted checks,
+pass an action mode as the first argument:
 
 ```bash
-dip vision:detect-fast data/screenshots/example.png
+dip vision:detect idle data/screenshots/example.png
+dip vision:detect walk data/screenshots/example.png
+dip vision:detect kick data/screenshots/example.png
 ```
 
-Fast mode sets `VISION_FAST=1`, scans only `idle_fighting_stance_*` templates,
-and uses the fast-mode stride defined in `bin/vision_detect.py`. It is suitable
-for confirming idle fighter positions quickly, but it will not detect attacks,
-jumps, knockdowns, or other non-idle poses. The detector warms up CUDA after
-loading templates so reported per-frame matching time does not include the first
-CUDA kernel initialization cost.
+Action modes scan only templates for that action and use the action-mode stride
+defined in `bin/vision_detect.py`. Broad aliases include `all`, `idle`, `walk`,
+`run`, `crouch`, `guard`, `punch`, `kick`, `jump`, `hurt`, `knockdown`,
+`projectile`, `slide`, `roll`, `victory`, and `special`. Exact sprite-group
+modes are also supported from `data/vision/sprites/subzero`, including
+`idle_fighting_stance`, `walking`, `running`, `crouch_guard`, `front_kick`,
+`high_kick`, `standing_punch_combo`, `jump_up_reaching`,
+`jump_kick_or_aerial_attack`, `knocked_down_fall`, `airborne_fall_knockdown`,
+and `ice_blast_casting`. Prefer exact sprite-group modes when you need the
+fastest targeted check; broad modes scan more templates. The detector warms up
+CUDA after loading templates so reported per-frame matching time does not
+include the first CUDA kernel initialization cost.
 
 Other useful debug knobs:
 
