@@ -33,6 +33,21 @@ startup-stance-only detection. When `VISION_AREAS` is omitted, the detector uses
 the default initial stance ROIs. `dip learn` runs through the GPU Compose service
 so the detector can use CUDA.
 
+## PPO Evaluation Fights
+
+`dip fight` and `dip fight_watch` run trained PPO policies against each other.
+Both commands enable runtime vision by default and pass vision-overridden
+positions into the same observation vector used during training. `dip fight`
+runs through the GPU Compose service; `dip fight_watch` uses the watch service,
+which also extends the GPU service.
+
+Use `VISION=0` to evaluate with WRAM-derived positions only:
+
+```bash
+VISION=0 dip fight data/matches/sub-zero-vs-sub-zero.state models/ppo_10 models/ppo_5
+VISION=0 dip fight_watch data/matches/sub-zero-vs-sub-zero.state models/ppo_10 models/ppo_5
+```
+
 ## Training Status Bar
 
 During non-debug `dip learn` runs, the PPO status bar prints the latest

@@ -59,7 +59,7 @@ interaction:
 
   fight:
     description: "PPO vs PPO match. Usage: dip fight <state_file> <ppo_file_1> <ppo_file_2>"
-    service: app
+    service: app_gpu
     command: bundle exec ruby bin/fight
 
   fight_watch:

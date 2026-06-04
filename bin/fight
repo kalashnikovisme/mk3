@@ -29,6 +29,10 @@ PPO_FILE_1 = File.expand_path(ARGV[1])
 PPO_FILE_2 = File.expand_path(ARGV[2])
 ROM_PATH   = ENV.fetch("ROM_PATH",  File.expand_path("../mk3.sfc", __dir__))
 CORE_PATH  = ENV.fetch("CORE_PATH", "/usr/lib/x86_64-linux-gnu/libretro/snes9x_libretro.so")
+VISION_ENABLED = ENV.fetch(FightingAI::VISION_ENV_KEY, FightingAI::VISION_FIGHT_DEFAULT_VALUE) == FightingAI::VISION_ENABLED_VALUE
+VISION_ACTION = ENV.fetch("VISION_ACTION", FightingAI::Vision::CharacterPositionDetector::DEFAULT_ACTION_MODE)
+VISION_AREAS = ENV.fetch("VISION_AREAS", "(default)")
+VISION_FULL_SCREEN = ENV.fetch("VISION_FULL_SCREEN", "0")
 
 abort "State file not found: #{STATE_FILE}" unless File.exist?(STATE_FILE)
 abort "PPO file 1 not found: #{PPO_FILE_1}" unless File.exist?(PPO_FILE_1)
@@ -54,7 +58,10 @@ puts FightingAI::CLI::BANNER
 puts "Mode: PPO vs PPO Fight\n\n"
 puts "State → #{File.basename(STATE_FILE)}"
 puts "P1    → #{PPO_FILE_1}"
-puts "P2    → #{PPO_FILE_2}\n\n"
+puts "P2    → #{PPO_FILE_2}"
+puts "Vision: #{VISION_ENABLED ? "ON" : "off"}"
+puts "Vision action: #{VISION_ACTION}  |  areas: #{VISION_AREAS}  |  full-screen: #{VISION_FULL_SCREEN}" if VISION_ENABLED
+puts
 
 emulator_ref = nil
 FightingAI::CLI.trap_sigint(cleanup: -> { emulator_ref&.stop })
@@ -62,7 +69,7 @@ FightingAI::CLI.trap_sigint(cleanup: -> { emulator_ref&.stop })
 emulator = FightingAI::CLI.start_retro_arch(rom_path: ROM_PATH, core_path: CORE_PATH)
 emulator_ref = emulator
 
-game       = FightingAI.build_mk3_adapter(emulator_adapter: emulator)
+game       = FightingAI.build_mk3_adapter(emulator_adapter: emulator, vision: VISION_ENABLED)
 translator = FightingAI::Game::MortalKombat3::ActionTranslator
 
 policy1 = FightingAI::Training::Policy.new(obs_dim: OBS_DIM, action_dim: ACTION_DIM)

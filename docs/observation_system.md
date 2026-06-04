@@ -94,15 +94,16 @@ miss instead of aborting the episode. `MatchRunner` logs one warning and passes
 no `FrameObservation` to the game adapter, so the extracted state falls back to
 WRAM-derived fighter positions until screenshot capture succeeds again.
 
-Runtime vision is enabled by default for `dip learn` and `dip learn_from_ppo`.
-Use `VISION=0` to force WRAM-only training. Action and area settings are
-controlled by environment variables:
+Runtime vision is enabled by default for `dip learn`, `dip learn_from_ppo`,
+`dip fight`, and `dip fight_watch`. Use `VISION=0` to force WRAM-only training
+or evaluation. Action and area settings are controlled by environment variables:
 
 ```bash
 dip learn sub-zero-vs-sub-zero
 VISION_ACTION=front_kick VISION_AREAS="40,104,72,120;152,104,72,120" dip learn sub-zero-vs-sub-zero
 VISION_ACTION=idle dip learn sub-zero-vs-sub-zero
 VISION=0 dip learn sub-zero-vs-sub-zero
+VISION=0 dip fight data/matches/sub-zero-vs-sub-zero.state models/ppo_10 models/ppo_5
 ```
 
 If `VISION_ACTION` is omitted, runtime vision uses `all`, so learning scans every
