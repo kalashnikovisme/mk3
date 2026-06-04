@@ -1,5 +1,6 @@
 require_relative "../../core/reward"
 require_relative "../reward_calculator"
+require_relative "memory_map"
 
 module FightingAI
   module Game
@@ -8,6 +9,7 @@ module FightingAI
         DEFAULT_WEIGHTS = {
           damage_dealt: RewardCalculator::DAMAGE_DEALT_WEIGHT,
           damage_taken: RewardCalculator::DAMAGE_TAKEN_WEIGHT,
+          distance:     RewardCalculator::DISTANCE_WEIGHT,
           round_win:    RewardCalculator::WIN_REWARD,
           round_loss:   RewardCalculator::LOSS_REWARD,
           round_draw:   RewardCalculator::DRAW_REWARD,
@@ -30,7 +32,8 @@ module FightingAI
 
           components = {
             damage_dealt: damage_dealt * @weights[:damage_dealt],
-            damage_taken: damage_taken * @weights[:damage_taken]
+            damage_taken: damage_taken * @weights[:damage_taken],
+            distance:     distance_reward(me_next, opp_next)
           }
 
           if stale
@@ -50,6 +53,16 @@ module FightingAI
         end
 
         private
+
+        DISTANCE_REWARD_SCALE = 2.0
+        PERFECT_CLOSENESS = 1.0
+
+        def distance_reward(me, opponent)
+          distance = [me.distance_to(opponent), MemoryMap::MAX_FIGHT_DISTANCE].min
+          closeness = PERFECT_CLOSENESS - (distance.to_f / MemoryMap::MAX_FIGHT_DISTANCE)
+          shaped_distance = (closeness * DISTANCE_REWARD_SCALE) - PERFECT_CLOSENESS
+          shaped_distance * @weights[:distance]
+        end
 
         def determine_round_winner(game_state)
           h1 = game_state.fighter1.health

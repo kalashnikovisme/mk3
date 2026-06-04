@@ -26,6 +26,7 @@ module FightingAI
       COMPONENT_LABELS = {
         damage_dealt: "dmg",
         damage_taken: "tkn",
+        distance:     "dst",
         round_win:    "win",
         round_loss:   "loss",
         round_draw:   "draw",
