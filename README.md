@@ -40,7 +40,7 @@ Precompiled binaries are also available at the [Dip releases page](https://githu
 dip provision
 ```
 
-This builds the Docker image (Ruby 4.0 + RetroArch + xdotool), installs gem dependencies, and grants X11 access.
+This builds the Docker image (Ruby 4.0 + RetroArch + xdotool + X screenshot tools), installs gem dependencies, and grants X11 access.
 
 ### Daily Commands
 

@@ -28,16 +28,24 @@ save_state                    # → /app/data/states/20260101_120000.state
 
 ### `screenshot(name = nil)`
 
-Captures the current RetroArch frame and copies the PNG to `/app/data/screenshots/<name>.png`. Intermediate directories are created automatically, so `"vision/idle"` produces `/app/data/screenshots/vision/idle.png`. If `name` is omitted, the file is named by timestamp.
+Captures the current X server framebuffer for the isolated RetroArch display and
+writes a PNG to `/app/data/screenshots/<name>.png`. Intermediate directories are
+created automatically, so `"vision/idle"` produces
+`/app/data/screenshots/vision/idle.png`. If `name` is omitted, the file is named
+by timestamp.
 
 ```ruby
 screenshot "vision/idle"      # → /app/data/screenshots/vision/idle.png
 screenshot                    # → /app/data/screenshots/20260101_120000.png
 ```
 
-The capture waits for RetroArch to finish writing a non-empty PNG before copying it.
-RetroArch is configured to use core-framebuffer screenshots, so the PNG dimensions
-match the game's native output rather than the scaled RetroArch window.
+The capture uses `xwd` against the internal display (`:99` by default), then
+ImageMagick crops the top-left `297x216` pixels and writes that region as PNG.
+Unlike runtime vision capture, this does not use RetroArch's `SCREENSHOT` UDP
+command.
+
+If `screenshot` reports that `xwd` or `convert` is missing, rebuild the container
+with `dip provision`; those tools are installed by the development image.
 
 ### `reload_state`
 

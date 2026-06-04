@@ -20,7 +20,7 @@ module FightingAI
         LOAD_STATE_WAIT = 1.0
         WRAM_READ_SLOT  = 9   # dedicated slot for reads; never used by install_match_state
 
-        attr_reader :pid
+        attr_reader :pid, :display
 
         def initialize(rom_path:, core_path:, config_path:, keyboard:, frame_grabber:, save_state_reader:, display: ":1", display_server: nil, verbose: true)
           @display_server    = display_server
@@ -35,6 +35,7 @@ module FightingAI
           @keyboard          = keyboard
           @frame_grabber     = frame_grabber
           @save_state_reader = save_state_reader
+          @display           = display
           @verbose           = verbose
           @frame_counter     = 0
           @started           = false

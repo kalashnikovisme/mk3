@@ -7,6 +7,7 @@ module FightingAI
       module ConfigBuilder
         SCREENSHOT_DIR  = "/tmp/fighting_ai/screenshots"
         STATES_DIR      = "/tmp/fighting_ai/states"
+        NATIVE_VIDEO_SCALE = 1.0
 
         def self.build(core_path:)
           FileUtils.mkdir_p(SCREENSHOT_DIR)
@@ -24,6 +25,11 @@ module FightingAI
             video_gpu_screenshot = "false"
             input_driver = "x11"
             video_fullscreen = "false"
+            video_windowed_fullscreen = "false"
+            video_scale = "#{format('%.1f', NATIVE_VIDEO_SCALE)}"
+            video_scale_integer = "true"
+            video_window_show_decorations = "false"
+            video_smooth = "false"
             audio_sync = "true"
             libretro_path = "#{core_path}"
             savestate_auto_load = "false"

@@ -123,6 +123,11 @@ dip learn-watch [match-name]
 network_cmd_enable = "true"
 network_cmd_port = "55355"
 video_fullscreen = "false"
+video_windowed_fullscreen = "false"
+video_scale = "1.0"
+video_scale_integer = "true"
+video_window_show_decorations = "false"
+video_smooth = "false"
 video_gpu_screenshot = "false"
 savestate_auto_load = "false"
 savestate_auto_save = "false"
@@ -131,4 +136,16 @@ screenshot_directory = "/tmp/fighting_ai/screenshots"
 # P2 keyboard: t/g/f/h + v/b/c/n/r/y
 ```
 
+RetroArch runs windowed, with windowed fullscreen disabled and `video_scale =
+"1.0"`, so the rendered game window opens at native core scale instead of
+expanding to the full Xvfb/Xephyr screen. Integer scaling is enabled, window
+decorations are disabled, and smoothing is disabled to keep captured pixels
+stable for vision debugging.
+
 Screenshots land in `/tmp/fighting_ai/screenshots/`. `video_gpu_screenshot = "false"` forces screenshots to come from the core framebuffer, so dimensions match the game's native output rather than the scaled RetroArch window. `FrameGrabber` monitors that directory for new or modified PNGs after sending the `SCREENSHOT` UDP command.
+
+Scenario DSL screenshots are separate from `FrameGrabber`. The scenario
+`screenshot` method captures the isolated X display directly with `xwd` and
+converts the result to PNG with ImageMagick. This records the full Xvfb/Xephyr
+screen rather than the native core framebuffer and does not depend on
+RetroArch's screenshot UDP command.
