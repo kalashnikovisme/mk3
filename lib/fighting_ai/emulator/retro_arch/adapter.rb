@@ -140,7 +140,7 @@ module FightingAI
         end
 
         def capture_frame
-          @frame_grabber.capture
+          @frame_grabber.capture(display: @display)
         end
 
         def save_state(slot = nil)

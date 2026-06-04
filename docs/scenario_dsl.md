@@ -41,8 +41,8 @@ screenshot                    # → /app/data/screenshots/20260101_120000.png
 
 The capture uses `xwd` against the internal display (`:99` by default), then
 ImageMagick crops the top-left `297x216` pixels and writes that region as PNG.
-Unlike runtime vision capture, this does not use RetroArch's `SCREENSHOT` UDP
-command.
+This is the same X-server screenshot path used by runtime vision capture and
+does not use RetroArch's `SCREENSHOT` UDP command.
 
 If `screenshot` reports that `xwd` or `convert` is missing, rebuild the container
 with `dip provision`; those tools are installed by the development image.

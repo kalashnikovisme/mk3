@@ -142,7 +142,7 @@ module FightingAI
         return nil unless @game.respond_to?(:vision_enabled?) && @game.vision_enabled?
 
         @emulator.capture_frame
-      rescue Emulator::RetroArch::FrameGrabber::TimeoutError => e
+      rescue Emulator::RetroArch::FrameGrabber::CaptureError => e
         log_vision_capture_warning(e)
         nil
       end

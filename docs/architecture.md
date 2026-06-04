@@ -91,9 +91,9 @@ Manages the emulator process, reads game state from WRAM, and delegates input in
 - `Emulator::Adapter` — abstract base
 - `Emulator::RetroArch::Adapter` — main adapter
 - `Emulator::RetroArch::Process` — spawns/monitors the RetroArch process
-- `Emulator::RetroArch::NetworkCommands` — UDP commands (pause/reset/save_state/screenshot/quit)
+- `Emulator::RetroArch::NetworkCommands` — UDP commands (pause/reset/save_state/quit)
 - `Emulator::RetroArch::SaveStateReader` — reads RZIP-compressed save-state files; locates the 128 KB WRAM region using the RASTATE marker, legacy text markers, or an MK3 health/screen signature scan; provides `read_u8` / `read_u16_le` / `raw_wram`; guards against partially-written files by requiring decompressed size ≥ WRAM_SIZE before returning data
-- `Emulator::RetroArch::FrameGrabber` — triggers screenshot, polls for new PNG, returns `FrameObservation`
+- `Emulator::RetroArch::FrameGrabber` — captures the isolated X display with `xwd`, crops the top-left game region, converts it to PNG, and returns `FrameObservation`
 - `Emulator::RetroArch::ConfigBuilder` — generates `retroarch.cfg` with network commands and keyboard bindings
 
 **Rule**: No game-specific memory addresses or button names here. The WRAM snapshot is built by the adapter reading addresses supplied by the game layer's `MemoryMap`.

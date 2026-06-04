@@ -47,10 +47,6 @@ module FightingAI
           send_command("FRAME_ADVANCE", host: host, port: port)
         end
 
-        def self.screenshot(host: DEFAULT_HOST, port: DEFAULT_PORT)
-          send_command("SCREENSHOT", host: host, port: port)
-        end
-
         def self.send_command(cmd, host:, port:)
           socket = UDPSocket.new
           socket.send("#{cmd}\n", 0, host, port)

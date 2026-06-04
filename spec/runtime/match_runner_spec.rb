@@ -2,10 +2,10 @@ require "spec_helper"
 
 RSpec.describe FightingAI::Runtime::MatchRunner do
   EXPECTED_WARNING_COUNT = 1
-  SCREENSHOT_TIMEOUT_MESSAGE = "Screenshot timeout after #{FightingAI::Emulator::RetroArch::FrameGrabber::POLL_TIMEOUT}s"
+  CAPTURE_ERROR_MESSAGE = "X server screenshot capture failed"
 
-  let(:timeout_error) do
-    FightingAI::Emulator::RetroArch::FrameGrabber::TimeoutError.new(SCREENSHOT_TIMEOUT_MESSAGE)
+  let(:capture_error) do
+    FightingAI::Emulator::RetroArch::FrameGrabber::CaptureError.new(CAPTURE_ERROR_MESSAGE)
   end
   let(:emulator) { instance_double(FightingAI::Emulator::Adapter) }
   let(:game) { double("GameAdapter", vision_enabled?: true) }
@@ -20,15 +20,15 @@ RSpec.describe FightingAI::Runtime::MatchRunner do
   end
 
   describe "#capture_frame_observation" do
-    it "falls back to WRAM positions when vision screenshot capture times out" do
-      allow(emulator).to receive(:capture_frame).and_raise(timeout_error)
+    it "falls back to WRAM positions when vision screenshot capture fails" do
+      allow(emulator).to receive(:capture_frame).and_raise(capture_error)
 
       expect(runner.send(:capture_frame_observation)).to be_nil
       expect(logger_messages.join).to include("falling back to WRAM positions")
     end
 
-    it "logs the vision screenshot timeout warning only once" do
-      allow(emulator).to receive(:capture_frame).and_raise(timeout_error)
+    it "logs the vision screenshot capture warning only once" do
+      allow(emulator).to receive(:capture_frame).and_raise(capture_error)
 
       runner.send(:capture_frame_observation)
       runner.send(:capture_frame_observation)

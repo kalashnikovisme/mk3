@@ -1,6 +1,4 @@
 require "fileutils"
-require "open3"
-require "tempfile"
 
 module FightingAI
   module Scenario
@@ -9,22 +7,6 @@ module FightingAI
     SCREENSHOT_EXPORT_DIR  = "/app/data/screenshots"
     SAVE_STATE_SETTLE_WAIT = 0.5
     TIMESTAMP_FORMAT       = "%Y%m%d_%H%M%S"
-    X_DISPLAY_FALLBACK     = ":99"
-    XWD_BIN                = "xwd"
-    XWD_SILENT_ARG         = "-silent"
-    XWD_DISPLAY_ARG        = "-display"
-    XWD_ROOT_ARG           = "-root"
-    XWD_OUT_ARG            = "-out"
-    XWD_EXTENSION          = ".xwd"
-    CONVERT_BIN            = "convert"
-    CONVERT_CROP_ARG       = "-crop"
-    CONVERT_REPAGE_ARG     = "+repage"
-    PNG_PREFIX             = "png:"
-    SCREENSHOT_TEMP_PREFIX = "fighting-ai-scenario-screenshot"
-    SCREENSHOT_CROP_WIDTH  = 297
-    SCREENSHOT_CROP_HEIGHT = 216
-    SCREENSHOT_CROP_X      = 0
-    SCREENSHOT_CROP_Y      = 0
 
     class << self
       attr_writer :emulator, :initial_state_path
@@ -85,68 +67,16 @@ module FightingAI
       def screenshot(name = nil)
         raise "No emulator attached to Scenario" unless @emulator
 
+        frame = @emulator.capture_frame
         label = timestamped_label(name)
         dest  = File.join(SCREENSHOT_EXPORT_DIR, "#{label}.png")
         FileUtils.mkdir_p(File.dirname(dest))
-        capture_x_server_screenshot(dest)
+        FileUtils.cp(frame.path, dest)
         puts "[screenshot] Saved → #{dest}"
         dest
       end
 
       private
-
-      def capture_x_server_screenshot(dest)
-        Tempfile.create([SCREENSHOT_TEMP_PREFIX, XWD_EXTENSION]) do |xwd_file|
-          xwd_file.close
-          run_command!(
-            [
-              XWD_BIN,
-              XWD_SILENT_ARG,
-              XWD_DISPLAY_ARG,
-              x_screenshot_display,
-              XWD_ROOT_ARG,
-              XWD_OUT_ARG,
-              xwd_file.path
-            ],
-            "X server screenshot capture failed"
-          )
-          run_command!(
-            [
-              CONVERT_BIN,
-              xwd_file.path,
-              CONVERT_CROP_ARG,
-              screenshot_crop_geometry,
-              CONVERT_REPAGE_ARG,
-              "#{PNG_PREFIX}#{dest}"
-            ],
-            "X server screenshot PNG conversion failed"
-          )
-        end
-      end
-
-      def screenshot_crop_geometry
-        "#{SCREENSHOT_CROP_WIDTH}x#{SCREENSHOT_CROP_HEIGHT}+#{SCREENSHOT_CROP_X}+#{SCREENSHOT_CROP_Y}"
-      end
-
-      def x_screenshot_display
-        return @emulator.display if @emulator.respond_to?(:display)
-
-        X_DISPLAY_FALLBACK
-      end
-
-      def run_command!(command, error_prefix)
-        _stdout, stderr, status = Open3.capture3(*command)
-        return if status.success?
-
-        raise "#{error_prefix}: #{command.join(' ')}\n#{stderr}"
-      rescue Errno::ENOENT
-        raise missing_screenshot_tool_error(command.first)
-      end
-
-      def missing_screenshot_tool_error(command_name)
-        "X server screenshot tool not found: #{command_name}. " \
-          "Run `dip provision` to rebuild the container with x11-apps and ImageMagick."
-      end
 
       def timestamped_label(name)
         (name || Time.now.strftime(TIMESTAMP_FORMAT)).to_s

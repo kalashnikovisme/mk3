@@ -3,11 +3,8 @@ require "tmpdir"
 require "fighting_ai/scenario/state"
 
 RSpec.describe FightingAI::Scenario do
-  X_DISPLAY = ":123"
-  SCREENSHOT_BYTES = "png-data"
-  COMMAND_STDOUT = ""
-  COMMAND_STDERR = ""
-  SCREENSHOT_CROP_GEOMETRY = "297x216+0+0"
+  Frame = Struct.new(:path)
+  SCENARIO_SCREENSHOT_BYTES = "png-data"
 
   around do |example|
     Dir.mktmpdir do |dir|
@@ -19,53 +16,20 @@ RSpec.describe FightingAI::Scenario do
   end
 
   describe ".screenshot" do
-    it "captures an X server screenshot into the screenshots export directory" do
+    it "captures and copies a screenshot into the screenshots export directory" do
+      source_dir = File.join(@dir, "source")
       export_dir = File.join(@dir, "screenshots")
-      success_status = instance_double(Process::Status, success?: true)
+      FileUtils.mkdir_p(source_dir)
+      source_path = File.join(source_dir, "x-server.png")
+      File.binwrite(source_path, SCENARIO_SCREENSHOT_BYTES)
 
       stub_const("#{described_class}::SCREENSHOT_EXPORT_DIR", export_dir)
-      described_class.emulator = instance_double("Emulator", display: X_DISPLAY)
-
-      allow(Open3).to receive(:capture3) do |*command|
-        if command.first == described_class::CONVERT_BIN
-          png_path = command.last.delete_prefix(described_class::PNG_PREFIX)
-          File.binwrite(png_path, SCREENSHOT_BYTES)
-        end
-        [COMMAND_STDOUT, COMMAND_STDERR, success_status]
-      end
+      described_class.emulator = instance_double("Emulator", capture_frame: Frame.new(source_path))
 
       saved_path = described_class.screenshot("vision/idle")
 
       expect(saved_path).to eq(File.join(export_dir, "vision", "idle.png"))
-      expect(File.binread(saved_path)).to eq(SCREENSHOT_BYTES)
-      expect(Open3).to have_received(:capture3).with(
-        described_class::XWD_BIN,
-        described_class::XWD_SILENT_ARG,
-        described_class::XWD_DISPLAY_ARG,
-        X_DISPLAY,
-        described_class::XWD_ROOT_ARG,
-        described_class::XWD_OUT_ARG,
-        kind_of(String)
-      )
-      expect(Open3).to have_received(:capture3).with(
-        described_class::CONVERT_BIN,
-        kind_of(String),
-        described_class::CONVERT_CROP_ARG,
-        SCREENSHOT_CROP_GEOMETRY,
-        described_class::CONVERT_REPAGE_ARG,
-        "#{described_class::PNG_PREFIX}#{saved_path}"
-      )
-    end
-
-    it "raises an actionable error when xwd is missing from the container" do
-      export_dir = File.join(@dir, "screenshots")
-
-      stub_const("#{described_class}::SCREENSHOT_EXPORT_DIR", export_dir)
-      described_class.emulator = instance_double("Emulator", display: X_DISPLAY)
-      allow(Open3).to receive(:capture3).and_raise(Errno::ENOENT)
-
-      expect { described_class.screenshot("vision/idle") }
-        .to raise_error(RuntimeError, /Run `dip provision`/)
+      expect(File.binread(saved_path)).to eq(SCENARIO_SCREENSHOT_BYTES)
     end
   end
 end

@@ -30,7 +30,6 @@ Port 55355 (configured in `retroarch.cfg` via `network_cmd_port`).
 | Save state           | `SAVE_STATE`        | Always saves to current slot |
 | Load state (slot N)  | `LOAD_STATE_SLOT N` | Sets slot and loads atomically |
 | Load state (current) | `LOAD_STATE`        | |
-| Screenshot           | `SCREENSHOT`        | |
 | Quit                 | `QUIT`              | |
 
 Implemented in `Emulator::RetroArch::NetworkCommands`.
@@ -128,10 +127,8 @@ video_scale = "1.0"
 video_scale_integer = "true"
 video_window_show_decorations = "false"
 video_smooth = "false"
-video_gpu_screenshot = "false"
 savestate_auto_load = "false"
 savestate_auto_save = "false"
-screenshot_directory = "/tmp/fighting_ai/screenshots"
 # P1 keyboard: arrow keys + z/x/a/s/q/w
 # P2 keyboard: t/g/f/h + v/b/c/n/r/y
 ```
@@ -142,10 +139,7 @@ expanding to the full Xvfb/Xephyr screen. Integer scaling is enabled, window
 decorations are disabled, and smoothing is disabled to keep captured pixels
 stable for vision debugging.
 
-Screenshots land in `/tmp/fighting_ai/screenshots/`. `video_gpu_screenshot = "false"` forces screenshots to come from the core framebuffer, so dimensions match the game's native output rather than the scaled RetroArch window. `FrameGrabber` monitors that directory for new or modified PNGs after sending the `SCREENSHOT` UDP command.
-
-Scenario DSL screenshots are separate from `FrameGrabber`. The scenario
-`screenshot` method captures the isolated X display directly with `xwd` and
-converts the result to PNG with ImageMagick. This records the full Xvfb/Xephyr
-screen rather than the native core framebuffer and does not depend on
-RetroArch's screenshot UDP command.
+The app does not use RetroArch's screenshot command. `FrameGrabber` captures the
+isolated X display directly with `xwd`, converts the result to PNG with
+ImageMagick, and crops the top-left `297x216` pixels. Runtime vision and the
+Scenario DSL `screenshot` method both use this X-server screenshot path.

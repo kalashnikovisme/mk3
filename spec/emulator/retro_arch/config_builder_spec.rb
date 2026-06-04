@@ -2,7 +2,9 @@ require "spec_helper"
 
 RSpec.describe FightingAI::Emulator::RetroArch::ConfigBuilder do
   CORE_PATH = "/tmp/core.so"
-  RAW_CORE_SCREENSHOT_SETTING = 'video_gpu_screenshot = "false"'
+  RETROARCH_SCREENSHOT_SETTING = "screenshot_directory"
+  RETROARCH_SCREENSHOT_INPUT_SETTING = "input_screenshot"
+  RETROARCH_GPU_SCREENSHOT_SETTING = "video_gpu_screenshot"
   WINDOWED_FULLSCREEN_SETTING = 'video_windowed_fullscreen = "false"'
   NATIVE_VIDEO_SCALE_SETTING = 'video_scale = "1.0"'
   INTEGER_SCALE_SETTING = 'video_scale_integer = "true"'
@@ -10,8 +12,12 @@ RSpec.describe FightingAI::Emulator::RetroArch::ConfigBuilder do
   PIXEL_SMOOTHING_SETTING = 'video_smooth = "false"'
 
   describe ".config" do
-    it "captures screenshots from the core framebuffer instead of the rendered window" do
-      expect(described_class.config(CORE_PATH)).to include(RAW_CORE_SCREENSHOT_SETTING)
+    it "does not configure RetroArch screenshot capture" do
+      config = described_class.config(CORE_PATH)
+
+      expect(config).not_to include(RETROARCH_SCREENSHOT_SETTING)
+      expect(config).not_to include(RETROARCH_SCREENSHOT_INPUT_SETTING)
+      expect(config).not_to include(RETROARCH_GPU_SCREENSHOT_SETTING)
     end
 
     it "opens RetroArch at native game scale instead of filling the X server" do
