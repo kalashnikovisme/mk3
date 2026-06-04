@@ -1,4 +1,5 @@
 require "colorize"
+require "io/console"
 
 module FightingAI
   module CLI
@@ -16,6 +17,11 @@ module FightingAI
       POSITION_MIN = 0
       POSITION_MAX = FightingAI::Game::MortalKombat3::MemoryMap::X_MAX
       TRACK_LAST_INDEX = SCREEN_TRACK_WIDTH - 1
+      DEFAULT_TERMINAL_WIDTH = 120
+      MIN_TERMINAL_WIDTH = 20
+      TERMINAL_WIDTH_PADDING = 1
+      ANSI_ESCAPE_PATTERN = /\e\[[0-9;]*m/
+      ANSI_RESET = "\e[0m"
 
       COMPONENT_LABELS = {
         damage_dealt: "dmg",
@@ -73,8 +79,8 @@ module FightingAI
           line += " │ #{watch_str}".yellow
         end
 
-        @last_status = line
-        $stdout.print "\r#{line}"
+        @last_status = fit_to_terminal_width(line)
+        $stdout.print "\r\e[2K#{@last_status}"
         $stdout.flush
       end
 
@@ -140,8 +146,46 @@ module FightingAI
       end
 
       def pad_col(str, width)
-        visible = str.gsub(/\e\[[0-9;]*m/, '').length
+        visible = visible_length(str)
         str + " " * [width - visible, 0].max
+      end
+
+      def fit_to_terminal_width(line)
+        max_visible_width = [terminal_width - TERMINAL_WIDTH_PADDING, MIN_TERMINAL_WIDTH].max
+        return line if visible_length(line) <= max_visible_width
+
+        truncate_ansi(line, max_visible_width)
+      end
+
+      def terminal_width
+        width = $stdout.winsize.fetch(1, DEFAULT_TERMINAL_WIDTH)
+        width.positive? ? width : DEFAULT_TERMINAL_WIDTH
+      rescue SystemCallError, IOError
+        DEFAULT_TERMINAL_WIDTH
+      end
+
+      def visible_length(str)
+        str.gsub(ANSI_ESCAPE_PATTERN, '').length
+      end
+
+      def truncate_ansi(str, max_visible_width)
+        visible = 0
+        output = +""
+        index = 0
+
+        while index < str.length && visible < max_visible_width
+          escape = str[index..].match(/\A\e\[[0-9;]*m/)
+          if escape
+            output << escape[0]
+            index += escape[0].length
+          else
+            output << str[index]
+            visible += 1
+            index += 1
+          end
+        end
+
+        output.include?("\e[") ? "#{output}#{ANSI_RESET}" : output
       end
 
       def fmt_reward(r)
@@ -160,11 +204,14 @@ module FightingAI
       end
 
       def event(*lines)
-        body = lines.map.with_index { |l, i| i.zero? ? "\r\e[2K#{l}" : "\n\e[2K#{l}" }.join
+        body = lines.map.with_index do |line, index|
+          rendered_line = fit_to_terminal_width(line)
+          index.zero? ? "\r\e[2K#{rendered_line}" : "\n\e[2K#{rendered_line}"
+        end.join
         $stdout.print "#{body}\n\r\e[2K#{@last_status}"
         $stdout.flush
         if @log_file
-          lines.each { |l| @log_file.puts l.gsub(/\e\[[0-9;]*m/, "") }
+          lines.each { |l| @log_file.puts l.gsub(ANSI_ESCAPE_PATTERN, "") }
           @log_file.flush
         end
       end
