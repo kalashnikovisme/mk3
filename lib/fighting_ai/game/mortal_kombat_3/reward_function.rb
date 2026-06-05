@@ -54,14 +54,13 @@ module FightingAI
 
         private
 
-        DISTANCE_REWARD_SCALE = 2.0
-        PERFECT_CLOSENESS = 1.0
+        VERY_CLOSE_DISTANCE = 50
 
         def distance_reward(me, opponent)
           distance = [me.distance_to(opponent), MemoryMap::MAX_FIGHT_DISTANCE].min
-          closeness = PERFECT_CLOSENESS - (distance.to_f / MemoryMap::MAX_FIGHT_DISTANCE)
-          shaped_distance = (closeness * DISTANCE_REWARD_SCALE) - PERFECT_CLOSENESS
-          shaped_distance * @weights[:distance]
+          return @weights[:distance] if distance <= VERY_CLOSE_DISTANCE
+
+          -@weights[:distance]
         end
 
         def determine_round_winner(game_state)

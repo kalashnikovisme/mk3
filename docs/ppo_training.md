@@ -89,13 +89,13 @@ Weights defined in `lib/fighting_ai/game/reward_calculator.rb`.
 |-----------|--------|---------|
 | `damage_dealt` | +10 | `(opp_prev.health − opp_next.health) × 10` per step |
 | `damage_taken` | −5 | `(me_prev.health − me_next.health) × 5` per step |
-| `distance` | ±1 | `(closeness × 2 − 1) × 1` where `closeness = 1 − dist / 255`; +1 adjacent, −1 at max separation |
+| `distance` | ±25 | `+25` when fighter distance is ≤ `RewardFunction::VERY_CLOSE_DISTANCE`; `-25` otherwise |
 | `round_win` | +200 | flat bonus on round win |
 | `round_loss` | −200 | flat penalty on round loss |
 | `round_draw` | −100 | flat penalty on draw |
 | `stale` | −100 | flat penalty when HP unchanged for `STALL_TIMEOUT` seconds |
 
-The distance component is computed per `next_frame_snapshot` step and accumulated across the FRAME_SKIP window.
+The distance component is the main dense learning reward. It is computed per `next_frame_snapshot` step and accumulated across the FRAME_SKIP window.
 
 ## PPO Agent
 

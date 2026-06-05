@@ -5,7 +5,7 @@ module FightingAI
     module RewardCalculator
       DAMAGE_DEALT_WEIGHT =  10
       DAMAGE_TAKEN_WEIGHT =  -5
-      DISTANCE_WEIGHT     =  1.0
+      DISTANCE_WEIGHT     =  25.0
       WIN_REWARD          =  200.0
       LOSS_REWARD         =  -200.0
       DRAW_REWARD         =  -100.0
