@@ -86,8 +86,12 @@ adapter runs `Vision::CharacterPositionDetector`, which keeps a persistent
 `python3 bin/vision_detect.py --server` process alive. Runtime vision therefore
 uses the same Python CUDA detector, action modes, ROI defaults, and early-stop
 rules as `dip vision:detect`. Detected screen-space foot positions are scaled
-into the existing normalized MK3 coordinate range. Only fighter `x/y` positions
-are overridden by vision; the rest of the state remains WRAM-derived.
+into the existing normalized MK3 coordinate range. Fighter `x/y` positions and the round timer are overridden by vision when
+detected; the rest of the state remains WRAM-derived. Timer detection uses a
+fixed-position crop at `(136, 0)` sized `24×24` px, compared against every
+template in `data/vision/timers/` using L1 distance. The best match above
+`TIMER_MIN_CONFIDENCE` (0.75) is used; if no template reaches the threshold the
+timer falls back to the WRAM value.
 
 If X display capture fails, runtime training treats that frame as a vision miss
 instead of aborting the episode. `MatchRunner` logs one warning and passes no

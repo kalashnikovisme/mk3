@@ -75,12 +75,13 @@ module FightingAI
 
         detections = payload.fetch("detections").map { |raw_detection| build_detection(raw_detection) }
         {
-          character: @character,
-          detections: detections,
-          image_width: payload.fetch("image_width"),
+          character:    @character,
+          detections:   detections,
+          image_width:  payload.fetch("image_width"),
           image_height: payload.fetch("image_height"),
-          player1: detections.fetch(FIRST_DETECTION_INDEX, nil),
-          player2: detections.fetch(SECOND_DETECTION_INDEX, nil)
+          player1:      detections.fetch(FIRST_DETECTION_INDEX, nil),
+          player2:      detections.fetch(SECOND_DETECTION_INDEX, nil),
+          timer:        payload["timer"]
         }
       end
 

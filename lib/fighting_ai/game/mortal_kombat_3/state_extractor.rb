@@ -31,7 +31,7 @@ module FightingAI
         KNOCKED_DOWN_STATE_BIT = 4
         AIRBORNE_STATE_BIT = 8
 
-        def self.extract(snapshot, vision_positions: nil)
+        def self.extract(snapshot, vision_positions: nil, vision_timer: nil)
           players = snapshot.fetch("players")
 
           fighter1 = build_fighter(PLAYER_ONE, players.fetch(PLAYER_ONE_KEY), vision_positions&.fetch(PLAYER_ONE, nil))
@@ -39,7 +39,7 @@ module FightingAI
 
           screen               = snapshot.fetch("screen", nil)&.to_i
           in_fight             = screen ? MM::FIGHT_SCREENS.include?(screen) : snapshot.fetch("game_state", INACTIVE_GAME_STATE).to_i == ACTIVE_GAME_STATE
-          round_time_remaining = snapshot.fetch("timer", DEFAULT_TIMER).to_i
+          round_time_remaining = (vision_timer || snapshot.fetch("timer", DEFAULT_TIMER)).to_i
           round_over           = in_fight && (fighter1.health == 0 || fighter2.health == 0 || round_time_remaining == 0)
           fight_active         = in_fight && !round_over
 

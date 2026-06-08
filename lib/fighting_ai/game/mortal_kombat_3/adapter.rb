@@ -54,7 +54,12 @@ module FightingAI
         end
 
         def extract_game_state(raw_snapshot, frame_observation: nil)
-          StateExtractor.extract(raw_snapshot, vision_positions: vision_positions(frame_observation))
+          vision = vision_detect(frame_observation)
+          StateExtractor.extract(
+            raw_snapshot,
+            vision_positions: vision&.fetch(:positions),
+            vision_timer:     vision&.fetch(:timer)
+          )
         end
 
         def build_observation(game_state, player_index:)
@@ -169,13 +174,14 @@ module FightingAI
 
         private
 
-        def vision_positions(frame_observation)
+        def vision_detect(frame_observation)
           return nil unless vision_enabled? && frame_observation
 
-          result = @vision_detector.detect(frame_observation)
-          image_width = result.fetch(:image_width)
+          result       = @vision_detector.detect(frame_observation)
+          image_width  = result.fetch(:image_width)
           image_height = result.fetch(:image_height)
-          assign_vision_positions(result[:detections], image_width: image_width, image_height: image_height)
+          positions    = assign_vision_positions(result[:detections], image_width: image_width, image_height: image_height)
+          { positions: positions, timer: result[:timer] }
         end
 
         def assign_vision_positions(detections, image_width:, image_height:)

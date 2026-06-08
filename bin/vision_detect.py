@@ -50,6 +50,14 @@ P2_INITIAL_STANCE_ROI_Y = 104
 INITIAL_STANCE_ROI_WIDTH = 72
 INITIAL_STANCE_ROI_HEIGHT = 120
 
+DEFAULT_TIMER_TEMPLATE_DIR = Path("/app/data/vision/timers")
+TIMER_ROI_X = 136
+TIMER_ROI_Y = 0
+TIMER_TEMPLATE_WIDTH = 24
+TIMER_TEMPLATE_HEIGHT = 24
+TIMER_MIN_CONFIDENCE = 0.75
+TIMER_FILENAME_PREFIX = "timer-"
+
 GRAY_SUFFIX = "_gray.png"
 MASK_SUFFIX = "_mask.png"
 ACTION_MODE_ALL = "all"
@@ -209,6 +217,12 @@ class DetectorOptions:
     server: bool
 
 
+@dataclass(frozen=True)
+class TimerTemplate:
+    value: int
+    grayscale: torch.Tensor
+
+
 DEFAULT_INITIAL_STANCE_ROIS = (
     Roi(
         x=P1_INITIAL_STANCE_ROI_X,
@@ -223,6 +237,8 @@ DEFAULT_INITIAL_STANCE_ROIS = (
         height=INITIAL_STANCE_ROI_HEIGHT,
     ),
 )
+
+TIMER_ROI = Roi(x=TIMER_ROI_X, y=TIMER_ROI_Y, width=TIMER_TEMPLATE_WIDTH, height=TIMER_TEMPLATE_HEIGHT)
 
 
 def env_float(name: str, default: float) -> float:
@@ -359,6 +375,42 @@ def load_templates(
             )
         )
     return templates
+
+
+def load_timer_templates(timer_dir: Path, device: torch.device) -> list[TimerTemplate]:
+    templates: list[TimerTemplate] = []
+    if not timer_dir.exists():
+        return templates
+    for path in sorted(timer_dir.glob(f"{TIMER_FILENAME_PREFIX}*.png")):
+        try:
+            value = int(path.stem.removeprefix(TIMER_FILENAME_PREFIX))
+        except ValueError:
+            continue
+        templates.append(TimerTemplate(value=value, grayscale=load_grayscale(path).to(device=device)))
+    return templates
+
+
+def detect_timer(
+    image: torch.Tensor,
+    timer_templates: list[TimerTemplate],
+    min_confidence: float = TIMER_MIN_CONFIDENCE,
+) -> int | None:
+    if not timer_templates:
+        return None
+    clamped = clamp_roi(TIMER_ROI, image.shape[1], image.shape[0])
+    if clamped is None:
+        return None
+    crop = crop_image(image, clamped)
+    best_value = None
+    best_confidence = min_confidence
+    for tmpl in timer_templates:
+        if crop.shape != tmpl.grayscale.shape:
+            continue
+        confidence = 1.0 - torch.abs(crop - tmpl.grayscale).mean().item() / BYTE_MAX
+        if confidence > best_confidence:
+            best_confidence = confidence
+            best_value = tmpl.value
+    return best_value
 
 
 def load_image(path: Path, device: torch.device) -> torch.Tensor:
@@ -576,6 +628,7 @@ def detect_image(
 def detect_path(
     path: Path,
     templates: list[Template],
+    timer_templates: list[TimerTemplate],
     device: torch.device,
     min_confidence: float,
     max_detections: int,
@@ -637,6 +690,8 @@ def detect_path(
         f"time={match_seconds * SECONDS_TO_MS:.1f}ms",
         flush=True,
     )
+    timer_value = detect_timer(image, timer_templates)
+    print(f"  timer:     {timer_value if timer_value is not None else 'not detected'}", flush=True)
     print(f"  image:     {image_width}x{image_height}", flush=True)
     print(f"  timings:   load={load_seconds * SECONDS_TO_MS:.1f}ms match={match_seconds * SECONDS_TO_MS:.1f}ms", flush=True)
     print(f"  candidates_above_threshold: {len(candidates)}", flush=True)
@@ -670,6 +725,7 @@ def detect_path(
 def detect_path_payload(
     path: Path,
     templates: list[Template],
+    timer_templates: list[TimerTemplate],
     device: torch.device,
     min_confidence: float,
     max_detections: int,
@@ -706,11 +762,13 @@ def detect_path_payload(
         "match_seconds": match_seconds,
         "areas": [roi.__dict__ for roi in active_rois],
         "detections": [detection_to_dict(detection) for detection in detections],
+        "timer": detect_timer(image, timer_templates),
     }
 
 
 def run_server(
     templates: list[Template],
+    timer_templates: list[TimerTemplate],
     device: torch.device,
     min_confidence: float,
     max_detections: int,
@@ -724,6 +782,7 @@ def run_server(
                 "event": "ready",
                 "device": str(device),
                 "template_count": len(templates),
+                "timer_template_count": len(timer_templates),
                 "search_stride": search_stride,
                 "areas": [roi.__dict__ for roi in rois],
             }
@@ -739,7 +798,7 @@ def run_server(
             continue
 
         try:
-            payload = detect_path_payload(path, templates, device, min_confidence, max_detections, search_stride, rois)
+            payload = detect_path_payload(path, templates, timer_templates, device, min_confidence, max_detections, search_stride, rois)
         except Exception as error:
             payload = {"ok": False, "path": str(path), "error": str(error)}
         print(json.dumps(payload), flush=True)
@@ -794,8 +853,10 @@ def main() -> int:
         )
         return FIRST_HUMAN_INDEX
 
+    timer_templates = load_timer_templates(DEFAULT_TIMER_TEMPLATE_DIR, device)
+
     if options.server:
-        return run_server(templates, device, min_confidence, max_detections, search_stride, options.rois)
+        return run_server(templates, timer_templates, device, min_confidence, max_detections, search_stride, options.rois)
 
     print("Vision detect", flush=True)
     print(f"  character:      {DEFAULT_CHARACTER}", flush=True)
@@ -824,7 +885,7 @@ def main() -> int:
     print(flush=True)
 
     for raw_path in options.screenshot_paths:
-        detect_path(Path(raw_path), templates, device, min_confidence, max_detections, search_stride, options.rois)
+        detect_path(Path(raw_path), templates, timer_templates, device, min_confidence, max_detections, search_stride, options.rois)
 
     return 0
 
