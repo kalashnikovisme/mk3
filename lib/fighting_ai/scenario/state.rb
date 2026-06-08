@@ -7,6 +7,8 @@ module FightingAI
     SCREENSHOT_EXPORT_DIR  = "/app/data/screenshots"
     SAVE_STATE_SETTLE_WAIT = 0.5
     TIMESTAMP_FORMAT       = "%Y%m%d_%H%M%S"
+    TIMER_POLL_FRAMES      = 5
+    GAME_SECOND_TIMEOUT    = 2.0  # seconds; bail if timer is frozen (round end, transition screens)
 
     class << self
       attr_writer :emulator, :initial_state_path
@@ -18,6 +20,19 @@ module FightingAI
 
       def watches
         @watches || []
+      end
+
+      def wait_game_second
+        raise "No emulator attached to Scenario" unless @emulator
+
+        addr     = Game::MortalKombat3::MemoryMap::LEVEL_TIMER_ADDR
+        current  = @emulator.read_memory(addr)
+        deadline = Time.now + GAME_SECOND_TIMEOUT
+        loop do
+          sleep(BASE_FRAME * TIMER_POLL_FRAMES)
+          break if @emulator.read_memory(addr) != current
+          break if Time.now >= deadline
+        end
       end
 
       def reload_state

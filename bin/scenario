@@ -104,6 +104,10 @@ def watch(address, label: nil)
   FightingAI::Scenario.watch(address, label: label)
 end
 
+def wait_game_second
+  FightingAI::Scenario.wait_game_second
+end
+
 def reload_state
   FightingAI::Scenario.reload_state
 end
