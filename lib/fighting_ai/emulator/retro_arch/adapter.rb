@@ -220,7 +220,6 @@ module FightingAI
             "frame"    => frame_num,
             "game"     => "mortal_kombat_3",
             "screen"   => wram.read_u8(mm::SCREEN_ADDR),
-            "timer"    => [mm::TIMER_MAX - wram.read_u8(mm::LEVEL_TIMER_ADDR), 0].max,
             "players"  => {
               "1" => {
                 "health"     => wram.read_u8(mm::P1_HEALTH_ADDR),

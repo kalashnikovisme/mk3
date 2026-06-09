@@ -114,14 +114,16 @@ end
 
 # ── Status display ────────────────────────────────────────────────────────────
 
-game    = FightingAI.build_mk3_adapter(emulator_adapter: emulator)
+game    = FightingAI.build_mk3_adapter(emulator_adapter: emulator, vision: true)
 display = FightingAI::CLI::PPODisplay.new
+FightingAI::Scenario.game = game
 
 status_thread = Thread.new do
   loop do
-    snapshot   = emulator.next_frame_snapshot
-    game_state = game.extract_game_state(snapshot)
-    watches    = FightingAI::Scenario.watches.map do |w|
+    snapshot          = emulator.next_frame_snapshot
+    frame_observation = game.vision_enabled? ? emulator.capture_frame : nil rescue nil
+    game_state        = game.extract_game_state(snapshot, frame_observation: frame_observation)
+    watches           = FightingAI::Scenario.watches.map do |w|
       { label: w[:label], value: emulator.read_memory(w[:address]) }
     end
     display.update(game_state: game_state, stage_name: game.snapshot_stage_name(snapshot), watches: watches)

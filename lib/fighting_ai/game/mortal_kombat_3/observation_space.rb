@@ -29,7 +29,7 @@ module FightingAI
             opponent_in_blockstun:      opp.in_blockstun,
             opponent_knocked_down:      opp.knocked_down,
             opponent_airborne:          opp.airborne,
-            round_time_normalized:      game_state.round_time_remaining.to_f / MM::TIMER_MAX,
+            round_time_normalized:      (game_state.round_time_remaining || MM::TIMER_MAX).to_f / MM::TIMER_MAX,
             round_number:               game_state.round_number,
             raw:                        game_state
           )

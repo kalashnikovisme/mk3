@@ -32,10 +32,9 @@ module FightingAI
 
         def describe_snapshot(raw_snapshot)
           screen = raw_snapshot["screen"].to_i
-          timer  = raw_snapshot["timer"].to_i
           hp1    = raw_snapshot.dig("players", "1", "health").to_i
           hp2    = raw_snapshot.dig("players", "2", "health").to_i
-          "#{MemoryMap.stage_name(screen)}  timer=#{timer}  hp1=#{hp1} hp2=#{hp2}"
+          "#{MemoryMap.stage_name(screen)}  hp1=#{hp1} hp2=#{hp2}"
         end
 
         def snapshot_stage_name(raw_snapshot)
@@ -103,12 +102,17 @@ module FightingAI
           mm = MemoryMap
           {
             screen:     emulator_adapter.read_memory(mm::SCREEN_ADDR),
-            timer:      emulator_adapter.read_memory(mm::LEVEL_TIMER_ADDR),
             p1_health:  emulator_adapter.read_memory(mm::P1_HEALTH_ADDR),
             p2_health:  emulator_adapter.read_memory(mm::P2_HEALTH_ADDR),
             p1_rounds:  emulator_adapter.read_memory(mm::P1_ROUNDS_WON),
             p2_rounds:  emulator_adapter.read_memory(mm::P2_ROUNDS_WON)
           }
+        end
+
+        def detect_timer(frame_observation)
+          return nil unless vision_enabled? && frame_observation
+
+          @vision_detector.detect(frame_observation)[:timer]
         end
 
         def start_game

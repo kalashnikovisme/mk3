@@ -15,7 +15,6 @@ RSpec.describe FightingAI::Game::MortalKombat3::StateExtractor do
       "game"       => "mortal_kombat_3",
       "game_state" => 2,
       "round"      => 1,
-      "timer"      => 90,
       "match_over" => false,
       "players"    => {
         "1" => {
@@ -77,8 +76,13 @@ RSpec.describe FightingAI::Game::MortalKombat3::StateExtractor do
       expect(game_state.round_number).to eq(1)
     end
 
-    it "sets round timer" do
-      expect(game_state.round_time_remaining).to eq(90)
+    it "sets round timer from vision" do
+      state = described_class.extract(snapshot, vision_timer: 90)
+      expect(state.round_time_remaining).to eq(90)
+    end
+
+    it "returns nil timer when vision provides no reading" do
+      expect(game_state.round_time_remaining).to be_nil
     end
 
     it "uses vision positions when they are provided" do

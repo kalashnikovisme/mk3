@@ -15,7 +15,6 @@ module FightingAI
         PLAYER_ONE_KEY = "1"
         PLAYER_TWO_KEY = "2"
         DEFAULT_ROUND_NUMBER = 1
-        DEFAULT_TIMER = 99
         ACTIVE_GAME_STATE = 2
         INACTIVE_GAME_STATE = 0
         DEFAULT_ANIMATION = 0
@@ -39,7 +38,7 @@ module FightingAI
 
           screen               = snapshot.fetch("screen", nil)&.to_i
           in_fight             = screen ? MM::FIGHT_SCREENS.include?(screen) : snapshot.fetch("game_state", INACTIVE_GAME_STATE).to_i == ACTIVE_GAME_STATE
-          round_time_remaining = (vision_timer || snapshot.fetch("timer", DEFAULT_TIMER)).to_i
+          round_time_remaining = vision_timer&.to_i
           round_over           = in_fight && (fighter1.health == 0 || fighter2.health == 0 || round_time_remaining == 0)
           fight_active         = in_fight && !round_over
 

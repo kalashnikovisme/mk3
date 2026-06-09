@@ -44,10 +44,6 @@ module FightingAI
           STAGE_NAMES.fetch(screen, "Unknown (0x#{screen.to_s(16).rjust(2, '0')})")
         end
 
-        # --- Timers ---
-        LEVEL_TIMER_ADDR    = 0x3610  # elapsed seconds (increments 0→99); adapter converts to remaining = 99 - elapsed
-        FATALITY_TIMER_ADDR = 0x3BE0
-
         # --- Player 1 ---
         P1_HEALTH_ADDR    = 0x3634
         P1_ROUNDS_WON     = 0x36E0

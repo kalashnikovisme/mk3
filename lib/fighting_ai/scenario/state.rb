@@ -11,7 +11,7 @@ module FightingAI
     GAME_SECOND_TIMEOUT    = 2.0  # seconds; bail if timer is frozen (round end, transition screens)
 
     class << self
-      attr_writer :emulator, :initial_state_path
+      attr_writer :emulator, :initial_state_path, :game
 
       def watch(address, label: nil)
         @watches ||= []
@@ -25,12 +25,12 @@ module FightingAI
       def wait_game_second
         raise "No emulator attached to Scenario" unless @emulator
 
-        addr     = Game::MortalKombat3::MemoryMap::LEVEL_TIMER_ADDR
-        current  = @emulator.read_memory(addr)
+        current  = vision_timer
         deadline = Time.now + GAME_SECOND_TIMEOUT
         loop do
           sleep(BASE_FRAME * TIMER_POLL_FRAMES)
-          break if @emulator.read_memory(addr) != current
+          detected = vision_timer
+          break if !detected.nil? && detected != current
           break if Time.now >= deadline
         end
       end
@@ -92,6 +92,15 @@ module FightingAI
       end
 
       private
+
+      def vision_timer
+        return nil unless @game && @emulator
+
+        frame = @emulator.capture_frame
+        @game.detect_timer(frame)
+      rescue StandardError
+        nil
+      end
 
       def timestamped_label(name)
         (name || Time.now.strftime(TIMESTAMP_FORMAT)).to_s
