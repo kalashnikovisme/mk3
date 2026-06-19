@@ -68,14 +68,16 @@ module FightingAI
 
       private
 
-      STALL_TIMEOUT = 5.0
+      STALE_TIMEOUT       = 5    # game seconds
+      STALE_STEPS_TIMEOUT = (STALE_TIMEOUT / Emulator::RetroArch::Adapter::STEP_DURATION).round
 
       def run_round(match, round)
         prev_game_state = nil
         fight_seen      = false
         last_status_at  = Time.now - 1
         stall_hp        = nil
-        stall_since     = nil
+        stale_anchor    = nil   # game-timer value at start of stale window (vision)
+        stale_steps     = 0     # fight-active steps since last hit (fallback)
         loop do
           snapshot = @emulator.next_frame_snapshot
           frame_observation = capture_frame_observation
@@ -111,19 +113,30 @@ module FightingAI
           if game_state.fight_active?
             current_hp = [game_state.fighter1.health, game_state.fighter2.health]
             if current_hp != stall_hp
-              stall_hp    = current_hp
-              stall_since = Time.now
-            elsif Time.now - stall_since >= STALL_TIMEOUT
-              log "Round #{round.number} stalled (HP unchanged for #{STALL_TIMEOUT}s). Restarting."
+              stall_hp     = current_hp
+              stale_anchor = nil   # hit landed; open a fresh stale window
+              stale_steps  = 0
+            else
+              stale_steps += 1
+            end
+
+            # Latch game-timer anchor on the first readable frame after fight start or a hit.
+            # Stale window persists across brief non-active frames so a screen-value flicker
+            # does not silently restart it.
+            stale_anchor ||= game_state.round_time_remaining
+
+            timer_stale = stale_anchor && game_state.round_time_remaining &&
+                          stale_anchor - game_state.round_time_remaining >= STALE_TIMEOUT
+            step_stale  = stale_steps >= STALE_STEPS_TIMEOUT
+
+            if timer_stale || step_stale
+              log "Round #{round.number} stalled (no hit for #{STALE_TIMEOUT} game seconds). Restarting."
               notify_agents_terminal_reward(game_state, prev_game_state, stale: true) if prev_game_state
               round.finish!(winner: nil, stale: true)
               break
             end
 
             step_agents(game_state, prev_game_state, match.id)
-          else
-            stall_hp    = nil
-            stall_since = nil
           end
 
           if fight_seen && !game_state.fight_active?

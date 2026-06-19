@@ -17,7 +17,7 @@ module FightingAI
         FRAME_DURATION  = 1.0 / 60.0
         STARTUP_WAIT    = 6.0
         WRAM_RETRY_WAIT = 1.0
-        LOAD_STATE_WAIT = 1.0
+        LOAD_STATE_WAIT = 0
         WRAM_READ_SLOT  = 9   # dedicated slot for reads; never used by install_match_state
 
         attr_reader :pid, :display

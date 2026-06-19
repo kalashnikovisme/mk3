@@ -24,7 +24,11 @@ module FightingAI
         end
 
         def self.save_state(slot: nil, host: DEFAULT_HOST, port: DEFAULT_PORT)
-          send_command("SAVE_STATE", host: host, port: port)
+          if slot
+            send_command("SAVE_STATE_SLOT #{slot}", host: host, port: port)
+          else
+            send_command("SAVE_STATE", host: host, port: port)
+          end
         end
 
         def self.load_state(slot: nil, host: DEFAULT_HOST, port: DEFAULT_PORT)
