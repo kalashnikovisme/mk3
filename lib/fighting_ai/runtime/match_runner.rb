@@ -10,7 +10,7 @@ module FightingAI
     class MatchRunner
       WRAM_DUMP_DIR = File.expand_path("../../../data/memory", __dir__).freeze
 
-      def initialize(emulator_adapter:, game_adapter:, agents:, recorder: nil, logger: nil, ui: nil, wram_dump: false, max_rounds: nil)
+      def initialize(emulator_adapter:, game_adapter:, agents:, recorder: nil, logger: nil, ui: nil, wram_dump: false, max_rounds: nil, fight_logger: nil)
         @emulator        = emulator_adapter
         @game            = game_adapter
         @agents          = agents   # Hash { 1 => Agent, 2 => Agent }
@@ -20,6 +20,7 @@ module FightingAI
         @wram_dump       = wram_dump
         @wram_dump_index = 0
         @max_rounds      = max_rounds
+        @fight_logger    = fight_logger
         @vision_capture_warning_logged = false
         FileUtils.mkdir_p(WRAM_DUMP_DIR) if @wram_dump
       end
@@ -78,6 +79,8 @@ module FightingAI
           snapshot = @emulator.next_frame_snapshot
           frame_observation = capture_frame_observation
           game_state = @game.extract_game_state(snapshot, frame_observation: frame_observation)
+
+          @fight_logger&.log_frame(game_state)
 
           if @ui
             @ui.update(game_state: game_state, stage_name: @game.snapshot_stage_name(snapshot))

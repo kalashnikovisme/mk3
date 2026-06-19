@@ -24,10 +24,11 @@ require_relative "../config/mk3"
 
 ROM_PATH    = ENV.fetch("ROM_PATH",  File.expand_path("../mk3.sfc", __dir__))
 CORE_PATH   = ENV.fetch("CORE_PATH", "/usr/lib/x86_64-linux-gnu/libretro/snes9x_libretro.so")
-MATCHES_DIR = File.expand_path("../data/matches", __dir__)
-MODELS_DIR  = File.expand_path("../models", __dir__)
-LOGS_DIR    = File.expand_path("../data/logs", __dir__)
-MEMORY_DIR  = File.expand_path("../data/memory", __dir__)
+MATCHES_DIR   = File.expand_path("../data/matches", __dir__)
+MODELS_DIR    = File.expand_path("../models", __dir__)
+LOGS_DIR      = File.expand_path("../data/logs", __dir__)
+MEMORY_DIR    = File.expand_path("../data/memory", __dir__)
+FIGHT_LOGS_DIR = File.expand_path("../data/fight_logs", __dir__)
 DEBUG        = ARGV.include?("debug")
 AI_LOG       = ENV["AI_LOG"] == "1"
 WRAM_DEBUG   = DEBUG
@@ -49,6 +50,9 @@ def parse_match_file(path)
   p1_str, p2_str    = basename.split("-vs-", 2)
   { path: path, p1: p1_str.tr("-", "_").to_sym, p2: p2_str.tr("-", "_").to_sym }
 end
+
+FileUtils.rm_rf(FIGHT_LOGS_DIR)
+FileUtils.mkdir_p(FIGHT_LOGS_DIR)
 
 if WRAM_DEBUG
   FileUtils.mkdir_p(MEMORY_DIR)
@@ -150,7 +154,8 @@ trainer = FightingAI::Training::PPOTrainer.new(
   logger:             DEBUG ? FightingAI::CLI.logger("PPO") : FightingAI::CLI.null_logger,
   ui:                 ppo_ui,
   wram_dump:          WRAM_DEBUG,
-  max_rounds:         1
+  max_rounds:         1,
+  fight_logs_dir:     FIGHT_LOGS_DIR
 )
 trainer_ref = trainer
 

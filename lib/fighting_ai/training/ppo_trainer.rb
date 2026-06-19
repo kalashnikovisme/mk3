@@ -1,3 +1,5 @@
+require_relative "fight_logger"
+
 module FightingAI
   module Training
     # Drives self-play PPO training indefinitely.
@@ -27,7 +29,8 @@ module FightingAI
         ui: nil,
         wram_dump: false,
         max_rounds: nil,
-        initial_checkpoint: nil
+        initial_checkpoint: nil,
+        fight_logs_dir: nil
       )
         @emulator           = emulator
         @game               = game
@@ -41,6 +44,7 @@ module FightingAI
         @wram_dump           = wram_dump
         @max_rounds          = max_rounds
         @initial_checkpoint  = initial_checkpoint
+        @fight_logs_dir      = fight_logs_dir
         @episode             = 0
         @training_step       = 0
         @zero_entropy_streak = 0
@@ -93,6 +97,8 @@ module FightingAI
       def run_episode
         @emulator.install_match_state(@match_state[:path])
 
+        fight_logger = build_fight_logger
+
         runner = Runtime::MatchRunner.new(
           emulator_adapter: @emulator,
           game_adapter:     @game,
@@ -100,7 +106,8 @@ module FightingAI
           logger:           @logger,
           ui:               @ui,
           wram_dump:        @wram_dump,
-          max_rounds:       @max_rounds
+          max_rounds:       @max_rounds,
+          fight_logger:     fight_logger
         )
 
         match  = runner.run(
@@ -110,6 +117,15 @@ module FightingAI
         result = @game.collect_match_result(match)
 
         log_episode(result)
+      ensure
+        fight_logger&.close
+      end
+
+      def build_fight_logger
+        return nil unless @fight_logs_dir
+
+        filename = "episode_%05d.log" % @episode
+        FightLogger.new(File.join(@fight_logs_dir, filename))
       end
 
       ENTROPY_COLLAPSE_THRESHOLD  = 1e-6
