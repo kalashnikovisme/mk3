@@ -3,8 +3,8 @@ module FightingAI
     # Reward weights for PPO self-play training.
     # Combat reward shaping: damage, distance control, and round outcomes.
     module RewardCalculator
-      DAMAGE_DEALT_WEIGHT =  200
-      DAMAGE_TAKEN_WEIGHT =  100
+      DAMAGE_DEALT_WEIGHT =  10
+      DAMAGE_TAKEN_WEIGHT =  -5
       DISTANCE_WEIGHT     =  25.0
       WIN_REWARD          =  200.0
       LOSS_REWARD         =  -200.0

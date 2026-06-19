@@ -84,8 +84,7 @@ FightingAI::CLI.trap_sigint(cleanup: -> { trainer_ref&.stop })
 
 # ── Start emulator ────────────────────────────────────────────────────────────
 
-ppo_ui   = DEBUG ? nil : FightingAI::CLI::PPODisplay.new
-log_file = nil
+ppo_ui = DEBUG ? nil : FightingAI::CLI::PPODisplay.new
 unless DEBUG
   FileUtils.mkdir_p(LOGS_DIR)
   log_name = "#{Time.now.strftime('%Y%m%d_%H%M%S')}_#{File.basename(match_state[:path], '.state')}.log"
@@ -141,7 +140,7 @@ trainer = FightingAI::Training::PPOTrainer.new(
   checkpoint_manager: checkpoint,
   agents:             agents,
   match_state:        match_state,
-  logger:             DEBUG ? FightingAI::CLI.logger("PPO") : FightingAI::CLI.file_logger(log_file),
+  logger:             DEBUG ? FightingAI::CLI.logger("PPO") : FightingAI::CLI.null_logger,
   ui:                 ppo_ui,
   wram_dump:          WRAM_DEBUG,
   max_rounds:         1

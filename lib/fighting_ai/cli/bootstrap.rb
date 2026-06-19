@@ -55,10 +55,6 @@ module FightingAI
       ->(_) {}
     end
 
-    def self.file_logger(file)
-      ->(msg) { file.puts msg }
-    end
-
     def self.print_result(match, result)
       winner = result[:winner] ? "Player #{result[:winner]}" : "Draw"
       puts "  Winner:  #{winner}"
