@@ -107,11 +107,11 @@ module FightingAI
             NetworkCommands.save_state(slot: WRAM_READ_SLOT)
             sleep(WRAM_RETRY_WAIT)
             @save_state_reader.try_locate_any
-            print "." unless @save_state_reader.wram_located?
-            $stdout.flush
+            print "." if @verbose && !@save_state_reader.wram_located?
+            $stdout.flush if @verbose
           end
-          puts
-          puts "Loading slot 0 state (F4)..."
+          puts if @verbose
+          puts "Loading slot 0 state (F4)..." if @verbose
           @keyboard.load_state
           sleep(LOAD_STATE_WAIT)
         end

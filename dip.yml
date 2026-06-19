@@ -72,6 +72,14 @@ interaction:
     service: app_watch
     command: bundle exec ruby bin/learn
 
+  learn_watch_ai:
+    description: "PPO training with live Xephyr window, AI-readable JSON log (no status bar). Usage: dip learn_watch_ai [match-name]"
+    service: app_watch
+    command: bundle exec ruby bin/learn
+    environment:
+      AI_LOG: "1"
+      VISION: "0"
+
   retroarch:
     description: Launch RetroArch with the MK3 ROM and snes9x core
     service: app

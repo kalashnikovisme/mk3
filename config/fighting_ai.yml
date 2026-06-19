@@ -1,0 +1,8 @@
+stale_timeout: 1.0
+reward_damage_dealt: 10.0
+reward_damage_taken: -5.0
+reward_distance: 25.0
+reward_win: 200.0
+reward_loss: -200.0
+reward_draw: -100.0
+reward_stale: -100.0

@@ -11,7 +11,9 @@ module FightingAI
     #   5. Every CHECKPOINT_EVERY_UPDATES policy updates, save a checkpoint.
     #   6. Repeat until Ctrl+C.
     class PPOTrainer
-      UPDATE_EVERY_EPISODES = 5
+      UPDATE_EVERY_EPISODES  = 5
+      PLATEAU_WINDOW         = 1000  # rolling window size for median reward
+      PLATEAU_PATIENCE       = 1000  # stop after this many episodes without improvement
 
       def initialize(
         emulator:,
@@ -42,6 +44,9 @@ module FightingAI
         @episode             = 0
         @training_step       = 0
         @zero_entropy_streak = 0
+        @reward_history      = []
+        @best_median         = nil
+        @plateau_count       = 0
       end
 
       def train
@@ -60,6 +65,7 @@ module FightingAI
           )
 
           run_episode
+          check_reward_plateau
 
           next unless (@episode % UPDATE_EVERY_EPISODES).zero?
           next unless @buffer.ready?
@@ -141,6 +147,35 @@ module FightingAI
         else
           @zero_entropy_streak = 0
         end
+      end
+
+      def check_reward_plateau
+        ep_reward = (@agents[1].episode_reward + @agents[2].episode_reward) / 2.0
+        @reward_history << ep_reward
+        @reward_history.shift if @reward_history.size > PLATEAU_WINDOW
+        return if @reward_history.size < PLATEAU_WINDOW
+
+        current_median = median(@reward_history)
+        if @best_median.nil? || current_median > @best_median
+          @best_median   = current_median
+          @plateau_count = 0
+        else
+          @plateau_count += 1
+          if @plateau_count >= PLATEAU_PATIENCE
+            msg = "Median reward has not improved for #{PLATEAU_PATIENCE} episodes " \
+                  "(best median: #{@best_median.round(2)}). Stopping."
+            log msg
+            @ui&.log(msg)
+            @policy.stop
+            exit 0
+          end
+        end
+      end
+
+      def median(arr)
+        sorted = arr.sort
+        mid    = sorted.size / 2
+        sorted.size.odd? ? sorted[mid].to_f : (sorted[mid - 1] + sorted[mid]) / 2.0
       end
 
       def log_episode(result)

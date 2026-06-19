@@ -6,18 +6,8 @@ module FightingAI
   module Game
     module MortalKombat3
       class RewardFunction
-        DEFAULT_WEIGHTS = {
-          damage_dealt: RewardCalculator::DAMAGE_DEALT_WEIGHT,
-          damage_taken: RewardCalculator::DAMAGE_TAKEN_WEIGHT,
-          distance:     RewardCalculator::DISTANCE_WEIGHT,
-          round_win:    RewardCalculator::WIN_REWARD,
-          round_loss:   RewardCalculator::LOSS_REWARD,
-          round_draw:   RewardCalculator::DRAW_REWARD,
-          stale:        RewardCalculator::STALE_REWARD
-        }.freeze
-
-        def initialize(weights: DEFAULT_WEIGHTS)
-          @weights = DEFAULT_WEIGHTS.merge(weights)
+        def initialize(weights: nil)
+          @weights = RewardCalculator.weights.merge(weights || {})
         end
 
         # Calculate reward for player_index between two consecutive game states.

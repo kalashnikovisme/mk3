@@ -53,7 +53,7 @@ RSpec.describe FightingAI::Game::MortalKombat3::RewardFunction do
       after = make_state(h1: INITIAL_HEALTH, h2: DAMAGED_OPPONENT_HEALTH)
       reward = reward_fn.call(prev, after, player_index: REWARD_PLAYER_ONE)
       expect(reward.value).to be > 0
-      expect(reward.components[:damage_dealt]).to eq(DAMAGE_DEALT_AMOUNT * FightingAI::Game::RewardCalculator::DAMAGE_DEALT_WEIGHT)
+      expect(reward.components[:damage_dealt]).to eq(DAMAGE_DEALT_AMOUNT * FightingAI.config.reward_damage_dealt)
     end
   end
 
@@ -68,10 +68,10 @@ RSpec.describe FightingAI::Game::MortalKombat3::RewardFunction do
 
   describe "distance" do
     it "uses the largest dense per-step reward weight" do
-      distance_weight = FightingAI::Game::RewardCalculator::DISTANCE_WEIGHT
+      distance_weight = FightingAI.config.reward_distance
 
-      expect(distance_weight).to be > FightingAI::Game::RewardCalculator::DAMAGE_DEALT_WEIGHT
-      expect(distance_weight).to be > FightingAI::Game::RewardCalculator::DAMAGE_TAKEN_WEIGHT.abs
+      expect(distance_weight).to be > FightingAI.config.reward_damage_dealt
+      expect(distance_weight).to be > FightingAI.config.reward_damage_taken.abs
     end
 
     it "rewards very close distance between fighters" do
@@ -80,7 +80,7 @@ RSpec.describe FightingAI::Game::MortalKombat3::RewardFunction do
 
       reward = reward_fn.call(prev, after, player_index: REWARD_PLAYER_ONE)
 
-      expect(reward.components[:distance]).to eq(FightingAI::Game::RewardCalculator::DISTANCE_WEIGHT)
+      expect(reward.components[:distance]).to eq(FightingAI.config.reward_distance)
     end
 
     it "punishes distance outside the very close range" do
@@ -89,7 +89,7 @@ RSpec.describe FightingAI::Game::MortalKombat3::RewardFunction do
 
       reward = reward_fn.call(prev, after, player_index: REWARD_PLAYER_ONE)
 
-      expect(reward.components[:distance]).to eq(-FightingAI::Game::RewardCalculator::DISTANCE_WEIGHT)
+      expect(reward.components[:distance]).to eq(-FightingAI.config.reward_distance)
     end
   end
 
@@ -98,7 +98,7 @@ RSpec.describe FightingAI::Game::MortalKombat3::RewardFunction do
       prev  = make_state(h1: WINNER_HEALTH, h2: LOSER_HEALTH)
       after = make_state(h1: WINNER_HEALTH, h2: ZERO_HEALTH, round_over: true)
       reward = reward_fn.call(prev, after, player_index: REWARD_PLAYER_ONE)
-      expect(reward.components[:round_win]).to eq(FightingAI::Game::RewardCalculator::WIN_REWARD)
+      expect(reward.components[:round_win]).to eq(FightingAI.config.reward_win)
     end
   end
 
@@ -107,7 +107,7 @@ RSpec.describe FightingAI::Game::MortalKombat3::RewardFunction do
       prev  = make_state(h1: LOSER_HEALTH, h2: WINNER_HEALTH)
       after = make_state(h1: ZERO_HEALTH, h2: WINNER_HEALTH, round_over: true)
       reward = reward_fn.call(prev, after, player_index: REWARD_PLAYER_ONE)
-      expect(reward.components[:round_loss]).to eq(FightingAI::Game::RewardCalculator::LOSS_REWARD)
+      expect(reward.components[:round_loss]).to eq(FightingAI.config.reward_loss)
     end
   end
 end

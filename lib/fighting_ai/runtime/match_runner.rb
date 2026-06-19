@@ -68,8 +68,6 @@ module FightingAI
 
       private
 
-      STALL_TIMEOUT = 5.0
-
       def run_round(match, round)
         prev_game_state = nil
         fight_seen      = false
@@ -113,17 +111,14 @@ module FightingAI
             if current_hp != stall_hp
               stall_hp    = current_hp
               stall_since = Time.now
-            elsif Time.now - stall_since >= STALL_TIMEOUT
-              log "Round #{round.number} stalled (HP unchanged for #{STALL_TIMEOUT}s). Restarting."
+            elsif stall_since && Time.now - stall_since >= FightingAI.config.stale_timeout
+              log "Round #{round.number} stalled (HP unchanged for #{FightingAI.config.stale_timeout}s). Restarting."
               notify_agents_terminal_reward(game_state, prev_game_state, stale: true) if prev_game_state
               round.finish!(winner: nil, stale: true)
               break
             end
 
             step_agents(game_state, prev_game_state, match.id)
-          else
-            stall_hp    = nil
-            stall_since = nil
           end
 
           if fight_seen && !game_state.fight_active?

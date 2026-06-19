@@ -13,10 +13,11 @@ Gem::Specification.new do |spec|
 
   spec.required_ruby_version = ">= 3.2.0"
 
-  spec.files = Dir["lib/**/*", "lua/**/*", "docs/**/*", "*.md"]
+  spec.files = Dir["lib/**/*", "lua/**/*", "docs/**/*", "config/**/*", "*.md"]
 
-  spec.add_dependency "json",     "~> 2.0"
-  spec.add_dependency "colorize", "~> 1.0"
+  spec.add_dependency "json",          "~> 2.0"
+  spec.add_dependency "colorize",      "~> 1.0"
+  spec.add_dependency "anyway_config", "~> 2.6"
 
   spec.add_development_dependency "rspec", "~> 3.13"
   spec.add_development_dependency "rspec-its", "~> 1.3"

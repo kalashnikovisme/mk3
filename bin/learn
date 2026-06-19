@@ -29,6 +29,7 @@ MODELS_DIR  = File.expand_path("../models", __dir__)
 LOGS_DIR    = File.expand_path("../data/logs", __dir__)
 MEMORY_DIR  = File.expand_path("../data/memory", __dir__)
 DEBUG        = ARGV.include?("debug")
+AI_LOG       = ENV["AI_LOG"] == "1"
 WRAM_DEBUG   = DEBUG
 VISION_ENABLED = ENV.fetch(FightingAI::VISION_ENV_KEY, FightingAI::VISION_LEARN_DEFAULT_VALUE) == FightingAI::VISION_ENABLED_VALUE
 VISION_ACTION = ENV.fetch("VISION_ACTION", FightingAI::Vision::CharacterPositionDetector::DEFAULT_ACTION_MODE)
@@ -68,14 +69,16 @@ FileUtils.rm_rf(states_dir)
 FileUtils.mkdir_p(states_dir)
 FileUtils.cp(match_state[:path], File.join(states_dir, "#{File.basename(ROM_PATH, '.*')}.state"))
 
-puts FightingAI::CLI::BANNER
-puts "Mode: PPO Self-Play Training\n\n"
-puts "Match  → #{File.basename(match_state[:path])}"
-puts "Models → #{MODELS_DIR}"
-puts "Obs dim: #{OBS_DIM}  |  Actions: #{ACTION_DIM}"
-puts "Vision: #{VISION_ENABLED ? "ON" : "off"}"
-puts "Vision action: #{VISION_ACTION}  |  areas: #{VISION_AREAS}  |  full-screen: #{VISION_FULL_SCREEN}" if VISION_ENABLED
-puts "WRAM debug: #{WRAM_DEBUG ? "ON → #{MEMORY_DIR}" : "off"}\n\n"
+unless AI_LOG
+  puts FightingAI::CLI::BANNER
+  puts "Mode: PPO Self-Play Training\n\n"
+  puts "Match  → #{File.basename(match_state[:path])}"
+  puts "Models → #{MODELS_DIR}"
+  puts "Obs dim: #{OBS_DIM}  |  Actions: #{ACTION_DIM}"
+  puts "Vision: #{VISION_ENABLED ? "ON" : "off"}"
+  puts "Vision action: #{VISION_ACTION}  |  areas: #{VISION_AREAS}  |  full-screen: #{VISION_FULL_SCREEN}" if VISION_ENABLED
+  puts "WRAM debug: #{WRAM_DEBUG ? "ON → #{MEMORY_DIR}" : "off"}\n\n"
+end
 
 # ── Signal handling ───────────────────────────────────────────────────────────
 
@@ -84,7 +87,11 @@ FightingAI::CLI.trap_sigint(cleanup: -> { trainer_ref&.stop })
 
 # ── Start emulator ────────────────────────────────────────────────────────────
 
-ppo_ui = DEBUG ? nil : FightingAI::CLI::PPODisplay.new
+ppo_ui = if DEBUG    then nil
+           elsif AI_LOG then FightingAI::CLI::PPOAIDisplay.new
+           else              FightingAI::CLI::PPODisplay.new
+           end
+log_file = nil
 unless DEBUG
   FileUtils.mkdir_p(LOGS_DIR)
   log_name = "#{Time.now.strftime('%Y%m%d_%H%M%S')}_#{File.basename(match_state[:path], '.state')}.log"
@@ -121,14 +128,14 @@ agents = {
     policy:            policy,
     action_translator: translator,
     buffer:            buffer,
-    exploration:       0.2
+    exploration:       0.3
   ),
   2 => FightingAI::Agent::PPOAgent.new(
     player_index:      2,
     policy:            policy,
     action_translator: translator,
     buffer:            buffer,
-    exploration:       0.2
+    exploration:       0.3
   )
 }
 

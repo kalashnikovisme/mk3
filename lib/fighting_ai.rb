@@ -1,5 +1,6 @@
 require "securerandom"
 require_relative "fighting_ai/version"
+require_relative "fighting_ai/config"
 
 # Core domain
 require_relative "fighting_ai/core/fighter_state"
@@ -79,6 +80,10 @@ require_relative "fighting_ai/runtime/human_vs_ai"
 require_relative "fighting_ai/runtime/ai_vs_ai"
 
 module FightingAI
+  def self.config
+    @config ||= Config.new
+  end
+
   VISION_ENV_KEY = "VISION"
   VISION_ENABLED_VALUE = "1"
   VISION_DISABLED_VALUE = "0"

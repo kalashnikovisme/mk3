@@ -1,5 +1,6 @@
 require "colorize"
 require "io/console"
+require "json"
 
 module FightingAI
   module CLI
@@ -215,6 +216,73 @@ module FightingAI
           lines.each { |l| @log_file.puts l.gsub(ANSI_ESCAPE_PATTERN, "") }
           @log_file.flush
         end
+      end
+    end
+
+    # Machine-readable display for AI-driven log analysis.
+    # Emits one JSON line per event; suppresses the live status bar entirely.
+    class PPOAIDisplay
+      COMPONENT_KEYS = %i[damage_dealt damage_taken distance round_win round_loss round_draw stale].freeze
+
+      attr_writer :log_file
+
+      def initialize
+        @log_file = nil
+      end
+
+      def set_context(episode:, training_step:, buffer_size:, buffer_capacity:) = nil
+
+      def update(game_state:, stage_name:, **) = nil
+
+      def episode_done(episode:, winner:, stale: false, p1_reward:, p2_reward:, p1_components: {}, p2_components: {})
+        emit(
+          type:          "episode",
+          episode:       episode,
+          winner:        winner,
+          stale:         stale,
+          p1_reward:     p1_reward.round(4),
+          p2_reward:     p2_reward.round(4),
+          p1_components: normalize_components(p1_components),
+          p2_components: normalize_components(p2_components)
+        )
+      end
+
+      def ppo_update(step:, stats:, n:)
+        emit(
+          type:        "ppo_update",
+          step:        step,
+          n:           n,
+          policy_loss: stats[:policy_loss].to_f.round(6),
+          value_loss:  stats[:value_loss].to_f.round(6),
+          entropy:     stats[:entropy].to_f.round(6),
+          total_loss:  stats[:total_loss].to_f.round(6)
+        )
+      end
+
+      def checkpoint(path)
+        emit(type: "checkpoint", path: File.basename(path))
+      end
+
+      def log(message)
+        emit(type: "log", message: message)
+      end
+
+      private
+
+      def normalize_components(components)
+        COMPONENT_KEYS.each_with_object({}) do |key, h|
+          h[key] = (components[key] || 0.0).round(4)
+        end
+      end
+
+      def emit(payload)
+        line = JSON.generate(payload)
+        $stdout.puts line
+        $stdout.flush
+        return unless @log_file
+
+        @log_file.puts line
+        @log_file.flush
       end
     end
   end
