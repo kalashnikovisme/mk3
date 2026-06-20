@@ -29,7 +29,7 @@ RSpec.describe FightingAI::Emulator::RetroArch::FrameGrabber do
       [described_class::XWD_BIN, described_class::XWD_SILENT_ARG,
        described_class::XWD_DISPLAY_ARG, FRAME_GRABBER_X_DISPLAY,
        described_class::XWD_ROOT_ARG],
-      [described_class::CONVERT_BIN, described_class::CONVERT_STDIN,
+      [described_class::CONVERT_BIN, described_class::CONVERT_XWD_STDIN,
        described_class::CONVERT_CROP_ARG, frame_grabber_screenshot_crop_geometry,
        described_class::CONVERT_REPAGE_ARG, "#{described_class::PNG_PREFIX}#{frame.path}"]
     )

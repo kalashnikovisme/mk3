@@ -26,5 +26,7 @@ module FightingAI
         ]
       end
     end
+
+    Observation::VECTOR_SIZE = 7
   end
 end

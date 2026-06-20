@@ -16,7 +16,7 @@ module FightingAI
         XWD_DISPLAY_ARG        = "-display"
         XWD_ROOT_ARG           = "-root"
         CONVERT_BIN            = "convert"
-        CONVERT_STDIN          = "-"
+        CONVERT_XWD_STDIN      = "xwd:-"   # format prefix tells ImageMagick the stdin stream is XWD
         CONVERT_CROP_ARG       = "-crop"
         CONVERT_REPAGE_ARG     = "+repage"
         PNG_PREFIX             = "png:"
@@ -45,7 +45,7 @@ module FightingAI
         # convert's stdin, eliminating the intermediate .xwd temp file on disk.
         def capture_x_server_screenshot(destination, display:)
           xwd_cmd     = [XWD_BIN, XWD_SILENT_ARG, XWD_DISPLAY_ARG, display, XWD_ROOT_ARG]
-          convert_cmd = [CONVERT_BIN, CONVERT_STDIN, CONVERT_CROP_ARG,
+          convert_cmd = [CONVERT_BIN, CONVERT_XWD_STDIN, CONVERT_CROP_ARG,
                          screenshot_crop_geometry, CONVERT_REPAGE_ARG,
                          "#{PNG_PREFIX}#{destination}"]
 
