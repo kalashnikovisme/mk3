@@ -16,9 +16,7 @@ module FightingAI
         STEP_DURATION   = 1.0 / 60.0 * 6
         FRAME_DURATION  = 1.0 / 60.0
         STARTUP_WAIT    = 6.0
-        WRAM_RETRY_WAIT = 1.0
         LOAD_STATE_WAIT = 1.0
-        WRAM_READ_SLOT  = 9   # dedicated slot for reads; never used by install_match_state
 
         attr_reader :pid, :display
 
@@ -89,38 +87,10 @@ module FightingAI
           @process.pid
         end
 
-        def wait_for_wram(timeout: 30)
-          deadline = Time.now + timeout
-          until @save_state_reader.wram_located?
-            unless @process.running?
-              puts
-              raise "RetroArch exited unexpectedly.\n\n" \
-                    "RetroArch log (#{RetroArch::Process::LOG_PATH}):\n" \
-                    "#{@process.last_log_lines(40)}"
-            end
-            if Time.now > deadline
-              puts
-              raise "Could not locate MK3 WRAM within #{timeout}s.\n\n" \
-                    "RetroArch log (#{RetroArch::Process::LOG_PATH}):\n" \
-                    "#{@process.last_log_lines(40)}"
-            end
-            NetworkCommands.save_state(slot: WRAM_READ_SLOT)
-            sleep(WRAM_RETRY_WAIT)
-            @save_state_reader.try_locate_any
-            print "." if @verbose && !@save_state_reader.wram_located?
-            $stdout.flush if @verbose
-          end
-          puts if @verbose
-          puts "Loading slot 0 state (F4)..." if @verbose
-          @keyboard.load_state
-          sleep(LOAD_STATE_WAIT)
-        end
-
         def next_frame_snapshot
           sleep(STEP_DURATION)
           @frame_counter += 1
-          wram = capture_state_snapshot
-          build_mk3_snapshot(@frame_counter, wram)
+          build_mk3_snapshot(@frame_counter)
         end
 
         def send_input(player_index, buttons)
@@ -213,7 +183,7 @@ module FightingAI
           @save_state_reader.read_current
         end
 
-        def build_mk3_snapshot(frame_num, _wram)
+        def build_mk3_snapshot(frame_num)
           {
             "type"  => "frame",
             "frame" => frame_num,

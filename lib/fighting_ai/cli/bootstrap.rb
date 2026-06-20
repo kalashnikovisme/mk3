@@ -41,9 +41,7 @@ module FightingAI
 
       puts "Starting RetroArch..." if verbose
       adapter.start
-      puts "RetroArch started (PID #{adapter.pid}). Scanning for game memory..." if verbose
-      adapter.wait_for_wram(timeout: 30)
-      puts "Game memory found. Ready.\n\n" if verbose
+      puts "RetroArch started (PID #{adapter.pid}). Ready.\n\n" if verbose
       adapter
     end
 
