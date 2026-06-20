@@ -30,11 +30,11 @@ module FightingAI
         KNOCKED_DOWN_STATE_BIT = 4
         AIRBORNE_STATE_BIT = 8
 
-        def self.extract(snapshot, vision_positions: nil, vision_timer: nil)
+        def self.extract(snapshot, vision_positions: nil, vision_timer: nil, vision_health: nil)
           players = snapshot.fetch("players")
 
-          fighter1 = build_fighter(PLAYER_ONE, players.fetch(PLAYER_ONE_KEY), vision_positions&.fetch(PLAYER_ONE, nil))
-          fighter2 = build_fighter(PLAYER_TWO, players.fetch(PLAYER_TWO_KEY), vision_positions&.fetch(PLAYER_TWO, nil))
+          fighter1 = build_fighter(PLAYER_ONE, players.fetch(PLAYER_ONE_KEY), vision_positions&.fetch(PLAYER_ONE, nil), vision_health&.fetch(PLAYER_ONE, nil))
+          fighter2 = build_fighter(PLAYER_TWO, players.fetch(PLAYER_TWO_KEY), vision_positions&.fetch(PLAYER_TWO, nil), vision_health&.fetch(PLAYER_TWO, nil))
 
           screen               = snapshot.fetch("screen", nil)&.to_i
           in_fight             = screen ? MM::FIGHT_SCREENS.include?(screen) : snapshot.fetch("game_state", INACTIVE_GAME_STATE).to_i == ACTIVE_GAME_STATE
@@ -54,7 +54,7 @@ module FightingAI
           )
         end
 
-        private_class_method def self.build_fighter(player_index, data, vision_position)
+        private_class_method def self.build_fighter(player_index, data, vision_position, vision_health)
           animation_state = Core::AnimationState.new(
             name:         data.fetch("anim", DEFAULT_ANIMATION).to_s,
             frame_index:  data.fetch("anim_frame", DEFAULT_ANIMATION_FRAME).to_i,
@@ -64,8 +64,8 @@ module FightingAI
 
           Core::FighterState.new(
             player_index:    player_index,
-            health:          data.fetch("health").to_i,
-            max_health:      data.fetch("max_health", MM::MAX_HEALTH).to_i,
+            health:          vision_health || MM::MAX_HEALTH,
+            max_health:      MM::MAX_HEALTH,
             x:               vision_position&.fetch(:x, nil) || data.fetch("x", DEFAULT_X).to_i,
             y:               vision_position&.fetch(:y, nil) || data.fetch("y").to_i,
             facing:          data.fetch("facing", DEFAULT_FACING).to_i == FACING_LEFT_VALUE ? Core::FacingDirection::LEFT : Core::FacingDirection::RIGHT,

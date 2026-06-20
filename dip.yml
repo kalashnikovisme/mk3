@@ -145,14 +145,14 @@ interaction:
   "vision:detect":
     description: "Run Sub-Zero template detection against screenshot PNGs. Usage: dip vision:detect [action] <screenshot.png> [more.png ...]"
     service: app_gpu
-    command: python3 bin/vision_detect.py
+    command: bundle exec ruby bin/vision_detect
     compose:
       run_options: [no-deps]
 
   "vision:detect-cpu":
     description: "Run Sub-Zero template detection without Docker GPU access. Usage: dip vision:detect-cpu [action] <screenshot.png>"
     service: app
-    command: python3 bin/vision_detect.py
+    command: bundle exec ruby bin/vision_detect
     compose:
       run_options: [no-deps]
 

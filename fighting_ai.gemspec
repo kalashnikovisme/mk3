@@ -18,6 +18,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "json",          "~> 2.0"
   spec.add_dependency "colorize",      "~> 1.0"
   spec.add_dependency "anyway_config", "~> 2.6"
+  spec.add_dependency "chunky_png",    "~> 1.4"
 
   spec.add_development_dependency "rspec", "~> 3.13"
   spec.add_development_dependency "rspec-its", "~> 1.3"

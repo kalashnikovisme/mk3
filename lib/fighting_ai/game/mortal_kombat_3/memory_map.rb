@@ -45,12 +45,10 @@ module FightingAI
         end
 
         # --- Player 1 ---
-        P1_HEALTH_ADDR    = 0x3634
         P1_ROUNDS_WON     = 0x36E0
         P1_WIN_STREAK     = 0x3AA2
 
         # --- Player 2 ---
-        P2_HEALTH_ADDR    = 0x37F6
         P2_ROUNDS_WON     = 0x38A4
         P2_WIN_STREAK     = 0x3AA4
 
@@ -74,12 +72,9 @@ module FightingAI
 
         def self.player_addresses(player_index)
           case player_index
-          when 1
-            { health: P1_HEALTH_ADDR, rounds_won: P1_ROUNDS_WON, x: P1_X_ADDR }
-          when 2
-            { health: P2_HEALTH_ADDR, rounds_won: P2_ROUNDS_WON }
-          else
-            raise ArgumentError, "player_index must be 1 or 2"
+          when 1 then { rounds_won: P1_ROUNDS_WON, x: P1_X_ADDR }
+          when 2 then { rounds_won: P2_ROUNDS_WON }
+          else raise ArgumentError, "player_index must be 1 or 2"
           end
         end
       end

@@ -3,6 +3,7 @@ PATH
   specs:
     fighting_ai (0.1.0)
       anyway_config (~> 2.6)
+      chunky_png (~> 1.4)
       colorize (~> 1.0)
       json (~> 2.0)
 
@@ -12,6 +13,7 @@ GEM
     anyway_config (2.8.0)
       ruby-next-core (~> 1.0)
     ast (2.4.3)
+    chunky_png (1.4.0)
     colorize (1.1.0)
     csv (3.3.5)
     diff-lcs (1.6.2)
@@ -78,6 +80,7 @@ DEPENDENCIES
 CHECKSUMS
   anyway_config (2.8.0) sha256=f6797a7231f81202dcd3d0c07284e836e45713e761d320180348b13a5c7c9306
   ast (2.4.3) sha256=954615157c1d6a382bc27d690d973195e79db7f55e9765ac7c481c60bdb4d383
+  chunky_png (1.4.0) sha256=89d5b31b55c0cf4da3cf89a2b4ebc3178d8abe8cbaf116a1dba95668502fdcfe
   colorize (1.1.0) sha256=30b5237f0603f6662ab8d1fc2bd4a96142b806c6415d79e45ef5fdc6a0cfc837
   csv (3.3.5) sha256=6e5134ac3383ef728b7f02725d9872934f523cb40b961479f69cf3afa6c8e73f
   diff-lcs (1.6.2) sha256=9ae0d2cba7d4df3075fe8cd8602a8604993efc0dfa934cff568969efb1909962

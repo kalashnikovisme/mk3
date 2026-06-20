@@ -9,6 +9,7 @@ require_relative "menu_navigator"
 require_relative "characters"
 require_relative "characters/sub_zero"
 require_relative "../../vision/character_position_detector"
+require_relative "../../vision/health_bar_detector"
 
 module FightingAI
   module Game
@@ -22,19 +23,28 @@ module FightingAI
         MIDPOINT_DIVISOR    = 2
         SUB_ZERO_CHARACTER  = :sub_zero
 
+        P1_HEALTH_BAR = Vision::HealthBarDetector::BarConfig.new(
+          x: 19, y: 19, width: 112, height: 10, direction: :left_to_right
+        ).freeze
+        P2_HEALTH_BAR = Vision::HealthBarDetector::BarConfig.new(
+          x: 168, y: 19, width: 112, height: 10, direction: :right_to_left
+        ).freeze
+
         def initialize(emulator_adapter:, game_definition:, reward_weights: {}, vision_detector: nil)
           super(emulator_adapter: emulator_adapter, game_definition: game_definition)
-          @reward_function = RewardFunction.new(weights: reward_weights)
-          @navigator       = MenuNavigator.new(emulator_adapter)
-          @vision_detector = vision_detector
+          @reward_function  = RewardFunction.new(weights: reward_weights)
+          @navigator        = MenuNavigator.new(emulator_adapter)
+          @vision_detector  = vision_detector
+          @health_detector  = Vision::HealthBarDetector.new(
+            bar1:       P1_HEALTH_BAR,
+            bar2:       P2_HEALTH_BAR,
+            max_health: MemoryMap::MAX_HEALTH
+          )
           @vision_characters = {}
         end
 
         def describe_snapshot(raw_snapshot)
-          screen = raw_snapshot["screen"].to_i
-          hp1    = raw_snapshot.dig("players", "1", "health").to_i
-          hp2    = raw_snapshot.dig("players", "2", "health").to_i
-          "#{MemoryMap.stage_name(screen)}  hp1=#{hp1} hp2=#{hp2}"
+          MemoryMap.stage_name(raw_snapshot["screen"].to_i)
         end
 
         def snapshot_stage_name(raw_snapshot)
@@ -54,10 +64,12 @@ module FightingAI
 
         def extract_game_state(raw_snapshot, frame_observation: nil)
           vision = vision_detect(frame_observation)
+          health = frame_observation ? @health_detector.detect(frame_observation) : nil
           StateExtractor.extract(
             raw_snapshot,
             vision_positions: vision&.fetch(:positions),
-            vision_timer:     vision&.fetch(:timer)
+            vision_timer:     vision&.fetch(:timer),
+            vision_health:    health
           )
         end
 
@@ -101,11 +113,9 @@ module FightingAI
         def read_memory_debug
           mm = MemoryMap
           {
-            screen:     emulator_adapter.read_memory(mm::SCREEN_ADDR),
-            p1_health:  emulator_adapter.read_memory(mm::P1_HEALTH_ADDR),
-            p2_health:  emulator_adapter.read_memory(mm::P2_HEALTH_ADDR),
-            p1_rounds:  emulator_adapter.read_memory(mm::P1_ROUNDS_WON),
-            p2_rounds:  emulator_adapter.read_memory(mm::P2_ROUNDS_WON)
+            screen:    emulator_adapter.read_memory(mm::SCREEN_ADDR),
+            p1_rounds: emulator_adapter.read_memory(mm::P1_ROUNDS_WON),
+            p2_rounds: emulator_adapter.read_memory(mm::P2_ROUNDS_WON)
           }
         end
 

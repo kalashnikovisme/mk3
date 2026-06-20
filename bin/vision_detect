@@ -1,0 +1,126 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "chunky_png"
+require "colorize"
+require "json"
+require "open3"
+require_relative "../lib/fighting_ai/vision/health_bar_detector"
+
+P1_HEALTH_BAR = FightingAI::Vision::HealthBarDetector::BarConfig.new(
+  x: 19, y: 19, width: 112, height: 10, direction: :left_to_right
+).freeze
+
+P2_HEALTH_BAR = FightingAI::Vision::HealthBarDetector::BarConfig.new(
+  x: 168, y: 19, width: 112, height: 10, direction: :right_to_left
+).freeze
+
+MAX_HEALTH        = 0xA6
+MK3_AXIS_MAX      = 255
+HIGH_HEALTH_RATIO = 0.6
+LOW_HEALTH_RATIO  = 0.3
+
+FramePixels = Data.define(:pixels, :width)
+
+HEALTH_DETECTOR = FightingAI::Vision::HealthBarDetector.new(
+  bar1: P1_HEALTH_BAR,
+  bar2: P2_HEALTH_BAR,
+  max_health: MAX_HEALTH
+).freeze
+
+PYTHON_SCRIPT = File.join(__dir__, "vision_detect.py")
+
+def health_color(health)
+  ratio = health.to_f / MAX_HEALTH
+  label = "#{health}/#{MAX_HEALTH}"
+  if ratio > HIGH_HEALTH_RATIO
+    label.green
+  elsif ratio > LOW_HEALTH_RATIO
+    label.yellow
+  else
+    label.red
+  end
+end
+
+def detect_health(path)
+  image = ChunkyPNG::Image.from_file(path)
+  pixels = Array.new(image.width * image.height) do |i|
+    pixel = image[i % image.width, i / image.width]
+    [ChunkyPNG::Color.r(pixel), ChunkyPNG::Color.g(pixel), ChunkyPNG::Color.b(pixel)]
+  end
+  HEALTH_DETECTOR.detect(FramePixels.new(pixels: pixels, width: image.width))
+end
+
+def scale_axis(value, image_size)
+  denominator = [image_size - 1, 1].max
+  [[(value * MK3_AXIS_MAX.to_f / denominator).round, 0].max, MK3_AXIS_MAX].min
+end
+
+def print_file_result(result, path)
+  puts path
+  if result["ok"]
+    detections    = result["detections"]
+    image_width   = result["image_width"]
+    image_height  = result["image_height"]
+
+    if detections.empty?
+      puts "  detections: none"
+    else
+      detections.each_with_index do |d, i|
+        mk3_x = scale_axis(d["center_x"], image_width)
+        mk3_y = scale_axis(d["bottom_y"], image_height)
+        puts "  ##{i + 1} #{d['template_name'].bold}  mk3=(#{mk3_x},#{mk3_y})  conf=#{format('%.3f', d['confidence']).green}"
+      end
+    end
+
+    timer = result["timer"]
+    puts "  timer: #{timer ? timer.to_s.cyan : 'not detected'}"
+  else
+    puts "  error: #{result['error']}".red
+  end
+
+  health = detect_health(path)
+  puts "  P1: #{health_color(health[1])}"
+  puts "  P2: #{health_color(health[2])}"
+rescue => e
+  puts "  health: #{e.message}".red
+ensure
+  puts
+end
+
+verbose   = ARGV.delete("--verbose")
+png_paths = ARGV.select { |arg| arg.end_with?(".png") }
+
+if verbose
+  system("python3", PYTHON_SCRIPT, *ARGV)
+
+  exit if png_paths.empty?
+
+  puts "Health"
+  png_paths.each do |path|
+    health = detect_health(path)
+    puts "  #{path}"
+    puts "    P1: #{health_color(health[1])}"
+    puts "    P2: #{health_color(health[2])}"
+  rescue => e
+    puts "  #{path}: #{e.message}".red
+  end
+else
+  if png_paths.empty?
+    warn "Usage: dip vision:detect [action] <screenshot.png> [more.png ...] [--verbose]"
+    exit 1
+  end
+
+  Open3.popen2("python3", PYTHON_SCRIPT, "--server", *ARGV) do |stdin, stdout, wait_thr|
+    ready = JSON.parse(stdout.gets)
+    abort "vision_detect not ready: #{ready['error']}".red unless ready["ok"]
+
+    png_paths.each do |path|
+      stdin.puts(JSON.generate({ "path" => File.expand_path(path) }))
+      print_file_result(JSON.parse(stdout.gets), path)
+    end
+
+    stdin.close
+    wait_thr.value
+  end
+end

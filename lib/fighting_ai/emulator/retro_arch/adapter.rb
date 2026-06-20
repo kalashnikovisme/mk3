@@ -222,8 +222,6 @@ module FightingAI
             "screen"   => wram.read_u8(mm::SCREEN_ADDR),
             "players"  => {
               "1" => {
-                "health"     => wram.read_u8(mm::P1_HEALTH_ADDR),
-                "max_health" => mm::MAX_HEALTH,
                 "rounds_won" => wram.read_u8(mm::P1_ROUNDS_WON),
                 "x"          => wram.read_u16_le(mm::P1_X_ADDR),
                 "y"          => 0,
@@ -233,8 +231,6 @@ module FightingAI
                 "state"      => 0
               },
               "2" => {
-                "health"     => wram.read_u8(mm::P2_HEALTH_ADDR),
-                "max_health" => mm::MAX_HEALTH,
                 "rounds_won" => wram.read_u8(mm::P2_ROUNDS_WON),
                 "y"          => 0,
                 "facing"     => 0,
