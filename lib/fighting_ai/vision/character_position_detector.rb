@@ -63,7 +63,7 @@ module FightingAI
       end
 
       def available?
-        File.exist?(@script_path) && Dir.glob(File.join(@template_dir, "*_gray.png")).any?
+        File.exist?(@script_path) && Dir.glob(File.join(@template_dir, "**", "*_gray.png")).any?
       end
 
       def detect_path(path)

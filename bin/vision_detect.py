@@ -6,7 +6,6 @@ from __future__ import annotations
 import os
 import json
 import sys
-import yaml
 import time
 import warnings
 from dataclasses import dataclass
@@ -275,10 +274,30 @@ class DetectionConfig:
     timer_search_radius: int
 
 
+def _parse_flat_yaml(text: str) -> dict:
+    result: dict = {}
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if ":" not in line:
+            continue
+        key, _, value = line.partition(":")
+        value = value.strip()
+        try:
+            result[key.strip()] = int(value)
+        except ValueError:
+            try:
+                result[key.strip()] = float(value)
+            except ValueError:
+                result[key.strip()] = value
+    return result
+
+
 def load_detection_config(path: Path = DEFAULT_CONFIG_PATH) -> DetectionConfig:
     raw: dict = {}
     if path.exists():
-        raw = yaml.safe_load(path.read_text()) or {}
+        raw = _parse_flat_yaml(path.read_text())
     return DetectionConfig(
         min_confidence=raw.get("min_confidence", _FALLBACK_MIN_CONFIDENCE),
         probe_min_confidence=raw.get("probe_min_confidence", _FALLBACK_PROBE_MIN_CONFIDENCE),
@@ -547,17 +566,21 @@ def match_template(
     search_stride: int,
     origin_x: int = MIN_AXIS_VALUE,
     origin_y: int = MIN_AXIS_VALUE,
+    precomputed_patches: torch.Tensor | None = None,
 ) -> list[Detection]:
     image_height, image_width = image.shape
     if template.width > image_width or template.height > image_height:
         return []
 
-    image_batch = image.reshape(1, 1, image_height, image_width)
-    patches = functional.unfold(
-        image_batch,
-        kernel_size=(template.height, template.width),
-        stride=search_stride,
-    ).squeeze(0).transpose(0, 1)
+    if precomputed_patches is not None:
+        patches = precomputed_patches
+    else:
+        image_batch = image.reshape(1, 1, image_height, image_width)
+        patches = functional.unfold(
+            image_batch,
+            kernel_size=(template.height, template.width),
+            stride=search_stride,
+        ).squeeze(0).transpose(0, 1)
 
     template_flat = template.grayscale.reshape(1, -1)
     mask_flat = template.mask.reshape(1, -1)
@@ -691,6 +714,24 @@ def detect_image(
     template_index = 0
     total_templates = sum(len(g.probes) + len(g.members) for g in template_groups)
 
+    roi_crops = [crop_image(image, roi) for roi in active_rois]
+    patches_cache: dict[tuple[int, int, int], torch.Tensor | None] = {}
+
+    def get_patches(roi_index: int, template: Template) -> torch.Tensor | None:
+        key = (roi_index, template.height, template.width)
+        if key not in patches_cache:
+            crop = roi_crops[roi_index]
+            if template.width > crop.shape[1] or template.height > crop.shape[0]:
+                patches_cache[key] = None
+            else:
+                image_batch = crop.reshape(1, 1, crop.shape[0], crop.shape[1])
+                patches_cache[key] = (
+                    functional.unfold(image_batch, kernel_size=(template.height, template.width), stride=search_stride)
+                    .squeeze(0)
+                    .transpose(0, 1)
+                )
+        return patches_cache[key]
+
     def run_template(template: Template, confidence: float) -> list[Detection]:
         nonlocal template_index
         template_index += 1
@@ -700,13 +741,17 @@ def detect_image(
             for roi_index, roi in enumerate(active_rois):
                 if roi_index in completed_roi_indexes:
                     continue
+                patches = get_patches(roi_index, template)
+                if patches is None:
+                    continue
                 roi_matches = match_template(
-                    crop_image(image, roi),
+                    roi_crops[roi_index],
                     template,
                     confidence,
                     search_stride,
                     origin_x=roi.x,
                     origin_y=roi.y,
+                    precomputed_patches=patches,
                 )
                 if roi_matches:
                     completed_roi_indexes.add(roi_index)
