@@ -76,10 +76,7 @@ end
 FileUtils.rm_rf(FIGHT_LOGS_DIR)
 FileUtils.mkdir_p(FIGHT_LOGS_DIR)
 timer_detector&.start
-emulator.install_match_state(match_path, wait: false)
-sleep(FightingAI::Emulator::RetroArch::Adapter::LOAD_STATE_COMMAND_SETTLE_WAIT)
-emulator.pause
-sleep(FightingAI::Emulator::RetroArch::Adapter::LOAD_STATE_WAIT)
+emulator.install_match_state_paused(match_path)
 episode_number = INITIAL_EPISODE_NUMBER
 runner = nil
 stop_requested = false
@@ -91,6 +88,7 @@ end
 begin
   loop do
     break if stop_requested
+    emulator.frame_advance
 
     log_path = File.join(FIGHT_LOGS_DIR, format(EPISODE_LOG_FILENAME_FORMAT, episode_number))
     File.open(log_path, "w") do |log_file|

@@ -71,6 +71,10 @@ Unlike normal real-time training, this diagnostic mode pauses RetroArch and uses
 one `FRAME_ADVANCE` command per logged frame. Detector latency affects wall-clock
 throughput but does not skip game frames.
 
+The first stale display frame after loading an episode state is advanced without
+being logged, so `f: 1` reflects the rendered match rather than the pre-load
+screen.
+
 ## Match Setup
 
 ```ruby

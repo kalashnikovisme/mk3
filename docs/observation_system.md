@@ -70,11 +70,19 @@ Combined lines have the form
 `f: 1; size: 35416; h1: 166; h2: 166; t: 87`. Timer-only mode does not load or
 match fighter templates.
 
-The persistent timer process is warmed before the match state is loaded. After
-a short load-command settlement interval, the emulator is paused and each
-logging iteration sends one RetroArch `FRAME_ADVANCE` command before capture.
-Screenshot encoding and enabled detector work therefore cannot consume
-additional emulated frames.
+Timer templates are matched across a small horizontal search window because
+captured timer digits can shift by one pixel relative to their prepared
+templates. This prevents a visible `99` from being classified as `89` based on
+better-aligned background pixels.
+
+The persistent timer process is warmed before the match state is loaded. The
+load-state and pause commands are then sent in order through one UDP socket so
+the loaded state cannot advance before capture. Each logging iteration sends one
+RetroArch `FRAMEADVANCE` command before capture. Screenshot encoding and enabled
+detector work therefore cannot consume additional emulated frames.
+
+The first stale display frame after a save-state load is advanced without being
+logged. Frame 1 is captured from the rendered match state.
 
 Without vision scanning there is no gameplay-derived match-end signal. Empty-mode
 episodes therefore last 5,940 capture intervals (99 timer seconds at 60 FPS),

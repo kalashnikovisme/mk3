@@ -17,7 +17,7 @@ module FightingAI
         FRAME_DURATION  = 1.0 / 60.0
         STARTUP_WAIT    = 6.0
         LOAD_STATE_WAIT = 1.0
-        LOAD_STATE_COMMAND_SETTLE_WAIT = 0.25
+        MATCH_STATE_SLOT = 0
 
         attr_reader :pid, :display
 
@@ -119,6 +119,11 @@ module FightingAI
           sleep(FRAME_DURATION)
         end
 
+        def unpause
+          NetworkCommands.unpause
+          sleep(FRAME_DURATION)
+        end
+
         def frame_advance
           NetworkCommands.frame_advance
           sleep(FRAME_DURATION)
@@ -136,8 +141,16 @@ module FightingAI
           dest = slot0_state_path
           FileUtils.mkdir_p(File.dirname(dest))
           FileUtils.cp(src_path, dest)
-          NetworkCommands.load_state(slot: 0)
+          NetworkCommands.load_state(slot: MATCH_STATE_SLOT)
           sleep(LOAD_STATE_WAIT) if wait
+        end
+
+        def install_match_state_paused(src_path)
+          dest = slot0_state_path
+          FileUtils.mkdir_p(File.dirname(dest))
+          FileUtils.cp(src_path, dest)
+          NetworkCommands.load_state_and_pause(slot: MATCH_STATE_SLOT)
+          sleep(LOAD_STATE_WAIT)
         end
 
         def slot0_state_path

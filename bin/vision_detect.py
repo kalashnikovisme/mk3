@@ -57,6 +57,7 @@ TIMER_TEMPLATE_WIDTH = 24
 TIMER_TEMPLATE_HEIGHT = 24
 TIMER_MIN_CONFIDENCE = 0.75
 TIMER_FILENAME_PREFIX = "timer-"
+TIMER_HORIZONTAL_SEARCH_RADIUS = 2
 
 GRAY_SUFFIX = "_gray.png"
 MASK_SUFFIX = "_mask.png"
@@ -399,19 +400,26 @@ def detect_timer(
 ) -> int | None:
     if not timer_templates:
         return None
-    clamped = clamp_roi(TIMER_ROI, image.shape[1], image.shape[0])
-    if clamped is None:
-        return None
-    crop = crop_image(image, clamped)
     best_value = None
     best_confidence = min_confidence
-    for tmpl in timer_templates:
-        if crop.shape != tmpl.grayscale.shape:
+    for x_offset in range(-TIMER_HORIZONTAL_SEARCH_RADIUS, TIMER_HORIZONTAL_SEARCH_RADIUS + 1):
+        shifted_roi = Roi(
+            x=TIMER_ROI.x + x_offset,
+            y=TIMER_ROI.y,
+            width=TIMER_ROI.width,
+            height=TIMER_ROI.height,
+        )
+        clamped = clamp_roi(shifted_roi, image.shape[1], image.shape[0])
+        if clamped is None:
             continue
-        confidence = 1.0 - torch.abs(crop - tmpl.grayscale).mean().item() / BYTE_MAX
-        if confidence > best_confidence:
-            best_confidence = confidence
-            best_value = tmpl.value
+        crop = crop_image(image, clamped)
+        for tmpl in timer_templates:
+            if crop.shape != tmpl.grayscale.shape:
+                continue
+            confidence = 1.0 - torch.abs(crop - tmpl.grayscale).mean().item() / BYTE_MAX
+            if confidence > best_confidence:
+                best_confidence = confidence
+                best_value = tmpl.value
     return best_value
 
 

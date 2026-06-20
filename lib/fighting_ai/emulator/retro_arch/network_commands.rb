@@ -35,6 +35,10 @@ module FightingAI
           end
         end
 
+        def self.load_state_and_pause(slot:, host: DEFAULT_HOST, port: DEFAULT_PORT)
+          send_commands(["LOAD_STATE_SLOT #{slot}", "PAUSE_TOGGLE"], host: host, port: port)
+        end
+
         def self.fast_forward(host: DEFAULT_HOST, port: DEFAULT_PORT)
           send_command("FAST_FORWARD", host: host, port: port)
         end
@@ -48,8 +52,12 @@ module FightingAI
         end
 
         def self.send_command(cmd, host:, port:)
+          send_commands([cmd], host: host, port: port)
+        end
+
+        def self.send_commands(commands, host:, port:)
           socket = UDPSocket.new
-          socket.send("#{cmd}\n", 0, host, port)
+          commands.each { |command| socket.send("#{command}\n", 0, host, port) }
         ensure
           socket&.close
         end
