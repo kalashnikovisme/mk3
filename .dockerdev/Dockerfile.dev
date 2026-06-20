@@ -25,6 +25,7 @@ RUN apt-get update -qq \
      x11-apps \
      xvfb \
      xserver-xephyr \
+     pulseaudio \
      imagemagick \
      ffmpeg \
      libyaml-dev \

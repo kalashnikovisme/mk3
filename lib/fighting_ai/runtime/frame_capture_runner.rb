@@ -21,8 +21,8 @@ module FightingAI
         frame_number = INITIAL_FRAME_NUMBER
 
         while @running && frame_number <= @frame_limit
-          @frame_advancer.call
           t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+          @frame_advancer.call
           frame = capture_frame
           break unless frame
 

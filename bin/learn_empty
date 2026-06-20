@@ -28,6 +28,7 @@ if arguments.size > MAXIMUM_MATCH_ARGUMENTS
 end
 MATCH_NAME = arguments.first || ENV.fetch("MATCH", DEFAULT_MATCH_NAME)
 FRAMES_PER_GAME_SECOND       = 60
+GAME_FRAME_DURATION          = 1.0 / FRAMES_PER_GAME_SECOND
 DEFAULT_EPISODE_FRAME_LIMIT  = FightingAI::Game::MortalKombat3::MemoryMap::TIMER_MAX * FRAMES_PER_GAME_SECOND
 EPISODE_FRAME_LIMIT_ENV      = "LEARN_EMPTY_EPISODE_FRAMES"
 EPISODE_FRAME_LIMIT          = Integer(ENV.fetch(EPISODE_FRAME_LIMIT_ENV, DEFAULT_EPISODE_FRAME_LIMIT))
@@ -70,11 +71,20 @@ if health_enabled
     }
   end
 end
+POSITION_SEARCH_STRIDE = 4
 position_detector = if positions_enabled
-  detector = FightingAI::Vision::CharacterPositionDetector.new(detect_timer: !!time_enabled)
+  detector = FightingAI::Vision::CharacterPositionDetector.new(
+    detect_timer:  !!time_enabled,
+    search_stride: POSITION_SEARCH_STRIDE
+  )
   FightingAI::Vision::PositionDetector.new(detector: detector)
 end
-timer_detector = FightingAI::Vision::TimerDetector.new if time_enabled && !position_detector
+timer_detector = FightingAI::Vision::TimerDetector.new(
+  detector: FightingAI::Vision::CharacterPositionDetector.new(
+    action_mode: FightingAI::Vision::TimerDetector::TIMER_ONLY_ACTION_MODE,
+    search_stride: POSITION_SEARCH_STRIDE
+  )
+) if time_enabled && !position_detector
 metadata_detectors << ->(frame) { { t: timer_detector.detect(frame) } } if timer_detector
 if position_detector
   metadata_detectors << lambda do |frame|
@@ -93,9 +103,8 @@ if position_detector
 end
 metadata_detector = unless metadata_detectors.empty?
   lambda do |frame|
-    metadata_detectors.each_with_object({}) do |detector, metadata|
-      metadata.merge!(detector.call(frame))
-    end
+    threads = metadata_detectors.map { |d| Thread.new { d.call(frame) } }
+    threads.each_with_object({}) { |t, acc| acc.merge!(t.value) }
   end
 end
 FileUtils.rm_rf(FIGHT_LOGS_DIR)
@@ -103,6 +112,7 @@ FileUtils.mkdir_p(FIGHT_LOGS_DIR)
 timer_detector&.start
 position_detector&.start
 emulator.install_match_state_paused(match_path)
+emulator.unpause
 episode_number = INITIAL_EPISODE_NUMBER
 runner = nil
 stop_requested = false
@@ -114,15 +124,15 @@ end
 begin
   loop do
     break if stop_requested
-    emulator.frame_advance
 
     log_path = File.join(FIGHT_LOGS_DIR, format(EPISODE_LOG_FILENAME_FORMAT, episode_number))
     File.open(log_path, "w") do |log_file|
       log_file.sync = true
       runner = FightingAI::Runtime::FrameCaptureRunner.new(
-        emulator:    emulator,
-        output:      log_file,
-        frame_limit: EPISODE_FRAME_LIMIT,
+        emulator:       emulator,
+        output:         log_file,
+        frame_limit:    EPISODE_FRAME_LIMIT,
+        frame_advancer: -> { sleep(GAME_FRAME_DURATION) },
         metadata_detector: metadata_detector
       )
       runner.run

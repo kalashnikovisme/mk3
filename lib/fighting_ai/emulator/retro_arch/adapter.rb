@@ -19,6 +19,14 @@ module FightingAI
         LOAD_STATE_WAIT = 1.0
         MATCH_STATE_SLOT = 0
 
+        PULSEAUDIO_NULL_SINK_NAME = "retro_null"
+        PULSEAUDIO_START_CMD      = ["pulseaudio", "--start", "--exit-idle-time=-1"].freeze
+        PULSEAUDIO_LOAD_NULL_CMD  = ["pactl", "load-module", "module-null-sink",
+                                     "sink_name=#{PULSEAUDIO_NULL_SINK_NAME}"].freeze
+        PULSEAUDIO_SET_DEFAULT_CMD = ["pactl", "set-default-sink",
+                                      PULSEAUDIO_NULL_SINK_NAME].freeze
+        PULSEAUDIO_STARTUP_WAIT   = 0.5
+
         attr_reader :pid, :display
 
         def initialize(rom_path:, core_path:, config_path:, keyboard:, frame_grabber:, save_state_reader:, display: ":1", display_server: nil, verbose: true)
@@ -48,6 +56,7 @@ module FightingAI
         ].freeze
 
         def start
+          start_null_audio
           @display_server&.start
           @process.start
           @started = true
@@ -198,6 +207,13 @@ module FightingAI
         end
 
         private
+
+        def start_null_audio
+          system(*PULSEAUDIO_START_CMD, out: File::NULL, err: File::NULL)
+          sleep(PULSEAUDIO_STARTUP_WAIT)
+          system(*PULSEAUDIO_LOAD_NULL_CMD, out: File::NULL, err: File::NULL)
+          system(*PULSEAUDIO_SET_DEFAULT_CMD, out: File::NULL, err: File::NULL)
+        end
 
         def capture_state_snapshot
           before = @save_state_reader.current_state_snapshot

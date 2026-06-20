@@ -8,6 +8,7 @@ module FightingAI
         SCREENSHOT_DIR  = "/tmp/fighting_ai/screenshots"
         STATES_DIR      = "/tmp/fighting_ai/states"
         NATIVE_VIDEO_SCALE = 1.0
+        AUDIO_DRIVER       = "pulse"
 
         def self.build(core_path:)
           FileUtils.mkdir_p(SCREENSHOT_DIR)
@@ -29,6 +30,7 @@ module FightingAI
             video_scale_integer = "true"
             video_window_show_decorations = "false"
             video_smooth = "false"
+            audio_driver = "#{AUDIO_DRIVER}"
             audio_sync = "true"
             libretro_path = "#{core_path}"
             savestate_auto_load = "false"

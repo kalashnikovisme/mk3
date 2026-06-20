@@ -10,6 +10,7 @@ module FightingAI
       DEFAULT_SCRIPT_PATH = File.expand_path("../../../bin/vision_detect.py", __dir__).freeze
       DEFAULT_TEMPLATE_ROOT = File.expand_path("../../../data/vision/templates", __dir__).freeze
       DEFAULT_ACTION_MODE = "all"
+      IDLE_ACTION_MODE    = "idle"
       PLAYER_ONE = 1
       PLAYER_TWO = 2
       IMAGE_MAX_INDEX_ADJUSTMENT = 1
@@ -29,6 +30,7 @@ module FightingAI
       VISION_ACTION_ENV = "VISION_ACTION"
       VISION_AREAS_ENV = "VISION_AREAS"
       VISION_FULL_SCREEN_ENV = "VISION_FULL_SCREEN"
+      SEARCH_STRIDE_ENV = "SEARCH_STRIDE"
       AREA_SEPARATOR = ";"
       READY_EVENT = "ready"
 
@@ -41,7 +43,8 @@ module FightingAI
         action_mode: ENV.fetch(VISION_ACTION_ENV, DEFAULT_ACTION_MODE),
         areas: ENV.fetch(VISION_AREAS_ENV, nil),
         full_screen: ENV.fetch(VISION_FULL_SCREEN_ENV, nil) == ENV_TRUE_VALUE,
-        detect_timer: true
+        detect_timer: true,
+        search_stride: nil
       )
         @character = character.to_sym
         @template_dir = File.join(template_root, character.to_s)
@@ -50,6 +53,7 @@ module FightingAI
         @areas = parse_areas(areas)
         @full_screen = full_screen
         @detect_timer = detect_timer
+        @search_stride = search_stride
         @stdin = nil
         @stdout = nil
         @stderr = nil
@@ -126,6 +130,7 @@ module FightingAI
 
         stop
         env = { ENV_PYTHONUNBUFFERED => ENV_TRUE_VALUE, ENV_PYTHONWARNINGS => PYTHON_WARNING_FILTER }
+        env[SEARCH_STRIDE_ENV] = @search_stride.to_s if @search_stride
         command = [PYTHON_BIN, @script_path, @action_mode, SERVER_ARG]
         command << FULL_SCREEN_ARG if @full_screen
         @areas.each do |area|
