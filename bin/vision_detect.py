@@ -29,6 +29,13 @@ FIRST_HUMAN_INDEX = 1
 ROI_COMPONENT_COUNT = 4
 SECONDS_TO_MS = 1000.0
 BYTE_MAX = 255.0
+RGB_CHANNEL_COUNT = 3
+RED_CHANNEL_INDEX = 0
+GREEN_CHANNEL_INDEX = 1
+BLUE_CHANNEL_INDEX = 2
+GRAYSCALE_RED_WEIGHT = 0.299
+GRAYSCALE_GREEN_WEIGHT = 0.587
+GRAYSCALE_BLUE_WEIGHT = 0.114
 MASK_THRESHOLD = 1
 NO_CANDIDATES = 0
 NO_OVERLAP = 0.0
@@ -731,6 +738,46 @@ def detect_path(
     print(flush=True)
 
 
+def load_image_from_raw_rgb(raw_bytes: bytes, width: int, height: int, device: torch.device) -> torch.Tensor:
+    data = torch.frombuffer(bytearray(raw_bytes), dtype=torch.uint8).reshape(height, width, RGB_CHANNEL_COUNT).float()
+    grayscale = (
+        data[:, :, RED_CHANNEL_INDEX] * GRAYSCALE_RED_WEIGHT
+        + data[:, :, GREEN_CHANNEL_INDEX] * GRAYSCALE_GREEN_WEIGHT
+        + data[:, :, BLUE_CHANNEL_INDEX] * GRAYSCALE_BLUE_WEIGHT
+    )
+    return grayscale.to(device)
+
+
+def detect_image_payload(
+    image: torch.Tensor,
+    image_width: int,
+    image_height: int,
+    templates: list[Template],
+    timer_templates: list[TimerTemplate],
+    device: torch.device,
+    min_confidence: float,
+    max_detections: int,
+    search_stride: int,
+    rois: tuple[Roi, ...],
+    timer_enabled: bool = True,
+) -> dict:
+    detections, candidates, active_rois, match_seconds = detect_image(
+        image, templates, device, min_confidence, max_detections, search_stride, rois,
+    )
+    return {
+        "ok": True,
+        "image_width": image_width,
+        "image_height": image_height,
+        "template_count": len(templates),
+        "candidate_count": len(candidates),
+        "detection_count": len(detections),
+        "match_seconds": match_seconds,
+        "areas": [roi.__dict__ for roi in active_rois],
+        "detections": [detection_to_dict(detection) for detection in detections],
+        "timer": detect_timer(image, timer_templates) if timer_enabled else None,
+    }
+
+
 def detect_path_payload(
     path: Path,
     templates: list[Template],
@@ -751,29 +798,15 @@ def detect_path_payload(
         torch.cuda.synchronize()
     load_seconds = time.perf_counter() - load_started_at
     image_height, image_width = image.shape
-    detections, candidates, active_rois, match_seconds = detect_image(
-        image,
-        templates,
-        device,
-        min_confidence,
-        max_detections,
-        search_stride,
-        rois,
+    payload = detect_image_payload(
+        image, image_width, image_height,
+        templates, timer_templates, device,
+        min_confidence, max_detections, search_stride, rois,
+        timer_enabled=timer_enabled,
     )
-    return {
-        "ok": True,
-        "path": str(path),
-        "image_width": image_width,
-        "image_height": image_height,
-        "template_count": len(templates),
-        "candidate_count": len(candidates),
-        "detection_count": len(detections),
-        "load_seconds": load_seconds,
-        "match_seconds": match_seconds,
-        "areas": [roi.__dict__ for roi in active_rois],
-        "detections": [detection_to_dict(detection) for detection in detections],
-        "timer": detect_timer(image, timer_templates) if timer_enabled else None,
-    }
+    payload["path"] = str(path)
+    payload["load_seconds"] = load_seconds
+    return payload
 
 
 def run_server(
@@ -799,29 +832,48 @@ def run_server(
         ),
         flush=True,
     )
-    for line in sys.stdin:
+    while True:
+        line = sys.stdin.buffer.readline()
+        if not line:
+            break
         try:
             request = json.loads(line)
-            path = Path(request["path"])
             timer_enabled = request.get("detect_timer", True)
         except Exception as error:
             print(json.dumps({"ok": False, "error": str(error)}), flush=True)
             continue
 
         try:
-            payload = detect_path_payload(
-                path,
-                templates,
-                timer_templates,
-                device,
-                min_confidence,
-                max_detections,
-                search_stride,
-                rois,
-                timer_enabled=timer_enabled,
-            )
+            if "width" in request:
+                width = request["width"]
+                height = request["height"]
+                byte_count = width * height * RGB_CHANNEL_COUNT
+                raw_bytes = sys.stdin.buffer.read(byte_count)
+                if len(raw_bytes) != byte_count:
+                    payload = {"ok": False, "error": f"expected {byte_count} bytes, got {len(raw_bytes)}"}
+                else:
+                    image = load_image_from_raw_rgb(raw_bytes, width, height, device)
+                    payload = detect_image_payload(
+                        image, width, height,
+                        templates, timer_templates, device,
+                        min_confidence, max_detections, search_stride, rois,
+                        timer_enabled=timer_enabled,
+                    )
+            else:
+                path = Path(request["path"])
+                payload = detect_path_payload(
+                    path,
+                    templates,
+                    timer_templates,
+                    device,
+                    min_confidence,
+                    max_detections,
+                    search_stride,
+                    rois,
+                    timer_enabled=timer_enabled,
+                )
         except Exception as error:
-            payload = {"ok": False, "path": str(path), "error": str(error)}
+            payload = {"ok": False, "error": str(error)}
         print(json.dumps(payload), flush=True)
 
     return 0

@@ -25,9 +25,9 @@ module FightingAI
         at_exit { stop }
       end
 
-      def submit(path)
+      def submit(frame_observation)
         @work_lock.synchronize do
-          @pending = path
+          @pending = frame_observation
           @work_ready.signal
         end
       end
@@ -48,11 +48,11 @@ module FightingAI
 
       def work_loop
         loop do
-          path = next_pending_path
-          break unless path
+          frame = next_pending_frame
+          break unless frame
 
           begin
-            result = @detector.detect_path(path)
+            result = @detector.detect(frame)
             @result_lock.synchronize { @latest = result }
           rescue => e
             warn "[AsyncVisionScanner] scan error: #{e.message}"
@@ -60,14 +60,14 @@ module FightingAI
         end
       end
 
-      def next_pending_path
+      def next_pending_frame
         @work_lock.synchronize do
           @work_ready.wait(@work_lock) while @running && @pending.nil?
           return nil unless @running
 
-          path     = @pending
+          frame    = @pending
           @pending = nil
-          path
+          frame
         end
       end
     end

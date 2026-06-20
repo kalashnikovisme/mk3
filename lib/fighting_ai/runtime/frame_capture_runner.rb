@@ -26,7 +26,7 @@ module FightingAI
           frame = capture_frame
           break unless frame
 
-          fields = { f: frame_number, size: File.size(frame.path) }
+          fields = { f: frame_number, size: frame.byte_size }
           fields.merge!(@metadata_detector.call(frame)) if @metadata_detector
           elapsed_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0) * MS_PER_SECOND).round
           fields[:ms] = elapsed_ms

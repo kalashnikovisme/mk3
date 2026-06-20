@@ -41,6 +41,7 @@ require_relative "fighting_ai/emulator/retro_arch/config_builder"
 require_relative "fighting_ai/emulator/retro_arch/network_commands"
 require_relative "fighting_ai/emulator/retro_arch/process"
 require_relative "fighting_ai/emulator/retro_arch/frame_grabber"
+require_relative "fighting_ai/emulator/retro_arch/streaming_frame_grabber"
 require_relative "fighting_ai/emulator/retro_arch/save_state_reader"
 require_relative "fighting_ai/emulator/retro_arch/adapter"
 

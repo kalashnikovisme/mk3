@@ -61,7 +61,7 @@ module FightingAI
 
           vision = nil
           if frame_observation && @async_scanner
-            @async_scanner.submit(frame_observation.path)
+            @async_scanner.submit(frame_observation)
             raw = @async_scanner.latest_result
             vision = process_vision_result(raw) if raw
           end

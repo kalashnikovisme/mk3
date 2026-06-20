@@ -26,6 +26,7 @@ RUN apt-get update -qq \
      xvfb \
      xserver-xephyr \
      imagemagick \
+     ffmpeg \
      libyaml-dev \
      python3 \
      python3-pip \

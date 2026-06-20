@@ -1,62 +1,55 @@
 require "spec_helper"
 require "stringio"
-require "tmpdir"
 
 RSpec.describe FightingAI::Runtime::FrameCaptureRunner do
-  SCREENSHOT_CONTENT = "captured-frame"
-  SINGLE_FRAME_LIMIT = 1
-  PLAYER_ONE_HEALTH = 166
-  PLAYER_TWO_HEALTH = 84
+  SCREENSHOT_BYTE_SIZE = 14
+  SINGLE_FRAME_LIMIT   = 1
+  PLAYER_ONE_HEALTH    = 166
+  PLAYER_TWO_HEALTH    = 84
 
-  it "writes the frame number next to its PNG byte size" do
-    Dir.mktmpdir do |dir|
-      path = File.join(dir, "frame.png")
-      File.binwrite(path, SCREENSHOT_CONTENT)
-      emulator = instance_double(FightingAI::Emulator::Adapter, capture_frame: double("Frame", path: path))
-      output = StringIO.new
-      frame_advancer = double("FrameAdvancer", call: nil)
-      runner = described_class.new(
-        emulator: emulator,
-        output: output,
-        frame_limit: SINGLE_FRAME_LIMIT,
-        frame_advancer: frame_advancer
-      )
+  it "writes the frame number next to its byte size" do
+    frame = double("Frame", byte_size: SCREENSHOT_BYTE_SIZE)
+    emulator = instance_double(FightingAI::Emulator::Adapter, capture_frame: frame)
+    output = StringIO.new
+    frame_advancer = double("FrameAdvancer", call: nil)
+    runner = described_class.new(
+      emulator: emulator,
+      output: output,
+      frame_limit: SINGLE_FRAME_LIMIT,
+      frame_advancer: frame_advancer
+    )
 
-      runner.run
+    runner.run
 
-      expect(output.string).to eq("f: #{described_class::INITIAL_FRAME_NUMBER}; size: #{SCREENSHOT_CONTENT.bytesize}\n")
-      expect(emulator).to have_received(:capture_frame).once
-      expect(frame_advancer).to have_received(:call).once
-      expect(runner).not_to be_interrupted
-    end
+    expect(output.string).to match(
+      /\Af: #{described_class::INITIAL_FRAME_NUMBER}; size: #{SCREENSHOT_BYTE_SIZE}; ms: \d+\n\z/
+    )
+    expect(emulator).to have_received(:capture_frame).once
+    expect(frame_advancer).to have_received(:call).once
+    expect(runner).not_to be_interrupted
   end
 
   it "appends enabled detector metadata to the frame log" do
-    Dir.mktmpdir do |dir|
-      path = File.join(dir, "frame.png")
-      File.binwrite(path, SCREENSHOT_CONTENT)
-      frame = double("Frame", path: path)
-      emulator = instance_double(FightingAI::Emulator::Adapter, capture_frame: frame)
-      output = StringIO.new
-      metadata_detector = lambda do |received_frame|
-        expect(received_frame).to equal(frame)
-        { h1: PLAYER_ONE_HEALTH, h2: PLAYER_TWO_HEALTH }
-      end
-      runner = described_class.new(
-        emulator: emulator,
-        output: output,
-        frame_limit: SINGLE_FRAME_LIMIT,
-        frame_advancer: -> {},
-        metadata_detector: metadata_detector
-      )
-
-      runner.run
-
-      expect(output.string).to eq(
-        "f: #{described_class::INITIAL_FRAME_NUMBER}; size: #{SCREENSHOT_CONTENT.bytesize}; " \
-        "h1: #{PLAYER_ONE_HEALTH}; h2: #{PLAYER_TWO_HEALTH}\n"
-      )
+    frame = double("Frame", byte_size: SCREENSHOT_BYTE_SIZE)
+    emulator = instance_double(FightingAI::Emulator::Adapter, capture_frame: frame)
+    output = StringIO.new
+    metadata_detector = lambda do |received_frame|
+      expect(received_frame).to equal(frame)
+      { h1: PLAYER_ONE_HEALTH, h2: PLAYER_TWO_HEALTH }
     end
+    runner = described_class.new(
+      emulator: emulator,
+      output: output,
+      frame_limit: SINGLE_FRAME_LIMIT,
+      frame_advancer: -> {},
+      metadata_detector: metadata_detector
+    )
+
+    runner.run
+
+    expect(output.string).to match(
+      /\Af: #{described_class::INITIAL_FRAME_NUMBER}; size: #{SCREENSHOT_BYTE_SIZE}; h1: #{PLAYER_ONE_HEALTH}; h2: #{PLAYER_TWO_HEALTH}; ms: \d+\n\z/
+    )
   end
 
   it "exits quietly when capture is interrupted during shutdown" do

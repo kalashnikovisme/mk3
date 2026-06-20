@@ -17,6 +17,7 @@ services:
       AI_LOG:
       VISION:
       LEARN_EMPTY_EPISODE_FRAMES:
+      SHOW_ERRORS:
 
   app_gpu:
     extends:

@@ -68,27 +68,21 @@ module FightingAI
         @stdin.write(request)
         @stdin.write(JSON_LINE_SEPARATOR)
         @stdin.flush
+        parse_response
+      end
 
-        response = @stdout.gets
-        raise "Vision detector exited before responding" unless response
-
-        payload = JSON.parse(response)
-        raise "Vision detector error: #{payload.fetch("error")}" unless payload.fetch("ok")
-
-        detections = payload.fetch("detections").map { |raw_detection| build_detection(raw_detection) }
-        {
-          character:    @character,
-          detections:   detections,
-          image_width:  payload.fetch("image_width"),
-          image_height: payload.fetch("image_height"),
-          player1:      detections.fetch(FIRST_DETECTION_INDEX, nil),
-          player2:      detections.fetch(SECOND_DETECTION_INDEX, nil),
-          timer:        payload["timer"]
-        }
+      def detect_raw(frame_observation)
+        ensure_started
+        request = { width: frame_observation.width, height: frame_observation.height, detect_timer: @detect_timer }.to_json
+        @stdin.write(request)
+        @stdin.write(JSON_LINE_SEPARATOR)
+        @stdin.write(frame_observation.raw_bytes)
+        @stdin.flush
+        parse_response
       end
 
       def detect(frame_observation)
-        detect_path(frame_observation.path)
+        frame_observation.path ? detect_path(frame_observation.path) : detect_raw(frame_observation)
       end
 
       def start
@@ -153,6 +147,25 @@ module FightingAI
 
         ready = JSON.parse(ready_line)
         raise "Vision detector startup failed: #{ready.inspect}" unless ready.fetch("ok") && ready.fetch("event") == READY_EVENT
+      end
+
+      def parse_response
+        response = @stdout.gets
+        raise "Vision detector exited before responding" unless response
+
+        payload = JSON.parse(response)
+        raise "Vision detector error: #{payload.fetch("error")}" unless payload.fetch("ok")
+
+        detections = payload.fetch("detections").map { |raw_detection| build_detection(raw_detection) }
+        {
+          character:    @character,
+          detections:   detections,
+          image_width:  payload.fetch("image_width"),
+          image_height: payload.fetch("image_height"),
+          player1:      detections.fetch(FIRST_DETECTION_INDEX, nil),
+          player2:      detections.fetch(SECOND_DETECTION_INDEX, nil),
+          timer:        payload["timer"]
+        }
       end
 
       def parse_areas(raw_areas)

@@ -5,7 +5,9 @@ $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 require "fileutils"
 require "fighting_ai/cli/bootstrap"
 
-$stderr.reopen(File::NULL, "w")
+SHOW_ERRORS_ENV   = "SHOW_ERRORS"
+SHOW_ERRORS_VALUE = "1"
+$stderr.reopen(File::NULL, "w") unless ENV[SHOW_ERRORS_ENV] == SHOW_ERRORS_VALUE
 
 ROM_PATH           = ENV.fetch("ROM_PATH", File.expand_path("../mk3.sfc", __dir__))
 CORE_PATH          = ENV.fetch("CORE_PATH", "/usr/lib/x86_64-linux-gnu/libretro/snes9x_libretro.so")
@@ -50,7 +52,8 @@ emulator = FightingAI::CLI.start_retro_arch(
   rom_path:         ROM_PATH,
   core_path:        CORE_PATH,
   extra_watch_dirs: [MATCHES_DIR],
-  verbose:          false
+  verbose:          false,
+  streaming:        true
 )
 metadata_detectors = []
 if health_enabled

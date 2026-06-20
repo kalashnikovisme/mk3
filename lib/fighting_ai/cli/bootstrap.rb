@@ -10,14 +10,18 @@ module FightingAI
       └─────────────────────────────────────────┘
     TEXT
 
-    def self.start_retro_arch(rom_path:, core_path:, extra_watch_dirs: [], verbose: true)
+    def self.start_retro_arch(rom_path:, core_path:, extra_watch_dirs: [], verbose: true, streaming: false)
       display_server = ENV["DISPLAY_HOST"] ?
         Emulator::RetroArch::XephyrServer.new :
         Emulator::RetroArch::XvfbServer.new
       display = display_server.display
       config_path = Emulator::RetroArch::ConfigBuilder.build(core_path: core_path)
       keyboard    = Input::KeyboardInput.new(verbose: verbose, display: display)
-      frame_grabber     = Emulator::RetroArch::FrameGrabber.new
+      frame_grabber = if streaming
+        Emulator::RetroArch::StreamingFrameGrabber.new(display: display)
+      else
+        Emulator::RetroArch::FrameGrabber.new
+      end
       save_state_reader = Emulator::RetroArch::SaveStateReader.new(
         watch_dirs:   ([
           Emulator::RetroArch::ConfigBuilder.states_dir,

@@ -24,11 +24,21 @@ module FightingAI
       CHUNK_IEND            = "IEND"
       BYTE_MASK             = 0xFF
 
-      attr_reader :path
+      attr_reader :path, :raw_bytes
 
       def initialize(path)
         @path   = path
         @parsed = false
+      end
+
+      def self.from_raw_rgb(bytes, width:, height:)
+        obs = allocate
+        obs.send(:init_from_raw_rgb, bytes, width, height)
+        obs
+      end
+
+      def byte_size
+        @path ? File.size(@path) : @raw_bytes.bytesize
       end
 
       def width
@@ -64,6 +74,16 @@ module FightingAI
       end
 
       private
+
+      def init_from_raw_rgb(bytes, width, height)
+        @path      = nil
+        @raw_bytes = bytes.b
+        @parsed    = true
+        @width     = width
+        @height    = height
+        row_bytes  = width * RGB_CHANNELS
+        @scanlines = Array.new(height) { |y| @raw_bytes[y * row_bytes, row_bytes] }
+      end
 
       def parse
         @parsed  = true

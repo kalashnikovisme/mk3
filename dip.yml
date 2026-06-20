@@ -56,6 +56,8 @@ interaction:
     description: "Capture frame diagnostics with live Xephyr window. Usage: dip learn_empty_watch [health] [time] [positions] [match-name]"
     service: app_watch
     command: bundle exec ruby bin/learn_empty
+    environment:
+      SHOW_ERRORS: "1"
 
   learn_from_ppo:
     description: "Resume PPO training from a checkpoint. Usage: dip learn_from_ppo <ppo_path> [match-name] [debug]"
