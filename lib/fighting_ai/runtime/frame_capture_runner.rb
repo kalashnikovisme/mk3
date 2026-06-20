@@ -3,15 +3,14 @@ module FightingAI
     class FrameCaptureRunner
       INITIAL_FRAME_NUMBER = 1
       FRAME_INCREMENT      = 1
-      FRAME_LOG_FORMAT     = "f: %d; size: %d"
+      FIELD_SEPARATOR      = "; "
 
-      def initialize(emulator:, output:, frame_limit:, frame_duration: Emulator::RetroArch::Adapter::FRAME_DURATION,
-        sleeper: ->(duration) { sleep(duration) })
+      def initialize(emulator:, output:, frame_limit:, frame_advancer: nil, metadata_detector: nil)
         @emulator       = emulator
         @output         = output
         @frame_limit    = frame_limit
-        @frame_duration = frame_duration
-        @sleeper        = sleeper
+        @frame_advancer = frame_advancer || -> { @emulator.frame_advance }
+        @metadata_detector = metadata_detector
         @running        = false
         @interrupted    = false
       end
@@ -21,11 +20,13 @@ module FightingAI
         frame_number = INITIAL_FRAME_NUMBER
 
         while @running && frame_number <= @frame_limit
-          @sleeper.call(@frame_duration)
+          @frame_advancer.call
           frame = capture_frame
           break unless frame
 
-          @output.puts(format(FRAME_LOG_FORMAT, frame_number, File.size(frame.path)))
+          fields = { f: frame_number, size: File.size(frame.path) }
+          fields.merge!(@metadata_detector.call(frame)) if @metadata_detector
+          @output.puts(fields.map { |name, value| "#{name}: #{value}" }.join(FIELD_SEPARATOR))
           frame_number += FRAME_INCREMENT
         end
       end

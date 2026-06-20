@@ -48,7 +48,7 @@ interaction:
     command: bundle exec ruby bin/learn
 
   learn_empty:
-    description: "Capture one screenshot per frame without scanning or training. Usage: dip learn_empty [match-name]"
+    description: "Capture frame diagnostics. Usage: dip learn_empty [health] [time] [match-name]"
     service: app
     command: bundle exec ruby bin/learn_empty
 

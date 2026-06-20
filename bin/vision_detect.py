@@ -76,6 +76,7 @@ ACTION_MODE_SLIDE = "slide"
 ACTION_MODE_ROLL = "roll"
 ACTION_MODE_VICTORY = "victory"
 ACTION_MODE_SPECIAL = "special"
+ACTION_MODE_TIMER_ONLY = "timer_only"
 ACTION_MODE_AIRBORNE_FALL_KNOCKDOWN = "airborne_fall_knockdown"
 ACTION_MODE_CROUCH_GUARD = "crouch_guard"
 ACTION_MODE_CROUCH_PUNCH = "crouch_punch"
@@ -134,6 +135,7 @@ ACTION_TEMPLATE_PREFIXES = {
     ACTION_MODE_ROLL: ("forward_roll_flip_",),
     ACTION_MODE_VICTORY: ("victory_or_turnaround_", "victory_pose_raise_arms_", "victory_raise_arms_"),
     ACTION_MODE_SPECIAL: ("ice_blast_casting_", "ice_clone_crouch_", "slide_attack_"),
+    ACTION_MODE_TIMER_ONLY: (),
     ACTION_MODE_AIRBORNE_FALL_KNOCKDOWN: ("airborne_fall_knockdown_",),
     ACTION_MODE_CROUCH_GUARD: ("crouch_guard_",),
     ACTION_MODE_CROUCH_PUNCH: ("crouch_punch_",),
@@ -836,7 +838,8 @@ def main() -> int:
     device = choose_device()
 
     templates_started_at = time.perf_counter()
-    templates = load_templates(
+    timer_only = options.action_mode == ACTION_MODE_TIMER_ONLY
+    templates = [] if timer_only else load_templates(
         template_dir,
         device,
         include_prefixes=include_prefixes,
@@ -846,7 +849,7 @@ def main() -> int:
     if device.type == "cuda":
         torch.cuda.synchronize()
 
-    if not templates:
+    if not templates and not timer_only:
         print(
             "No templates found. Run `dip vision:prepare-sprites data/vision/sprites/subzero` first.",
             file=sys.stderr,

@@ -59,6 +59,18 @@ PNG byte size (`f: 1; size: 35416`). It records no scanned game-state fields.
 Episodes default to 5,940 capture intervals before the match state is reloaded;
 override this with `LEARN_EMPTY_EPISODE_FRAMES`. Stop it with Ctrl+C.
 
+Optional detector arguments precede the match name. `dip learn_empty health`
+runs the health-bar detector on every captured frame and appends `h1` and `h2`
+to each log line; all other detectors remain disabled.
+
+`dip learn_empty health time` composes health and timer detection. The `time`
+argument appends `t` using timer templates without loading or matching fighter
+templates. Detector arguments may be supplied in either order.
+
+Unlike normal real-time training, this diagnostic mode pauses RetroArch and uses
+one `FRAME_ADVANCE` command per logged frame. Detector latency affects wall-clock
+throughput but does not skip game frames.
+
 ## Match Setup
 
 ```ruby

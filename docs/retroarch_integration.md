@@ -25,6 +25,7 @@ Port 55355 (configured in `retroarch.cfg` via `network_cmd_port`).
 | Command              | UDP payload         | Notes |
 |----------------------|---------------------|-------|
 | Pause toggle         | `PAUSE_TOGGLE`      | |
+| Advance one frame    | `FRAMEADVANCE`      | Used by `dip learn_empty` while paused |
 | Reset                | `RESET`             | |
 | Save state           | `SAVE_STATE`        | Always saves to current slot |
 | Load state (slot N)  | `LOAD_STATE_SLOT N` | Sets slot and loads atomically |

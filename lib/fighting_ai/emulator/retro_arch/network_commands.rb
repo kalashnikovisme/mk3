@@ -44,7 +44,7 @@ module FightingAI
         end
 
         def self.frame_advance(host: DEFAULT_HOST, port: DEFAULT_PORT)
-          send_command("FRAME_ADVANCE", host: host, port: port)
+          send_command("FRAMEADVANCE", host: host, port: port)
         end
 
         def self.send_command(cmd, host:, port:)

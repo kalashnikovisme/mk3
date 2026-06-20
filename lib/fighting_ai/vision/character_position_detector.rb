@@ -89,6 +89,10 @@ module FightingAI
         detect_path(frame_observation.path)
       end
 
+      def start
+        ensure_started
+      end
+
       def stop
         @stdin&.close unless @stdin&.closed?
         @stdout&.close unless @stdout&.closed?

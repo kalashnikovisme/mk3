@@ -81,6 +81,7 @@ Wraps emulator output into observation objects for downstream use.
 - `Observation::FrameObservation` — wraps a PNG path; lazy-loads pixels, dimensions, and normalized tensor
 - `Observation::MemoryObservation` — future WRAM-based structured observation (stub)
 - `Vision::CharacterPositionDetector` — optional Ruby wrapper around the Python CUDA detector (`bin/vision_detect.py --server`) that reads `FrameObservation` screenshots and returns detected character positions before `Core::Observation` is built
+- `Vision::TimerDetector` — timer-only wrapper around the persistent Python detector; loads timer templates without loading or matching fighter templates
 
 **Rule**: Lives outside Core and outside the emulator layer.
 
@@ -91,7 +92,7 @@ Manages the emulator process, captures frames, and delegates input injection.
 - `Emulator::Adapter` — abstract base
 - `Emulator::RetroArch::Adapter` — main adapter; builds snapshots containing only the frame counter (all game state comes from vision)
 - `Emulator::RetroArch::Process` — spawns/monitors the RetroArch process
-- `Emulator::RetroArch::NetworkCommands` — UDP commands (pause/reset/save_state/quit)
+- `Emulator::RetroArch::NetworkCommands` — UDP commands (pause/frame advance/reset/save state/quit)
 - `Emulator::RetroArch::SaveStateReader` — reads RZIP-compressed save-state files; locates the 128 KB WRAM region; used only to read the frame counter
 - `Emulator::RetroArch::FrameGrabber` — captures the isolated X display with `xwd`, crops the top-left game region, converts it to PNG, and returns `FrameObservation`
 - `Emulator::RetroArch::ConfigBuilder` — generates `retroarch.cfg` with network commands and keyboard bindings
@@ -139,7 +140,7 @@ See `docs/ppo_training.md` for full hyperparameter reference.
 ### Runtime
 
 - `MatchRunner` — drives one match frame-by-frame; detects stale rounds and ends them early.
-- `FrameCaptureRunner` — capture-only diagnostic loop used by `dip learn_empty`; writes numbered PNG byte sizes into fixed-duration episode logs without game-state extraction, vision scanning, or training.
+- `FrameCaptureRunner` — frame diagnostic loop used by `dip learn_empty`; advances the paused emulator by exactly one frame, then writes the PNG size and optional detector metadata without training.
 - `HumanVsAI` — human keyboard passthrough (VirtualInput for P1) + AI agent injection (P2).
 - `AIVsAI` — autonomous series of matches.
 

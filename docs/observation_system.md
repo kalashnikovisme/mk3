@@ -46,6 +46,36 @@ timer, character-position, or PPO processing. Each line in
 for example `f: 1; size: 35416`. Frames are written to
 `/tmp/fighting_ai/screenshots` inside the command container.
 
+Pass detector names before the optional match name. `health` enables only the
+pure-Ruby health-bar scan and appends `h1` and `h2` to each line:
+
+```bash
+dip learn_empty health
+dip learn_empty health sub-zero-vs-sub-zero
+```
+
+Health-mode lines have the form
+`f: 1; size: 35416; h1: 166; h2: 166`. Position and timer detection remain off.
+
+`time` enables only timer-template detection and appends `t`. Detector arguments
+are composable and may appear in either order:
+
+```bash
+dip learn_empty time
+dip learn_empty health time
+dip learn_empty time health sub-zero-vs-sub-zero
+```
+
+Combined lines have the form
+`f: 1; size: 35416; h1: 166; h2: 166; t: 87`. Timer-only mode does not load or
+match fighter templates.
+
+The persistent timer process is warmed before the match state is loaded. After
+a short load-command settlement interval, the emulator is paused and each
+logging iteration sends one RetroArch `FRAME_ADVANCE` command before capture.
+Screenshot encoding and enabled detector work therefore cannot consume
+additional emulated frames.
+
 Without vision scanning there is no gameplay-derived match-end signal. Empty-mode
 episodes therefore last 5,940 capture intervals (99 timer seconds at 60 FPS),
 then reload the selected match state. Set `LEARN_EMPTY_EPISODE_FRAMES` to a
