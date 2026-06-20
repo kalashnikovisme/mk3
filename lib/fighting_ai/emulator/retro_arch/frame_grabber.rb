@@ -47,6 +47,8 @@ module FightingAI
           Observation::FrameObservation.new(destination)
         end
 
+        def stop; end
+
         private
 
         # xwd and convert run as a Unix pipeline — xwd streams directly into

@@ -81,6 +81,7 @@ module FightingAI
           NetworkCommands.quit rescue nil
           sleep(0.5)
           @process.stop
+          @frame_grabber.stop
           @display_server&.stop
           @started = false
         end

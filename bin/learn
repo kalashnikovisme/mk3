@@ -108,7 +108,8 @@ emulator = FightingAI::CLI.start_retro_arch(
   rom_path:         ROM_PATH,
   core_path:        CORE_PATH,
   extra_watch_dirs: [MATCHES_DIR],
-  verbose:          DEBUG
+  verbose:          DEBUG,
+  streaming:        true
 )
 
 # ── Build game adapter with RL reward weights ─────────────────────────────────
