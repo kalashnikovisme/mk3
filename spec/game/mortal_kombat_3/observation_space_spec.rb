@@ -1,37 +1,15 @@
 require "spec_helper"
 
 RSpec.describe FightingAI::Game::MortalKombat3::ObservationSpace do
-  let(:fighter_attrs) do
-    {
-      max_health:      144,
-      animation_state: FightingAI::Core::AnimationState.new(name: "idle", frame_index: 0, total_frames: 1),
-      in_blockstun:    false,
-      knocked_down:    false,
-      airborne:        false
-    }
-  end
-
   let(:fighter1) do
     FightingAI::Core::FighterState.new(
-      **fighter_attrs,
-      player_index: 1,
-      health:       100,
-      x:            80,
-      y:            40,
-      facing:       FightingAI::Core::FacingDirection::RIGHT,
-      in_hitstun:   false
+      player_index: 1, health: 100, max_health: 144, x: 80, y: 40
     )
   end
 
   let(:fighter2) do
     FightingAI::Core::FighterState.new(
-      **fighter_attrs,
-      player_index: 2,
-      health:       60,
-      x:            200,
-      y:            40,
-      facing:       FightingAI::Core::FacingDirection::LEFT,
-      in_hitstun:   true
+      player_index: 2, health: 60, max_health: 144, x: 200, y: 40
     )
   end
 
@@ -40,7 +18,6 @@ RSpec.describe FightingAI::Game::MortalKombat3::ObservationSpace do
       frame_number:         100,
       fighter1:             fighter1,
       fighter2:             fighter2,
-      round_number:         1,
       round_time_remaining: 90,
       fight_active:         true,
       round_over:           false,
@@ -56,12 +33,9 @@ RSpec.describe FightingAI::Game::MortalKombat3::ObservationSpace do
   end
 
   it "normalizes positions" do
-    expect(observation.my_x_normalized).to be_within(0.001).of(80.0 / 383)
-    expect(observation.opponent_x_normalized).to be_within(0.001).of(200.0 / 383)
-  end
-
-  it "reports opponent hitstun correctly" do
-    expect(observation.opponent_in_hitstun).to be true
+    x_max = FightingAI::Game::MortalKombat3::MemoryMap::X_MAX
+    expect(observation.my_x_normalized).to be_within(0.001).of(80.0 / x_max)
+    expect(observation.opponent_x_normalized).to be_within(0.001).of(200.0 / x_max)
   end
 
   it "returns a vector of floats" do

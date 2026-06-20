@@ -1,28 +1,12 @@
 require "spec_helper"
 
 RSpec.describe FightingAI::Core::GameState do
-  let(:fighter_attrs) do
-    {
-      max_health:      144,
-      facing:          FightingAI::Core::FacingDirection::RIGHT,
-      animation_state: FightingAI::Core::AnimationState.new(name: "idle", frame_index: 0, total_frames: 1),
-      in_hitstun:      false,
-      in_blockstun:    false,
-      knocked_down:    false,
-      airborne:        false
-    }
-  end
-
   let(:fighter1) do
-    FightingAI::Core::FighterState.new(
-      **fighter_attrs.merge(player_index: 1, health: 100, x: 80, y: 40)
-    )
+    FightingAI::Core::FighterState.new(player_index: 1, health: 100, max_health: 144, x: 80, y: 40)
   end
 
   let(:fighter2) do
-    FightingAI::Core::FighterState.new(
-      **fighter_attrs.merge(player_index: 2, health: 60, x: 200, y: 40)
-    )
+    FightingAI::Core::FighterState.new(player_index: 2, health: 60, max_health: 144, x: 200, y: 40)
   end
 
   subject(:state) do
@@ -30,7 +14,6 @@ RSpec.describe FightingAI::Core::GameState do
       frame_number:         500,
       fighter1:             fighter1,
       fighter2:             fighter2,
-      round_number:         1,
       round_time_remaining: 80,
       fight_active:         true,
       round_over:           false,

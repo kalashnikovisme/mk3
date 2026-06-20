@@ -86,29 +86,29 @@ Wraps emulator output into observation objects for downstream use.
 
 ### Emulator Adapter
 
-Manages the emulator process, reads game state from WRAM, and delegates input injection.
+Manages the emulator process, captures frames, and delegates input injection.
 
 - `Emulator::Adapter` — abstract base
-- `Emulator::RetroArch::Adapter` — main adapter
+- `Emulator::RetroArch::Adapter` — main adapter; builds snapshots containing only the frame counter (all game state comes from vision)
 - `Emulator::RetroArch::Process` — spawns/monitors the RetroArch process
 - `Emulator::RetroArch::NetworkCommands` — UDP commands (pause/reset/save_state/quit)
-- `Emulator::RetroArch::SaveStateReader` — reads RZIP-compressed save-state files; locates the 128 KB WRAM region using the RASTATE marker, legacy text markers, or an MK3 health/screen signature scan; provides `read_u8` / `read_u16_le` / `raw_wram`; guards against partially-written files by requiring decompressed size ≥ WRAM_SIZE before returning data
+- `Emulator::RetroArch::SaveStateReader` — reads RZIP-compressed save-state files; locates the 128 KB WRAM region; used only to read the frame counter
 - `Emulator::RetroArch::FrameGrabber` — captures the isolated X display with `xwd`, crops the top-left game region, converts it to PNG, and returns `FrameObservation`
 - `Emulator::RetroArch::ConfigBuilder` — generates `retroarch.cfg` with network commands and keyboard bindings
 
-**Rule**: No game-specific memory addresses or button names here. The WRAM snapshot is built by the adapter reading addresses supplied by the game layer's `MemoryMap`.
+**Rule**: No game-specific memory addresses or button names here.
 
 ### Game Adapter
 
 Encodes all knowledge of a specific game.
 
-- Memory map (WRAM addresses)
+- Memory map (minimal constants: `MAX_HEALTH`, `TIMER_MAX`, `X_MAX`, `Y_MAX`)
 - Input map (logical button → SNES button name, for documentation; `to_logical` converts button arrays to `{ symbol => bool }` hashes)
 - Action space (action name → InputSequence)
 - Observation space (GameState → Observation)
-- Optional vision position merge (FrameObservation → fighter x/y override)
+- Vision state extraction (health bar pixel scan + template matching → fighter health, x/y, timer)
 - Reward function
-- State extractor (raw snapshot Hash → GameState)
+- State extractor (raw snapshot Hash + vision kwargs → GameState)
 - Menu navigator (autonomous menu driving via timed button sequences)
 - Match lifecycle contract
 
@@ -172,9 +172,8 @@ RetroArch (snes9x core)
                       → snes9x advances one frame
 ```
 
-When `VISION=1` is set and `data/vision/templates/sub_zero/` contains prepared
-templates, the MK3 adapter sends each captured frame to the persistent Python
-CUDA detector. The runtime detector uses the same action-mode and ROI logic as
-`dip vision:detect`. Detected positions override WRAM `x/y` values for the
-corresponding Sub-Zero player before normalization. Health, timer, rounds, and
-other fight state still come from WRAM.
+All observable game state (health, fighter positions, round timer) is extracted
+from the captured frame via vision — WRAM is only read for the frame counter.
+Health comes from a pure-Ruby blue-pixel health bar scan (`Vision::HealthBarDetector`).
+Positions come from the persistent Python CUDA template detector. Round over is
+detected when either fighter's health reaches zero or the timer reaches zero.

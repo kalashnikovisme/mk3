@@ -6,8 +6,7 @@ module FightingAI
       module SubZero
         IS = Core::InputSequence
 
-        # All moves are encoded assuming the player faces right (toward = :right,
-        # away = :left). The MK3 adapter's flip_direction handles left-facing players.
+        # All moves are encoded using absolute directions (:forward = right, :back = left).
         SPECIAL_MOVES = {
           # D, F + LP
           ice_ball: ->(_pi) {
@@ -104,7 +103,6 @@ module FightingAI
           },
         }.freeze
 
-        DIRECTION_SENSITIVE_MOVES = SPECIAL_MOVES.keys.freeze
       end
     end
   end

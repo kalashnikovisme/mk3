@@ -5,12 +5,12 @@ RSpec.describe FightingAI::Game::MortalKombat3::InputMap do
     it "maps logical buttons to BizHawk P1 names" do
       result = described_class.to_bizhawk([:left, :high_punch], player_index: 1)
       expect(result["P1 Left"]).to be true
-      expect(result["P1 X"]).to be true
+      expect(result["P1 Y"]).to be true
     end
 
     it "maps P2 buttons with the correct prefix" do
       result = described_class.to_bizhawk([:low_kick], player_index: 2)
-      expect(result["P2 B"]).to be true
+      expect(result["P2 A"]).to be true
     end
 
     it "raises for unknown buttons" do

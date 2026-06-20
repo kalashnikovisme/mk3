@@ -43,14 +43,6 @@ module FightingAI
           @vision_characters = {}
         end
 
-        def describe_snapshot(raw_snapshot)
-          MemoryMap.stage_name(raw_snapshot["screen"].to_i)
-        end
-
-        def snapshot_stage_name(raw_snapshot)
-          MemoryMap.stage_name(raw_snapshot["screen"].to_i)
-        end
-
         def vision_enabled?
           @vision_detector&.available?
         end
@@ -77,19 +69,8 @@ module FightingAI
           ObservationSpace.build(game_state, player_index: player_index)
         end
 
-        DIRECTION_SENSITIVE_ACTIONS = (
-          %i[walk_forward walk_back jump_forward] + SubZero::DIRECTION_SENSITIVE_MOVES
-        ).freeze
-
         def action_to_input_sequence(action, player_index:, game_state:)
-          seq = ActionSpace.to_input_sequence(action.name, player_index: player_index)
-
-          if DIRECTION_SENSITIVE_ACTIONS.include?(action.name)
-            fighter = game_state.fighter_for(player_index)
-            seq = flip_direction(seq) if fighter.facing.left?
-          end
-
-          seq
+          ActionSpace.to_input_sequence(action.name, player_index: player_index)
         end
 
         def input_sequence_to_buttons(input_sequence, player_index:, frame_offset: 0)
@@ -108,15 +89,6 @@ module FightingAI
 
         def calculate_reward(prev_game_state, next_game_state, player_index:, stale: false, round_over: false)
           @reward_function.call(prev_game_state, next_game_state, player_index: player_index, stale: stale, round_over: round_over)
-        end
-
-        def read_memory_debug
-          mm = MemoryMap
-          {
-            screen:    emulator_adapter.read_memory(mm::SCREEN_ADDR),
-            p1_rounds: emulator_adapter.read_memory(mm::P1_ROUNDS_WON),
-            p2_rounds: emulator_adapter.read_memory(mm::P2_ROUNDS_WON)
-          }
         end
 
         def detect_timer(frame_observation)
@@ -230,22 +202,6 @@ module FightingAI
           )
         end
 
-        def flip_direction(input_sequence)
-          flipped = Core::InputSequence.new
-          input_sequence.entries.each do |entry|
-            flipped_buttons = entry.buttons.map do |btn|
-              case btn
-              when :left    then :right
-              when :right   then :left
-              when :forward then :back
-              when :back    then :forward
-              else btn
-              end
-            end
-            flipped.press(flipped_buttons, hold_frames: entry.hold_frames)
-          end
-          flipped
-        end
       end
     end
   end

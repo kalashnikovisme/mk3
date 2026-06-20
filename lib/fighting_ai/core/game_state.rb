@@ -4,7 +4,6 @@ module FightingAI
       :frame_number,
       :fighter1,
       :fighter2,
-      :round_number,
       :round_time_remaining,
       :fight_active,
       :round_over,

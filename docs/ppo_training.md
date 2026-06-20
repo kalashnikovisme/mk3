@@ -148,13 +148,26 @@ If the policy entropy falls below `1e-6` for 2 consecutive PPO updates, training
 File: `bin/ppo_server.py` — `ActorCritic`
 
 ```
-obs (18-dim) → Linear(18→64) → ReLU → Linear(64→64) → ReLU
-                                                          ├── actor:  Linear(64→7)  → logits → Categorical
-                                                          └── critic: Linear(64→1)  → value
+obs (7-dim) → Linear(7→64) → ReLU → Linear(64→64) → ReLU
+                                                         ├── actor:  Linear(64→7)  → logits → Categorical
+                                                         └── critic: Linear(64→1)  → value
 ```
 
-Observation dimension: 18 (`OBS_DIM` in `bin/learn`).
+Observation dimension: 7 (`OBS_DIM` in `bin/learn`).
 Action dimension: 7 (length of `ActionTranslator::ACTIONS`).
+
+Observation vector layout (all floats, range [0, 1]):
+| Index | Field |
+|-------|-------|
+| 0 | `my_health_pct` |
+| 1 | `opponent_health_pct` |
+| 2 | `my_x_normalized` |
+| 3 | `my_y_normalized` |
+| 4 | `opponent_x_normalized` |
+| 5 | `opponent_y_normalized` |
+| 6 | `round_time_normalized` |
+
+All values come from vision only (health bar pixel scan + template matching). WRAM is no longer used for observation fields.
 
 ## Checkpoints
 

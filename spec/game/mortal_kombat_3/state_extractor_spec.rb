@@ -1,79 +1,39 @@
 require "spec_helper"
 
 RSpec.describe FightingAI::Game::MortalKombat3::StateExtractor do
-  PLAYER_ONE = 1
-  PLAYER_TWO = 2
-  VISION_P1_X = 42
-  VISION_P1_Y = 91
-  VISION_P2_X = 210
-  VISION_P2_Y = 88
+  PLAYER_ONE    = 1
+  PLAYER_TWO    = 2
+  VISION_P1_X   = 42
+  VISION_P1_Y   = 91
+  VISION_P2_X   = 210
+  VISION_P2_Y   = 88
+  VISION_P1_HP  = 120
+  VISION_P2_HP  = 80
 
-  let(:snapshot) do
-    {
-      "type"       => "frame",
-      "frame"      => 1234,
-      "game"       => "mortal_kombat_3",
-      "game_state" => 2,
-      "round"      => 1,
-      "match_over" => false,
-      "players"    => {
-        "1" => {
-          "health"     => 120,
-          "max_health" => 144,
-          "x"          => 100,
-          "y"          => 40,
-          "facing"     => 0,
-          "anim"       => 5,
-          "anim_frame" => 2,
-          "state"      => 0
-        },
-        "2" => {
-          "health"     => 80,
-          "max_health" => 144,
-          "x"          => 200,
-          "y"          => 40,
-          "facing"     => 1,
-          "anim"       => 3,
-          "anim_frame" => 0,
-          "state"      => 1  # in_hitstun
-        }
-      }
-    }
+  let(:snapshot) { { "type" => "frame", "frame" => 1234, "game" => "mortal_kombat_3" } }
+
+  subject(:game_state) do
+    described_class.extract(
+      snapshot,
+      vision_health: { PLAYER_ONE => VISION_P1_HP, PLAYER_TWO => VISION_P2_HP }
+    )
   end
-
-  subject(:game_state) { described_class.extract(snapshot) }
 
   describe ".extract" do
     it "sets the correct frame number" do
       expect(game_state.frame_number).to eq(1234)
     end
 
-    it "extracts player 1 health" do
-      expect(game_state.fighter1.health).to eq(120)
+    it "extracts player 1 health from vision" do
+      expect(game_state.fighter1.health).to eq(VISION_P1_HP)
     end
 
-    it "extracts player 2 health" do
-      expect(game_state.fighter2.health).to eq(80)
+    it "extracts player 2 health from vision" do
+      expect(game_state.fighter2.health).to eq(VISION_P2_HP)
     end
 
-    it "extracts player 1 facing right" do
-      expect(game_state.fighter1.facing.right?).to be true
-    end
-
-    it "extracts player 2 facing left" do
-      expect(game_state.fighter2.facing.left?).to be true
-    end
-
-    it "detects hitstun from state bitfield" do
-      expect(game_state.fighter2.in_hitstun).to be true
-    end
-
-    it "marks the fight as active" do
+    it "marks the fight as active when both fighters have health" do
       expect(game_state.fight_active?).to be true
-    end
-
-    it "sets round number" do
-      expect(game_state.round_number).to eq(1)
     end
 
     it "sets round timer from vision" do
@@ -82,11 +42,17 @@ RSpec.describe FightingAI::Game::MortalKombat3::StateExtractor do
     end
 
     it "returns nil timer when vision provides no reading" do
-      expect(game_state.round_time_remaining).to be_nil
+      state = described_class.extract(snapshot)
+      expect(state.round_time_remaining).to be_nil
     end
 
-    it "uses vision positions when they are provided" do
-      vision_game_state = described_class.extract(
+    it "defaults health to MAX_HEALTH when vision provides no reading" do
+      state = described_class.extract(snapshot)
+      expect(state.fighter1.health).to eq(FightingAI::Game::MortalKombat3::MemoryMap::MAX_HEALTH)
+    end
+
+    it "uses vision positions when provided" do
+      state = described_class.extract(
         snapshot,
         vision_positions: {
           PLAYER_ONE => { x: VISION_P1_X, y: VISION_P1_Y },
@@ -94,10 +60,19 @@ RSpec.describe FightingAI::Game::MortalKombat3::StateExtractor do
         }
       )
 
-      expect(vision_game_state.fighter1.x).to eq(VISION_P1_X)
-      expect(vision_game_state.fighter1.y).to eq(VISION_P1_Y)
-      expect(vision_game_state.fighter2.x).to eq(VISION_P2_X)
-      expect(vision_game_state.fighter2.y).to eq(VISION_P2_Y)
+      expect(state.fighter1.x).to eq(VISION_P1_X)
+      expect(state.fighter1.y).to eq(VISION_P1_Y)
+      expect(state.fighter2.x).to eq(VISION_P2_X)
+      expect(state.fighter2.y).to eq(VISION_P2_Y)
+    end
+
+    it "detects round over when a fighter's health is 0" do
+      state = described_class.extract(
+        snapshot,
+        vision_health: { PLAYER_ONE => 50, PLAYER_TWO => 0 }
+      )
+      expect(state.round_over?).to be true
+      expect(state.fight_active?).to be false
     end
   end
 end

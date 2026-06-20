@@ -3,17 +3,11 @@ require "spec_helper"
 RSpec.describe FightingAI::Core::FighterState do
   let(:base_attrs) do
     {
-      player_index:    1,
-      health:          100,
-      max_health:      144,
-      x:               100,
-      y:               40,
-      facing:          FightingAI::Core::FacingDirection::RIGHT,
-      animation_state: FightingAI::Core::AnimationState.new(name: "idle", frame_index: 0, total_frames: 8),
-      in_hitstun:      false,
-      in_blockstun:    false,
-      knocked_down:    false,
-      airborne:        false
+      player_index: 1,
+      health:       100,
+      max_health:   144,
+      x:            100,
+      y:            40
     }
   end
 
@@ -50,17 +44,6 @@ RSpec.describe FightingAI::Core::FighterState do
 
     it "is symmetric" do
       expect(other.distance_to(fighter)).to eq(fighter.distance_to(other))
-    end
-  end
-
-  describe "FacingDirection" do
-    it "knows left from right" do
-      expect(FightingAI::Core::FacingDirection::LEFT.left?).to be true
-      expect(FightingAI::Core::FacingDirection::RIGHT.right?).to be true
-    end
-
-    it "returns the opposite direction" do
-      expect(FightingAI::Core::FacingDirection::LEFT.opposite).to eq(FightingAI::Core::FacingDirection::RIGHT)
     end
   end
 end

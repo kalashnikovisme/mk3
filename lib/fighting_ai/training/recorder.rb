@@ -50,26 +50,15 @@ module FightingAI
 
       def serialize_observation(obs)
         {
-          frame:                  obs.frame_number,
-          my_health_pct:          obs.my_health_pct,
-          opponent_health_pct:    obs.opponent_health_pct,
-          my_x:                   obs.my_x_normalized,
-          my_y:                   obs.my_y_normalized,
-          opponent_x:             obs.opponent_x_normalized,
-          opponent_y:             obs.opponent_y_normalized,
-          my_facing:              obs.my_facing,
-          opponent_facing:        obs.opponent_facing,
-          my_in_hitstun:          obs.my_in_hitstun,
-          my_in_blockstun:        obs.my_in_blockstun,
-          my_knocked_down:        obs.my_knocked_down,
-          my_airborne:            obs.my_airborne,
-          opponent_in_hitstun:    obs.opponent_in_hitstun,
-          opponent_in_blockstun:  obs.opponent_in_blockstun,
-          opponent_knocked_down:  obs.opponent_knocked_down,
-          opponent_airborne:      obs.opponent_airborne,
-          round_time:             obs.round_time_normalized,
-          round_number:           obs.round_number,
-          vector:                 obs.to_vector
+          frame:               obs.frame_number,
+          my_health_pct:       obs.my_health_pct,
+          opponent_health_pct: obs.opponent_health_pct,
+          my_x:                obs.my_x_normalized,
+          my_y:                obs.my_y_normalized,
+          opponent_x:          obs.opponent_x_normalized,
+          opponent_y:          obs.opponent_y_normalized,
+          round_time:          obs.round_time_normalized,
+          vector:              obs.to_vector
         }
       end
 

@@ -17,18 +17,7 @@ RSpec.describe FightingAI::Training::Recorder do
       my_y_normalized:        0.0,
       opponent_x_normalized:  0.5,
       opponent_y_normalized:  0.0,
-      my_facing:              :right,
-      opponent_facing:        :left,
-      my_in_hitstun:          false,
-      my_in_blockstun:        false,
-      my_knocked_down:        false,
-      my_airborne:            false,
-      opponent_in_hitstun:    false,
-      opponent_in_blockstun:  false,
-      opponent_knocked_down:  false,
-      opponent_airborne:      false,
       round_time_normalized:  0.9,
-      round_number:           1,
       raw:                    nil
     }
   end

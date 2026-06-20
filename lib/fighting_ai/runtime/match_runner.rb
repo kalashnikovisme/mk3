@@ -83,13 +83,13 @@ module FightingAI
           @fight_logger&.log_frame(game_state)
 
           if @ui
-            @ui.update(game_state: game_state, stage_name: @game.snapshot_stage_name(snapshot))
+            @ui.update(game_state: game_state)
           elsif Time.now - last_status_at >= 1.0
             state = if game_state.fight_active?  then "fight"
                     elsif game_state.round_over? then "round_over"
                     else                              "idle"
                     end
-            log "#{@game.describe_snapshot(snapshot)}  [#{state}]"
+            log "[#{state}]"
             if @wram_dump
               @wram_dump_index += 1
               filename = File.join(WRAM_DUMP_DIR, "%03d" % @wram_dump_index)

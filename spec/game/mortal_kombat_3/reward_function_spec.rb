@@ -20,24 +20,11 @@ RSpec.describe FightingAI::Game::MortalKombat3::RewardFunction do
   LOSER_HEALTH = 10
   ZERO_HEALTH = 0
 
-  let(:attrs) do
-    {
-      max_health:      DEFAULT_MAX_HEALTH,
-      facing:          FightingAI::Core::FacingDirection::RIGHT,
-      animation_state: FightingAI::Core::AnimationState.new(name: "idle", frame_index: 0, total_frames: 1),
-      in_hitstun:      false,
-      in_blockstun:    false,
-      knocked_down:    false,
-      airborne:        false
-    }
-  end
-
   def make_state(h1:, h2:, p1_x: PLAYER_ONE_X, p2_x: VERY_CLOSE_PLAYER_TWO_X, round_over: false, match_over: false)
     FightingAI::Core::GameState.new(
       frame_number:         DEFAULT_FRAME_NUMBER,
-      fighter1:             FightingAI::Core::FighterState.new(**attrs, player_index: REWARD_PLAYER_ONE, health: h1, x: p1_x, y: DEFAULT_Y),
-      fighter2:             FightingAI::Core::FighterState.new(**attrs, player_index: REWARD_PLAYER_TWO, health: h2, x: p2_x, y: DEFAULT_Y),
-      round_number:         DEFAULT_ROUND_NUMBER,
+      fighter1:             FightingAI::Core::FighterState.new(player_index: REWARD_PLAYER_ONE, health: h1, max_health: DEFAULT_MAX_HEALTH, x: p1_x, y: DEFAULT_Y),
+      fighter2:             FightingAI::Core::FighterState.new(player_index: REWARD_PLAYER_TWO, health: h2, max_health: DEFAULT_MAX_HEALTH, x: p2_x, y: DEFAULT_Y),
       round_time_remaining: DEFAULT_ROUND_TIME,
       fight_active:         !round_over,
       round_over:           round_over,

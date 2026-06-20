@@ -74,29 +74,21 @@ more stable matches against varied MK3 backgrounds.
 
 ## Runtime Vision Flow
 
-MK3 vision is opt-in:
+MK3 game state is extracted entirely from vision — no WRAM reads are made for observable fields. WRAM is only used to read the frame counter.
 
-```bash
-VISION=1 dip learn sub-zero-vs-sub-zero
-```
+The three observable quantities and their sources:
 
-When enabled, `Runtime::MatchRunner` captures a `FrameObservation` after each WRAM
-snapshot and passes it to `Game::MortalKombat3::Adapter#extract_game_state`. The
-adapter runs `Vision::CharacterPositionDetector`, which keeps a persistent
-`python3 bin/vision_detect.py --server` process alive. Runtime vision therefore
-uses the same Python CUDA detector, action modes, ROI defaults, and early-stop
-rules as `dip vision:detect`. Detected screen-space foot positions are scaled
-into the existing normalized MK3 coordinate range. Fighter `x/y` positions and the round timer are overridden by vision when
-detected; the rest of the state remains WRAM-derived. Timer detection uses a
-fixed-position crop at `(136, 0)` sized `24×24` px, compared against every
-template in `data/vision/timers/` using L1 distance. The best match above
-`TIMER_MIN_CONFIDENCE` (0.75) is used; if no template reaches the threshold the
-timer falls back to the WRAM value.
+| Observable | Source |
+|------------|--------|
+| Health (P1 & P2) | Blue-pixel scan of health bar region in the PNG frame (`Vision::HealthBarDetector`) |
+| Fighter x/y position | Template matching via persistent Python CUDA detector (`bin/vision_detect.py --server`) |
+| Round timer | Digit templates compared at a fixed crop position; `nil` when no template passes threshold |
 
-If X display capture fails, runtime training treats that frame as a vision miss
-instead of aborting the episode. `MatchRunner` logs one warning and passes no
-`FrameObservation` to the game adapter, so the extracted state falls back to
-WRAM-derived fighter positions until screenshot capture succeeds again.
+Round over is detected when either fighter's health reaches zero or when the timer reaches zero. WRAM screen/round/animation state is not used.
+
+When enabled, `Runtime::MatchRunner` captures a `FrameObservation` and passes it to `Game::MortalKombat3::Adapter#extract_game_state`. The adapter runs `Vision::CharacterPositionDetector`, which keeps a persistent `python3 bin/vision_detect.py --server` process alive. Runtime vision therefore uses the same Python CUDA detector, action modes, ROI defaults, and early-stop rules as `dip vision:detect`.
+
+If X display capture fails, runtime training treats that frame as a vision miss instead of aborting the episode. `MatchRunner` logs one warning; health defaults to `MAX_HEALTH` and positions to 0 for that frame.
 
 Runtime vision is enabled by default for `dip learn`, `dip learn_from_ppo`,
 `dip fight`, and `dip fight_watch`. Use `VISION=0` to force WRAM-only training

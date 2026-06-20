@@ -10,18 +10,7 @@ RSpec.describe FightingAI::Agent::RuleBased do
       my_y_normalized:        0.0,
       opponent_x_normalized:  0.5,
       opponent_y_normalized:  0.0,
-      my_facing:              :right,
-      opponent_facing:        :left,
-      my_in_hitstun:          false,
-      my_in_blockstun:        false,
-      my_knocked_down:        false,
-      my_airborne:            false,
-      opponent_in_hitstun:    false,
-      opponent_in_blockstun:  false,
-      opponent_knocked_down:  false,
-      opponent_airborne:      false,
       round_time_normalized:  0.9,
-      round_number:           1,
       raw:                    nil
     }
   end
@@ -43,20 +32,15 @@ RSpec.describe FightingAI::Agent::RuleBased do
       expect(agent.act(obs).name).to eq(:walk_forward)
     end
 
-    it "attacks when the opponent is stunned" do
-      obs = make_obs(my_x_normalized: 0.3, opponent_x_normalized: 0.35, opponent_in_hitstun: true)
+    it "attacks when close to the opponent" do
+      obs = make_obs(my_x_normalized: 0.3, opponent_x_normalized: 0.35)
       action = agent.act(obs)
-      expect(action.name).not_to eq(:idle)
+      expect(%i[high_punch low_kick high_kick low_punch]).to include(action.name)
     end
 
     it "blocks when health is low and opponent is close" do
       obs = make_obs(my_health_pct: 0.2, my_x_normalized: 0.3, opponent_x_normalized: 0.35)
       expect(agent.act(obs).name).to eq(:block)
-    end
-
-    it "returns idle when in hitstun" do
-      obs = make_obs(my_in_hitstun: true)
-      expect(agent.act(obs).name).to eq(:idle)
     end
   end
 end

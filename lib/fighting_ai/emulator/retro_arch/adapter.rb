@@ -213,32 +213,11 @@ module FightingAI
           @save_state_reader.read_current
         end
 
-        def build_mk3_snapshot(frame_num, wram)
-          mm = Game::MortalKombat3::MemoryMap
+        def build_mk3_snapshot(frame_num, _wram)
           {
-            "type"     => "frame",
-            "frame"    => frame_num,
-            "game"     => "mortal_kombat_3",
-            "screen"   => wram.read_u8(mm::SCREEN_ADDR),
-            "players"  => {
-              "1" => {
-                "rounds_won" => wram.read_u8(mm::P1_ROUNDS_WON),
-                "x"          => wram.read_u16_le(mm::P1_X_ADDR),
-                "y"          => 0,
-                "facing"     => 0,
-                "anim"       => 0,
-                "anim_frame" => 0,
-                "state"      => 0
-              },
-              "2" => {
-                "rounds_won" => wram.read_u8(mm::P2_ROUNDS_WON),
-                "y"          => 0,
-                "facing"     => 0,
-                "anim"       => 0,
-                "anim_frame" => 0,
-                "state"      => 0
-              }
-            }
+            "type"  => "frame",
+            "frame" => frame_num,
+            "game"  => "mortal_kombat_3"
           }
         end
       end
