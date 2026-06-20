@@ -52,6 +52,11 @@ interaction:
     service: app_gpu
     command: bundle exec ruby bin/learn_empty
 
+  learn_empty_watch:
+    description: "Capture frame diagnostics with live Xephyr window. Usage: dip learn_empty_watch [health] [time] [positions] [match-name]"
+    service: app_watch
+    command: bundle exec ruby bin/learn_empty
+
   learn_from_ppo:
     description: "Resume PPO training from a checkpoint. Usage: dip learn_from_ppo <ppo_path> [match-name] [debug]"
     service: app_gpu
