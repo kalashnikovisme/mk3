@@ -1,0 +1,7 @@
+min_confidence: 0.82
+probe_min_confidence: 0.65
+max_detections: 2
+search_stride: 1
+action_search_stride: 4
+timer_min_confidence: 0.75
+timer_search_radius: 2

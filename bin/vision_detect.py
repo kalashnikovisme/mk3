@@ -6,6 +6,7 @@ from __future__ import annotations
 import os
 import json
 import sys
+import yaml
 import time
 import warnings
 from dataclasses import dataclass
@@ -18,12 +19,15 @@ from PIL import Image
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
+DEFAULT_CONFIG_PATH = Path("/app/config/detection.yml")
+
 DEFAULT_TEMPLATE_ROOT = Path("/app/data/vision/templates")
 DEFAULT_CHARACTER = "sub_zero"
-DEFAULT_MIN_CONFIDENCE = 0.82
-DEFAULT_MAX_DETECTIONS = 2
-DEFAULT_SEARCH_STRIDE = 1
-DEFAULT_ACTION_SEARCH_STRIDE = 4
+_FALLBACK_MIN_CONFIDENCE = 0.82
+_FALLBACK_PROBE_MIN_CONFIDENCE = 0.65
+_FALLBACK_MAX_DETECTIONS = 2
+_FALLBACK_SEARCH_STRIDE = 1
+_FALLBACK_ACTION_SEARCH_STRIDE = 4
 TOP_CANDIDATE_COUNT = 10
 FIRST_HUMAN_INDEX = 1
 ROI_COMPONENT_COUNT = 4
@@ -46,6 +50,7 @@ MIN_AXIS_VALUE = 0
 MK3_AXIS_MAX = 255
 ENV_LIST_SEPARATOR = ","
 REFERENCE_TEMPLATE_MARKER = "reference"
+PROBE_VARIANT_NUMBER = "01"
 AREA_ARG = "--area"
 ROI_ARG = "--roi"
 FULL_SCREEN_ARG = "--full-screen"
@@ -62,12 +67,13 @@ TIMER_ROI_X = 136
 TIMER_ROI_Y = 0
 TIMER_TEMPLATE_WIDTH = 24
 TIMER_TEMPLATE_HEIGHT = 24
-TIMER_MIN_CONFIDENCE = 0.75
+_FALLBACK_TIMER_MIN_CONFIDENCE = 0.75
 TIMER_FILENAME_PREFIX = "timer-"
-TIMER_HORIZONTAL_SEARCH_RADIUS = 2
+_FALLBACK_TIMER_SEARCH_RADIUS = 2
 
 GRAY_SUFFIX = "_gray.png"
 MASK_SUFFIX = "_mask.png"
+TEMPLATE_ORDER_FILENAME = "template_order.txt"
 ACTION_MODE_ALL = "all"
 ACTION_MODE_IDLE = "idle"
 ACTION_MODE_WALK = "walk"
@@ -120,74 +126,74 @@ ACTION_MODE_VICTORY_RAISE_ARMS = "victory_raise_arms"
 ACTION_MODE_WALKING = "walking"
 ACTION_TEMPLATE_PREFIXES = {
     ACTION_MODE_ALL: (),
-    ACTION_MODE_IDLE: ("idle_fighting_stance_",),
-    ACTION_MODE_WALK: ("walking_",),
-    ACTION_MODE_CROUCH: ("crouching_", "crouch_guard_", "crouch_punch_"),
-    ACTION_MODE_GUARD: ("guard_ready_", "crouch_guard_"),
-    ACTION_MODE_PUNCH: ("standing_punch_combo_", "straight_punch_", "crouch_punch_"),
+    ACTION_MODE_IDLE: ("idle_fighting_stance/",),
+    ACTION_MODE_WALK: ("walking/",),
+    ACTION_MODE_CROUCH: ("crouching/", "crouch_guard/", "crouch_punch/"),
+    ACTION_MODE_GUARD: ("guard_ready/", "crouch_guard/"),
+    ACTION_MODE_PUNCH: ("standing_punch_combo/", "straight_punch/", "crouch_punch/"),
     ACTION_MODE_KICK: (
-        "front_kick_",
-        "high_kick_",
-        "low_kick_combo_",
-        "roundhouse_kick_",
-        "rising_kick_",
-        "sweep_or_low_attack_",
-        "jump_kick_or_aerial_attack_",
+        "front_kick/",
+        "high_kick/",
+        "low_kick_combo/",
+        "roundhouse_kick/",
+        "rising_kick/",
+        "sweep_or_low_attack/",
+        "jump_kick_or_aerial_attack/",
     ),
-    ACTION_MODE_RUN: ("running_",),
-    ACTION_MODE_JUMP: ("jump_up_reaching_", "jump_kick_or_aerial_attack_"),
-    ACTION_MODE_HURT: ("hit_reaction_", "standing_hurt_or_dizzy_", "dizzy_or_recovering_", "fatality_dizzy_bent_over_"),
-    ACTION_MODE_KNOCKDOWN: ("knocked_down_fall_", "airborne_fall_knockdown_", "lying_on_ground_"),
-    ACTION_MODE_PROJECTILE: ("ice_blast_casting_",),
-    ACTION_MODE_SLIDE: ("slide_attack_",),
-    ACTION_MODE_ROLL: ("forward_roll_flip_",),
-    ACTION_MODE_VICTORY: ("victory_or_turnaround_", "victory_pose_raise_arms_", "victory_raise_arms_"),
-    ACTION_MODE_SPECIAL: ("ice_blast_casting_", "ice_clone_crouch_", "slide_attack_"),
+    ACTION_MODE_RUN: ("running/",),
+    ACTION_MODE_JUMP: ("jump_up_reaching/", "jump_kick_or_aerial_attack/"),
+    ACTION_MODE_HURT: ("hit_reaction/", "standing_hurt_or_dizzy/", "dizzy_or_recovering/", "fatality_dizzy_bent_over/"),
+    ACTION_MODE_KNOCKDOWN: ("knocked_down_fall/", "airborne_fall_knockdown/", "lying_on_ground/"),
+    ACTION_MODE_PROJECTILE: ("ice_blast_casting/",),
+    ACTION_MODE_SLIDE: ("slide_attack/",),
+    ACTION_MODE_ROLL: ("forward_roll_flip/",),
+    ACTION_MODE_VICTORY: ("victory_or_turnaround/", "victory_pose_raise_arms/", "victory_raise_arms/"),
+    ACTION_MODE_SPECIAL: ("ice_blast_casting/", "ice_clone_crouch/", "slide_attack/"),
     ACTION_MODE_TIMER_ONLY: (),
-    ACTION_MODE_AIRBORNE_FALL_KNOCKDOWN: ("airborne_fall_knockdown_",),
-    ACTION_MODE_CROUCH_GUARD: ("crouch_guard_",),
-    ACTION_MODE_CROUCH_PUNCH: ("crouch_punch_",),
-    ACTION_MODE_CROUCHING: ("crouching_",),
-    ACTION_MODE_DIZZY_OR_RECOVERING: ("dizzy_or_recovering_",),
-    ACTION_MODE_FORWARD_ROLL_FLIP: ("forward_roll_flip_",),
-    ACTION_MODE_FRONT_KICK: ("front_kick_",),
-    ACTION_MODE_FROZEN_STANDING: ("frozen_standing_",),
-    ACTION_MODE_GUARD_READY: ("guard_ready_",),
-    ACTION_MODE_HIGH_KICK: ("high_kick_",),
-    ACTION_MODE_HIT_REACTION: ("hit_reaction_",),
-    ACTION_MODE_ICE_BLAST_CASTING: ("ice_blast_casting_",),
-    ACTION_MODE_ICE_CLONE_CROUCH: ("ice_clone_crouch_",),
-    ACTION_MODE_IDLE_FIGHTING_STANCE: ("idle_fighting_stance_",),
-    ACTION_MODE_JUMP_KICK_OR_AERIAL_ATTACK: ("jump_kick_or_aerial_attack_",),
-    ACTION_MODE_JUMP_UP_REACHING: ("jump_up_reaching_",),
-    ACTION_MODE_KNOCKED_DOWN_FALL: ("knocked_down_fall_",),
-    ACTION_MODE_LOW_KICK_COMBO: ("low_kick_combo_",),
-    ACTION_MODE_LYING_ON_GROUND: ("lying_on_ground_",),
-    ACTION_MODE_RISING_KICK: ("rising_kick_",),
-    ACTION_MODE_ROUNDHOUSE_KICK: ("roundhouse_kick_",),
-    ACTION_MODE_RUNNING: ("running_",),
-    ACTION_MODE_SLIDE_ATTACK: ("slide_attack_",),
-    ACTION_MODE_STANDING_HURT_OR_DIZZY: ("standing_hurt_or_dizzy_",),
-    ACTION_MODE_STANDING_PUNCH_COMBO: ("standing_punch_combo_",),
-    ACTION_MODE_STRAIGHT_PUNCH: ("straight_punch_",),
-    ACTION_MODE_SWEEP_OR_LOW_ATTACK: ("sweep_or_low_attack_",),
-    ACTION_MODE_TURN_OR_STEP: ("turn_or_step_",),
-    ACTION_MODE_WALKING: ("walking_",),
-    ACTION_MODE_VICTORY_OR_TURNAROUND: ("victory_or_turnaround_",),
-    ACTION_MODE_VICTORY_POSE_RAISE_ARMS: ("victory_pose_raise_arms_",),
-    ACTION_MODE_VICTORY_RAISE_ARMS: ("victory_raise_arms_",),
-    ACTION_MODE_FATALITY_DIZZY_BENT_OVER: ("fatality_dizzy_bent_over_",),
+    ACTION_MODE_AIRBORNE_FALL_KNOCKDOWN: ("airborne_fall_knockdown/",),
+    ACTION_MODE_CROUCH_GUARD: ("crouch_guard/",),
+    ACTION_MODE_CROUCH_PUNCH: ("crouch_punch/",),
+    ACTION_MODE_CROUCHING: ("crouching/",),
+    ACTION_MODE_DIZZY_OR_RECOVERING: ("dizzy_or_recovering/",),
+    ACTION_MODE_FORWARD_ROLL_FLIP: ("forward_roll_flip/",),
+    ACTION_MODE_FRONT_KICK: ("front_kick/",),
+    ACTION_MODE_FROZEN_STANDING: ("frozen_standing/",),
+    ACTION_MODE_GUARD_READY: ("guard_ready/",),
+    ACTION_MODE_HIGH_KICK: ("high_kick/",),
+    ACTION_MODE_HIT_REACTION: ("hit_reaction/",),
+    ACTION_MODE_ICE_BLAST_CASTING: ("ice_blast_casting/",),
+    ACTION_MODE_ICE_CLONE_CROUCH: ("ice_clone_crouch/",),
+    ACTION_MODE_IDLE_FIGHTING_STANCE: ("idle_fighting_stance/",),
+    ACTION_MODE_JUMP_KICK_OR_AERIAL_ATTACK: ("jump_kick_or_aerial_attack/",),
+    ACTION_MODE_JUMP_UP_REACHING: ("jump_up_reaching/",),
+    ACTION_MODE_KNOCKED_DOWN_FALL: ("knocked_down_fall/",),
+    ACTION_MODE_LOW_KICK_COMBO: ("low_kick_combo/",),
+    ACTION_MODE_LYING_ON_GROUND: ("lying_on_ground/",),
+    ACTION_MODE_RISING_KICK: ("rising_kick/",),
+    ACTION_MODE_ROUNDHOUSE_KICK: ("roundhouse_kick/",),
+    ACTION_MODE_RUNNING: ("running/",),
+    ACTION_MODE_SLIDE_ATTACK: ("slide_attack/",),
+    ACTION_MODE_STANDING_HURT_OR_DIZZY: ("standing_hurt_or_dizzy/",),
+    ACTION_MODE_STANDING_PUNCH_COMBO: ("standing_punch_combo/",),
+    ACTION_MODE_STRAIGHT_PUNCH: ("straight_punch/",),
+    ACTION_MODE_SWEEP_OR_LOW_ATTACK: ("sweep_or_low_attack/",),
+    ACTION_MODE_TURN_OR_STEP: ("turn_or_step/",),
+    ACTION_MODE_WALKING: ("walking/",),
+    ACTION_MODE_VICTORY_OR_TURNAROUND: ("victory_or_turnaround/",),
+    ACTION_MODE_VICTORY_POSE_RAISE_ARMS: ("victory_pose_raise_arms/",),
+    ACTION_MODE_VICTORY_RAISE_ARMS: ("victory_raise_arms/",),
+    ACTION_MODE_FATALITY_DIZZY_BENT_OVER: ("fatality_dizzy_bent_over/",),
 }
 ACTION_MODE_NAMES = tuple(ACTION_TEMPLATE_PREFIXES.keys())
 
 TEMPLATE_ROOT_ENV = "TEMPLATE_ROOT"
 MIN_CONFIDENCE_ENV = "MIN_CONFIDENCE"
+PROBE_MIN_CONFIDENCE_ENV = "PROBE_MIN_CONFIDENCE"
 MAX_DETECTIONS_ENV = "MAX_DETECTIONS"
 SEARCH_STRIDE_ENV = "SEARCH_STRIDE"
 VISION_DEVICE_ENV = "VISION_DEVICE"
 TEMPLATE_NAME_PREFIXES_ENV = "TEMPLATE_NAME_PREFIXES"
 TEMPLATE_NAME_EXCLUDE_SUBSTRINGS_ENV = "TEMPLATE_NAME_EXCLUDE_SUBSTRINGS"
-
 
 @dataclass(frozen=True)
 class Template:
@@ -233,6 +239,13 @@ class TimerTemplate:
     grayscale: torch.Tensor
 
 
+@dataclass(frozen=True)
+class TemplateGroup:
+    name: str
+    probes: tuple[Template, ...]   # variant 01 — checked first as group scouts
+    members: tuple[Template, ...]  # variants 02+ — only checked when probe matched
+
+
 DEFAULT_INITIAL_STANCE_ROIS = (
     Roi(
         x=P1_INITIAL_STANCE_ROI_X,
@@ -249,6 +262,32 @@ DEFAULT_INITIAL_STANCE_ROIS = (
 )
 
 TIMER_ROI = Roi(x=TIMER_ROI_X, y=TIMER_ROI_Y, width=TIMER_TEMPLATE_WIDTH, height=TIMER_TEMPLATE_HEIGHT)
+
+
+@dataclass(frozen=True)
+class DetectionConfig:
+    min_confidence: float
+    probe_min_confidence: float
+    max_detections: int
+    search_stride: int
+    action_search_stride: int
+    timer_min_confidence: float
+    timer_search_radius: int
+
+
+def load_detection_config(path: Path = DEFAULT_CONFIG_PATH) -> DetectionConfig:
+    raw: dict = {}
+    if path.exists():
+        raw = yaml.safe_load(path.read_text()) or {}
+    return DetectionConfig(
+        min_confidence=raw.get("min_confidence", _FALLBACK_MIN_CONFIDENCE),
+        probe_min_confidence=raw.get("probe_min_confidence", _FALLBACK_PROBE_MIN_CONFIDENCE),
+        max_detections=raw.get("max_detections", _FALLBACK_MAX_DETECTIONS),
+        search_stride=raw.get("search_stride", _FALLBACK_SEARCH_STRIDE),
+        action_search_stride=raw.get("action_search_stride", _FALLBACK_ACTION_SEARCH_STRIDE),
+        timer_min_confidence=raw.get("timer_min_confidence", _FALLBACK_TIMER_MIN_CONFIDENCE),
+        timer_search_radius=raw.get("timer_search_radius", _FALLBACK_TIMER_SEARCH_RADIUS),
+    )
 
 
 def env_float(name: str, default: float) -> float:
@@ -349,6 +388,14 @@ def template_included(name: str, include_prefixes: tuple[str, ...], exclude_subs
     return not any(substring in name for substring in exclude_substrings)
 
 
+def template_names_in_order(template_dir: Path) -> list[str]:
+    order_file = template_dir / TEMPLATE_ORDER_FILENAME
+    if order_file.exists():
+        names = [line.strip() for line in order_file.read_text().splitlines() if line.strip()]
+        return names
+    return [p.name.removesuffix(GRAY_SUFFIX) for p in sorted(template_dir.glob(f"*{GRAY_SUFFIX}"))]
+
+
 def load_templates(
     template_dir: Path,
     device: torch.device,
@@ -356,8 +403,10 @@ def load_templates(
     exclude_substrings: tuple[str, ...] = (),
 ) -> list[Template]:
     templates: list[Template] = []
-    for gray_path in sorted(template_dir.glob(f"*{GRAY_SUFFIX}")):
-        name = gray_path.name.removesuffix(GRAY_SUFFIX)
+    for name in template_names_in_order(template_dir):
+        gray_path = template_dir / f"{name}{GRAY_SUFFIX}"
+        if not gray_path.exists():
+            continue
         if not template_included(name, include_prefixes, exclude_substrings):
             continue
 
@@ -387,6 +436,43 @@ def load_templates(
     return templates
 
 
+def build_template_groups(templates: list[Template]) -> list[TemplateGroup]:
+    """Organize templates into animation groups for two-pass detection.
+
+    Each group's 01 variants become probes; the rest are members checked only
+    when the probe matched.  Insertion order of groups follows template_order.txt.
+    Template names are expected in the form `{group}/{variant}_{side}`.
+    """
+    buckets: dict[str, dict[str, list[Template]]] = {}
+    group_order: list[str] = []
+
+    for template in templates:
+        if "/" in template.name:
+            group_name, rest = template.name.split("/", 1)
+            variant = rest.split("_")[0]
+        else:
+            group_name = template.name
+            variant = PROBE_VARIANT_NUMBER
+
+        if group_name not in buckets:
+            buckets[group_name] = {"probes": [], "members": []}
+            group_order.append(group_name)
+
+        if variant == PROBE_VARIANT_NUMBER:
+            buckets[group_name]["probes"].append(template)
+        else:
+            buckets[group_name]["members"].append(template)
+
+    return [
+        TemplateGroup(
+            name=name,
+            probes=tuple(buckets[name]["probes"]),
+            members=tuple(buckets[name]["members"]),
+        )
+        for name in group_order
+    ]
+
+
 def load_timer_templates(timer_dir: Path, device: torch.device) -> list[TimerTemplate]:
     templates: list[TimerTemplate] = []
     if not timer_dir.exists():
@@ -403,13 +489,14 @@ def load_timer_templates(timer_dir: Path, device: torch.device) -> list[TimerTem
 def detect_timer(
     image: torch.Tensor,
     timer_templates: list[TimerTemplate],
-    min_confidence: float = TIMER_MIN_CONFIDENCE,
+    min_confidence: float = _FALLBACK_TIMER_MIN_CONFIDENCE,
+    search_radius: int = _FALLBACK_TIMER_SEARCH_RADIUS,
 ) -> int | None:
     if not timer_templates:
         return None
     best_value = None
     best_confidence = min_confidence
-    for x_offset in range(-TIMER_HORIZONTAL_SEARCH_RADIUS, TIMER_HORIZONTAL_SEARCH_RADIUS + 1):
+    for x_offset in range(-search_radius, search_radius + 1):
         shifted_roi = Roi(
             x=TIMER_ROI.x + x_offset,
             y=TIMER_ROI.y,
@@ -436,16 +523,19 @@ def load_image(path: Path, device: torch.device) -> torch.Tensor:
     return data.reshape(image.height, image.width)
 
 
-def warm_up_device(templates: list[Template], device: torch.device) -> None:
-    if device.type != "cuda" or not templates:
+def warm_up_device(template_groups: list[TemplateGroup], device: torch.device) -> None:
+    if device.type != "cuda" or not template_groups:
         return
 
-    template = templates[NO_CANDIDATES]
+    probe = next((t for g in template_groups for t in g.probes), None)
+    if probe is None:
+        return
+
     match_template(
-        image=template.grayscale,
-        template=template,
-        min_confidence=DEFAULT_MIN_CONFIDENCE,
-        search_stride=DEFAULT_SEARCH_STRIDE,
+        image=probe.grayscale,
+        template=probe,
+        min_confidence=_FALLBACK_MIN_CONFIDENCE,
+        search_stride=_FALLBACK_SEARCH_STRIDE,
     )
     torch.cuda.synchronize()
 
@@ -584,9 +674,10 @@ def detection_to_dict(detection: Detection) -> dict[str, int | float | str]:
 
 def detect_image(
     image: torch.Tensor,
-    templates: list[Template],
+    template_groups: list[TemplateGroup],
     device: torch.device,
     min_confidence: float,
+    probe_min_confidence: float,
     max_detections: int,
     search_stride: int,
     rois: tuple[Roi, ...],
@@ -597,45 +688,72 @@ def detect_image(
     match_started_at = time.perf_counter()
     candidates: list[Detection] = []
     completed_roi_indexes: set[int] = set()
+    template_index = 0
+    total_templates = sum(len(g.probes) + len(g.members) for g in template_groups)
 
-    for index, template in enumerate(templates, start=FIRST_HUMAN_INDEX):
-        if active_rois and len(completed_roi_indexes) >= len(active_rois):
-            break
-
+    def run_template(template: Template, confidence: float) -> list[Detection]:
+        nonlocal template_index
+        template_index += 1
         template_started_at = time.perf_counter()
         if active_rois:
             matches = []
             for roi_index, roi in enumerate(active_rois):
                 if roi_index in completed_roi_indexes:
                     continue
-
                 roi_matches = match_template(
                     crop_image(image, roi),
                     template,
-                    min_confidence,
+                    confidence,
                     search_stride,
                     origin_x=roi.x,
                     origin_y=roi.y,
                 )
                 if roi_matches:
                     completed_roi_indexes.add(roi_index)
-                    matches.append(max(roi_matches, key=lambda detection: detection.confidence))
+                    matches.append(max(roi_matches, key=lambda d: d.confidence))
         else:
-            matches = match_template(image, template, min_confidence, search_stride)
+            matches = match_template(image, template, confidence, search_stride)
 
         if device.type == "cuda":
             torch.cuda.synchronize()
-        candidates.extend(matches)
         if progress:
             progress(
-                index=index,
+                index=template_index,
                 template=template,
                 matches=matches,
                 total_candidates=len(candidates),
                 completed_roi_count=len(completed_roi_indexes),
                 active_roi_count=len(active_rois),
+                total_templates=total_templates,
                 seconds=time.perf_counter() - template_started_at,
             )
+        return matches
+
+    # Pass 1: probe templates (variant 01 of each group) at the lower probe threshold.
+    # Groups whose probe matches at least one ROI are promoted to hot.
+    hot_groups: set[str] = set()
+    for group in template_groups:
+        if active_rois and len(completed_roi_indexes) >= len(active_rois):
+            break
+        for template in group.probes:
+            if active_rois and len(completed_roi_indexes) >= len(active_rois):
+                break
+            matches = run_template(template, probe_min_confidence)
+            if matches:
+                hot_groups.add(group.name)
+            candidates.extend(matches)
+
+    # Pass 2: remaining variants of hot groups only at the full threshold; cold groups are skipped.
+    for group in template_groups:
+        if group.name not in hot_groups:
+            continue
+        if active_rois and len(completed_roi_indexes) >= len(active_rois):
+            break
+        for template in group.members:
+            if active_rois and len(completed_roi_indexes) >= len(active_rois):
+                break
+            matches = run_template(template, min_confidence)
+            candidates.extend(matches)
 
     detections = select_non_overlapping(candidates, max_detections)
     return detections, candidates, active_rois, time.perf_counter() - match_started_at
@@ -643,19 +761,23 @@ def detect_image(
 
 def detect_path(
     path: Path,
-    templates: list[Template],
+    template_groups: list[TemplateGroup],
     timer_templates: list[TimerTemplate],
     device: torch.device,
     min_confidence: float,
+    probe_min_confidence: float,
     max_detections: int,
     search_stride: int,
     rois: tuple[Roi, ...],
+    timer_min_confidence: float = _FALLBACK_TIMER_MIN_CONFIDENCE,
+    timer_search_radius: int = _FALLBACK_TIMER_SEARCH_RADIUS,
 ) -> None:
     print(path, flush=True)
     if not path.exists():
         print("  file not found", flush=True)
         return
 
+    total_templates = sum(len(g.probes) + len(g.members) for g in template_groups)
     print(f"  file_size: {path.stat().st_size} bytes", flush=True)
     print(f"  loading_image: {path}", flush=True)
     load_started_at = time.perf_counter()
@@ -675,16 +797,16 @@ def detect_path(
     else:
         print("  areas:        full-screen", flush=True)
 
-    print(f"  matching: {len(templates)} templates", flush=True)
+    print(f"  matching: {total_templates} templates in {len(template_groups)} groups", flush=True)
 
-    def print_progress(index, template, matches, total_candidates, completed_roi_count, active_roi_count, seconds):
+    def print_progress(index, template, matches, total_candidates, completed_roi_count, active_roi_count, total_templates, seconds):
         area_progress = (
             f"completed_areas={completed_roi_count}/{active_roi_count} "
             if active_roi_count
             else ""
         )
         print(
-            f"  progress: finished {index}/{len(templates)} {template.name} "
+            f"  progress: finished {index}/{total_templates} {template.name} "
             f"matches={len(matches)} total_candidates={total_candidates} "
             f"{area_progress}"
             f"time={seconds * SECONDS_TO_MS:.1f}ms",
@@ -693,9 +815,10 @@ def detect_path(
 
     detections, candidates, active_rois, match_seconds = detect_image(
         image,
-        templates,
+        template_groups,
         device,
         min_confidence,
+        probe_min_confidence,
         max_detections,
         search_stride,
         rois,
@@ -706,7 +829,7 @@ def detect_path(
         f"time={match_seconds * SECONDS_TO_MS:.1f}ms",
         flush=True,
     )
-    timer_value = detect_timer(image, timer_templates)
+    timer_value = detect_timer(image, timer_templates, timer_min_confidence, timer_search_radius)
     print(f"  timer:     {timer_value if timer_value is not None else 'not detected'}", flush=True)
     print(f"  image:     {image_width}x{image_height}", flush=True)
     print(f"  timings:   load={load_seconds * SECONDS_TO_MS:.1f}ms match={match_seconds * SECONDS_TO_MS:.1f}ms", flush=True)
@@ -752,42 +875,48 @@ def detect_image_payload(
     image: torch.Tensor,
     image_width: int,
     image_height: int,
-    templates: list[Template],
+    template_groups: list[TemplateGroup],
     timer_templates: list[TimerTemplate],
     device: torch.device,
     min_confidence: float,
+    probe_min_confidence: float,
     max_detections: int,
     search_stride: int,
     rois: tuple[Roi, ...],
     timer_enabled: bool = True,
+    timer_min_confidence: float = _FALLBACK_TIMER_MIN_CONFIDENCE,
+    timer_search_radius: int = _FALLBACK_TIMER_SEARCH_RADIUS,
 ) -> dict:
     detections, candidates, active_rois, match_seconds = detect_image(
-        image, templates, device, min_confidence, max_detections, search_stride, rois,
+        image, template_groups, device, min_confidence, probe_min_confidence, max_detections, search_stride, rois,
     )
     return {
         "ok": True,
         "image_width": image_width,
         "image_height": image_height,
-        "template_count": len(templates),
+        "template_count": sum(len(g.probes) + len(g.members) for g in template_groups),
         "candidate_count": len(candidates),
         "detection_count": len(detections),
         "match_seconds": match_seconds,
         "areas": [roi.__dict__ for roi in active_rois],
         "detections": [detection_to_dict(detection) for detection in detections],
-        "timer": detect_timer(image, timer_templates) if timer_enabled else None,
+        "timer": detect_timer(image, timer_templates, timer_min_confidence, timer_search_radius) if timer_enabled else None,
     }
 
 
 def detect_path_payload(
     path: Path,
-    templates: list[Template],
+    template_groups: list[TemplateGroup],
     timer_templates: list[TimerTemplate],
     device: torch.device,
     min_confidence: float,
+    probe_min_confidence: float,
     max_detections: int,
     search_stride: int,
     rois: tuple[Roi, ...],
     timer_enabled: bool = True,
+    timer_min_confidence: float = _FALLBACK_TIMER_MIN_CONFIDENCE,
+    timer_search_radius: int = _FALLBACK_TIMER_SEARCH_RADIUS,
 ) -> dict:
     if not path.exists():
         return {"ok": False, "error": "file not found", "path": str(path)}
@@ -800,9 +929,11 @@ def detect_path_payload(
     image_height, image_width = image.shape
     payload = detect_image_payload(
         image, image_width, image_height,
-        templates, timer_templates, device,
-        min_confidence, max_detections, search_stride, rois,
+        template_groups, timer_templates, device,
+        min_confidence, probe_min_confidence, max_detections, search_stride, rois,
         timer_enabled=timer_enabled,
+        timer_min_confidence=timer_min_confidence,
+        timer_search_radius=timer_search_radius,
     )
     payload["path"] = str(path)
     payload["load_seconds"] = load_seconds
@@ -810,13 +941,16 @@ def detect_path_payload(
 
 
 def run_server(
-    templates: list[Template],
+    template_groups: list[TemplateGroup],
     timer_templates: list[TimerTemplate],
     device: torch.device,
     min_confidence: float,
+    probe_min_confidence: float,
     max_detections: int,
     search_stride: int,
     rois: tuple[Roi, ...],
+    timer_min_confidence: float = _FALLBACK_TIMER_MIN_CONFIDENCE,
+    timer_search_radius: int = _FALLBACK_TIMER_SEARCH_RADIUS,
 ) -> int:
     print(
         json.dumps(
@@ -824,7 +958,8 @@ def run_server(
                 "ok": True,
                 "event": "ready",
                 "device": str(device),
-                "template_count": len(templates),
+                "template_count": sum(len(g.probes) + len(g.members) for g in template_groups),
+                "group_count": len(template_groups),
                 "timer_template_count": len(timer_templates),
                 "search_stride": search_stride,
                 "areas": [roi.__dict__ for roi in rois],
@@ -855,22 +990,27 @@ def run_server(
                     image = load_image_from_raw_rgb(raw_bytes, width, height, device)
                     payload = detect_image_payload(
                         image, width, height,
-                        templates, timer_templates, device,
-                        min_confidence, max_detections, search_stride, rois,
+                        template_groups, timer_templates, device,
+                        min_confidence, probe_min_confidence, max_detections, search_stride, rois,
                         timer_enabled=timer_enabled,
+                        timer_min_confidence=timer_min_confidence,
+                        timer_search_radius=timer_search_radius,
                     )
             else:
                 path = Path(request["path"])
                 payload = detect_path_payload(
                     path,
-                    templates,
+                    template_groups,
                     timer_templates,
                     device,
                     min_confidence,
+                    probe_min_confidence,
                     max_detections,
                     search_stride,
                     rois,
                     timer_enabled=timer_enabled,
+                    timer_min_confidence=timer_min_confidence,
+                    timer_search_radius=timer_search_radius,
                 )
         except Exception as error:
             payload = {"ok": False, "error": str(error)}
@@ -895,12 +1035,14 @@ def main() -> int:
         print(usage(), file=sys.stderr)
         return FIRST_HUMAN_INDEX
 
+    cfg = load_detection_config()
     template_root = Path(os.environ.get(TEMPLATE_ROOT_ENV, str(DEFAULT_TEMPLATE_ROOT)))
     template_dir = template_root / DEFAULT_CHARACTER
-    min_confidence = env_float(MIN_CONFIDENCE_ENV, DEFAULT_MIN_CONFIDENCE)
-    max_detections = env_int(MAX_DETECTIONS_ENV, DEFAULT_MAX_DETECTIONS)
+    min_confidence = env_float(MIN_CONFIDENCE_ENV, cfg.min_confidence)
+    probe_min_confidence = env_float(PROBE_MIN_CONFIDENCE_ENV, cfg.probe_min_confidence)
+    max_detections = env_int(MAX_DETECTIONS_ENV, cfg.max_detections)
     action_mode_enabled = options.action_mode != ACTION_MODE_ALL
-    default_search_stride = DEFAULT_ACTION_SEARCH_STRIDE if action_mode_enabled else DEFAULT_SEARCH_STRIDE
+    default_search_stride = cfg.action_search_stride if action_mode_enabled else cfg.search_stride
     default_include_prefixes = ACTION_TEMPLATE_PREFIXES.get(options.action_mode, ())
     default_exclude_substrings = (REFERENCE_TEMPLATE_MARKER,)
     search_stride = env_int(SEARCH_STRIDE_ENV, default_search_stride)
@@ -916,11 +1058,12 @@ def main() -> int:
         include_prefixes=include_prefixes,
         exclude_substrings=exclude_substrings,
     )
-    warm_up_device(templates, device)
+    template_groups = build_template_groups(templates)
+    warm_up_device(template_groups, device)
     if device.type == "cuda":
         torch.cuda.synchronize()
 
-    if not templates and not timer_only:
+    if not template_groups and not timer_only:
         print(
             "No templates found. Run `dip vision:prepare-sprites data/vision/sprites/subzero` first.",
             file=sys.stderr,
@@ -930,8 +1073,9 @@ def main() -> int:
     timer_templates = load_timer_templates(DEFAULT_TIMER_TEMPLATE_DIR, device)
 
     if options.server:
-        return run_server(templates, timer_templates, device, min_confidence, max_detections, search_stride, options.rois)
+        return run_server(template_groups, timer_templates, device, min_confidence, probe_min_confidence, max_detections, search_stride, options.rois, cfg.timer_min_confidence, cfg.timer_search_radius)
 
+    total_templates = sum(len(g.probes) + len(g.members) for g in template_groups)
     print("Vision detect", flush=True)
     print(f"  character:      {DEFAULT_CHARACTER}", flush=True)
     print(f"  action_mode:    {options.action_mode}", flush=True)
@@ -940,6 +1084,7 @@ def main() -> int:
     if device.type == "cuda":
         print(f"  gpu:            {torch.cuda.get_device_name(device)}", flush=True)
     print(f"  min_confidence: {min_confidence:.3f}", flush=True)
+    print(f"  probe_confidence: {probe_min_confidence:.3f}", flush=True)
     print(f"  max_detections: {max_detections}", flush=True)
     print(f"  search_stride:  {search_stride}", flush=True)
     print(f"  include_prefix: {','.join(include_prefixes) if include_prefixes else '(all)'}", flush=True)
@@ -954,12 +1099,12 @@ def main() -> int:
         flush=True,
     )
 
-    print(f"  templates:      {len(templates)}", flush=True)
+    print(f"  templates:      {total_templates} in {len(template_groups)} groups", flush=True)
     print(f"  template_load:  {(time.perf_counter() - templates_started_at) * SECONDS_TO_MS:.1f}ms", flush=True)
     print(flush=True)
 
     for raw_path in options.screenshot_paths:
-        detect_path(Path(raw_path), templates, timer_templates, device, min_confidence, max_detections, search_stride, options.rois)
+        detect_path(Path(raw_path), template_groups, timer_templates, device, min_confidence, probe_min_confidence, max_detections, search_stride, options.rois, cfg.timer_min_confidence, cfg.timer_search_radius)
 
     return 0
 
