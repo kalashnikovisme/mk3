@@ -21,9 +21,11 @@ RSpec.describe FightingAI::Runtime::FrameCaptureRunner do
 
     runner.run
 
-    expect(output.string).to match(
-      /\Af: #{described_class::INITIAL_FRAME_NUMBER}; size: #{SCREENSHOT_BYTE_SIZE}; ms: \d+\n\z/
-    )
+    expect(output.string).to start_with("frame: #{described_class::INITIAL_FRAME_NUMBER}\n")
+    expect(output.string).to include("  frame_bytes: #{SCREENSHOT_BYTE_SIZE}\n")
+    expect(output.string).to include("  capture_ms: ")
+    expect(output.string).to include("  detect_ms: ")
+    expect(output.string).to match(/  total_ms: \d+/)
     expect(emulator).to have_received(:capture_frame).once
     expect(frame_advancer).to have_received(:call).once
     expect(runner).not_to be_interrupted
@@ -47,9 +49,10 @@ RSpec.describe FightingAI::Runtime::FrameCaptureRunner do
 
     runner.run
 
-    expect(output.string).to match(
-      /\Af: #{described_class::INITIAL_FRAME_NUMBER}; size: #{SCREENSHOT_BYTE_SIZE}; h1: #{PLAYER_ONE_HEALTH}; h2: #{PLAYER_TWO_HEALTH}; ms: \d+\n\z/
-    )
+    expect(output.string).to start_with("frame: #{described_class::INITIAL_FRAME_NUMBER}\n")
+    expect(output.string).to include("  frame_bytes: #{SCREENSHOT_BYTE_SIZE}\n")
+    expect(output.string).to include("  h1: #{PLAYER_ONE_HEALTH}\n")
+    expect(output.string).to include("  h2: #{PLAYER_TWO_HEALTH}\n")
   end
 
   it "exits quietly when capture is interrupted during shutdown" do

@@ -28,7 +28,6 @@ if arguments.size > MAXIMUM_MATCH_ARGUMENTS
 end
 MATCH_NAME = arguments.first || ENV.fetch("MATCH", DEFAULT_MATCH_NAME)
 FRAMES_PER_GAME_SECOND       = 60
-GAME_FRAME_DURATION          = 1.0 / FRAMES_PER_GAME_SECOND
 DEFAULT_EPISODE_FRAME_LIMIT  = FightingAI::Game::MortalKombat3::MemoryMap::TIMER_MAX * FRAMES_PER_GAME_SECOND
 EPISODE_FRAME_LIMIT_ENV      = "LEARN_EMPTY_EPISODE_FRAMES"
 EPISODE_FRAME_LIMIT          = Integer(ENV.fetch(EPISODE_FRAME_LIMIT_ENV, DEFAULT_EPISODE_FRAME_LIMIT))
@@ -66,8 +65,8 @@ if health_enabled
   metadata_detectors << lambda do |frame|
     health = health_detector.detect(frame)
     {
-      h1: health.fetch(FightingAI::Game::MortalKombat3::Adapter::PLAYER_ONE),
-      h2: health.fetch(FightingAI::Game::MortalKombat3::Adapter::PLAYER_TWO)
+      health_1: health.fetch(FightingAI::Game::MortalKombat3::Adapter::PLAYER_ONE),
+      health_2: health.fetch(FightingAI::Game::MortalKombat3::Adapter::PLAYER_TWO)
     }
   end
 end
@@ -85,19 +84,19 @@ timer_detector = FightingAI::Vision::TimerDetector.new(
     search_stride: POSITION_SEARCH_STRIDE
   )
 ) if time_enabled && !position_detector
-metadata_detectors << ->(frame) { { t: timer_detector.detect(frame) } } if timer_detector
+metadata_detectors << ->(frame) { { timer: timer_detector.detect(frame) } } if timer_detector
 if position_detector
   metadata_detectors << lambda do |frame|
     result = position_detector.detect(frame)
     player1 = result[:player1]
     player2 = result[:player2]
     metadata = {}
-    metadata[:t] = result[:timer] if time_enabled
+    metadata[:timer] = result[:timer] if time_enabled
     metadata.merge(
-      x1: player1&.fetch(:x),
-      y1: player1&.fetch(:y),
-      x2: player2&.fetch(:x),
-      y2: player2&.fetch(:y)
+      fighter1_x: player1&.fetch(:x),
+      fighter1_y: player1&.fetch(:y),
+      fighter2_x: player2&.fetch(:x),
+      fighter2_y: player2&.fetch(:y)
     )
   end
 end
@@ -132,7 +131,7 @@ begin
         emulator:       emulator,
         output:         log_file,
         frame_limit:    EPISODE_FRAME_LIMIT,
-        frame_advancer: -> { sleep(GAME_FRAME_DURATION) },
+        frame_advancer: -> {},
         metadata_detector: metadata_detector
       )
       runner.run
