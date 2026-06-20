@@ -47,6 +47,18 @@ VISION=1 dip learn sub-zero-vs-sub-zero
 Vision currently affects fighter position detection only. Other state fields still
 come from WRAM snapshots.
 
+To measure raw screenshot capture throughput without PPO or vision scanning, run:
+
+```bash
+dip learn_empty sub-zero-vs-sub-zero
+```
+
+The command writes `data/fight_logs/episode_00001.log`,
+`episode_00002.log`, and so on. Each line contains the capture frame number and
+PNG byte size (`f: 1; size: 35416`). It records no scanned game-state fields.
+Episodes default to 5,940 capture intervals before the match state is reloaded;
+override this with `LEARN_EMPTY_EPISODE_FRAMES`. Stop it with Ctrl+C.
+
 ## Match Setup
 
 ```ruby

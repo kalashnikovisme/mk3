@@ -37,6 +37,20 @@ PNG decoding is pure Ruby using `Zlib::Inflate` on the PNG IDAT chunks — no im
 
 All image data is loaded and decompressed once on the first method call that needs it.
 
+### Capture Throughput Diagnostic
+
+`dip learn_empty [match-name]` starts the requested save state and captures a
+PNG every frame interval without constructing a game adapter or invoking health,
+timer, character-position, or PPO processing. Each line in
+`data/fight_logs/episode_%05d.log` contains the capture frame number and PNG size,
+for example `f: 1; size: 35416`. Frames are written to
+`/tmp/fighting_ai/screenshots` inside the command container.
+
+Without vision scanning there is no gameplay-derived match-end signal. Empty-mode
+episodes therefore last 5,940 capture intervals (99 timer seconds at 60 FPS),
+then reload the selected match state. Set `LEARN_EMPTY_EPISODE_FRAMES` to a
+positive frame count to shorten or extend diagnostic episodes.
+
 ### `Observation::MemoryObservation`
 
 Stub for a future structured observation built directly from WRAM values rather than pixel data. Wraps a raw snapshot hash from `WramReader`.

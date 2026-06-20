@@ -139,6 +139,7 @@ See `docs/ppo_training.md` for full hyperparameter reference.
 ### Runtime
 
 - `MatchRunner` — drives one match frame-by-frame; detects stale rounds and ends them early.
+- `FrameCaptureRunner` — capture-only diagnostic loop used by `dip learn_empty`; writes numbered PNG byte sizes into fixed-duration episode logs without game-state extraction, vision scanning, or training.
 - `HumanVsAI` — human keyboard passthrough (VirtualInput for P1) + AI agent injection (P2).
 - `AIVsAI` — autonomous series of matches.
 

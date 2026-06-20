@@ -77,6 +77,7 @@ require_relative "fighting_ai/training/fight_logger"
 require_relative "fighting_ai/training/ppo_trainer"
 
 # Runtime
+require_relative "fighting_ai/runtime/frame_capture_runner"
 require_relative "fighting_ai/runtime/match_runner"
 require_relative "fighting_ai/runtime/human_vs_ai"
 require_relative "fighting_ai/runtime/ai_vs_ai"

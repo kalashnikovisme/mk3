@@ -52,6 +52,7 @@ This builds the Docker image (Ruby 4.0 + RetroArch + xdotool + X screenshot tool
 | `dip rspec` | Run RSpec tests |
 | `dip rubocop` | Run RuboCop linter |
 | `dip learn` | Record AI vs AI self-play to `data/recordings/mk3/` |
+| `dip learn_empty [match-name]` | Write numbered PNG sizes to per-episode files in `data/fight_logs/` |
 | `dip watch-match` | Replay a recorded match |
 | `dip play-vs-ai` | Play against the trained AI |
 

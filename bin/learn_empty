@@ -1,0 +1,75 @@
+#!/usr/bin/env ruby
+
+$LOAD_PATH.unshift File.expand_path("../lib", __dir__)
+
+require "fileutils"
+require "fighting_ai/cli/bootstrap"
+
+$stderr.reopen(File::NULL, "w")
+
+ROM_PATH           = ENV.fetch("ROM_PATH", File.expand_path("../mk3.sfc", __dir__))
+CORE_PATH          = ENV.fetch("CORE_PATH", "/usr/lib/x86_64-linux-gnu/libretro/snes9x_libretro.so")
+MATCHES_DIR        = File.expand_path("../data/matches", __dir__)
+FIGHT_LOGS_DIR     = File.expand_path("../data/fight_logs", __dir__)
+DEFAULT_MATCH_NAME = "sub-zero-vs-sub-zero"
+MATCH_NAME         = ARGV.first || ENV.fetch("MATCH", DEFAULT_MATCH_NAME)
+FRAMES_PER_GAME_SECOND       = 60
+DEFAULT_EPISODE_FRAME_LIMIT  = FightingAI::Game::MortalKombat3::MemoryMap::TIMER_MAX * FRAMES_PER_GAME_SECOND
+EPISODE_FRAME_LIMIT_ENV      = "LEARN_EMPTY_EPISODE_FRAMES"
+EPISODE_FRAME_LIMIT          = Integer(ENV.fetch(EPISODE_FRAME_LIMIT_ENV, DEFAULT_EPISODE_FRAME_LIMIT))
+MINIMUM_EPISODE_FRAME_LIMIT  = 1
+INITIAL_EPISODE_NUMBER       = 1
+EPISODE_INCREMENT            = 1
+EPISODE_LOG_FILENAME_FORMAT  = "episode_%05d.log"
+
+unless EPISODE_FRAME_LIMIT >= MINIMUM_EPISODE_FRAME_LIMIT
+  raise "#{EPISODE_FRAME_LIMIT_ENV} must be at least #{MINIMUM_EPISODE_FRAME_LIMIT}"
+end
+
+match_path = File.join(MATCHES_DIR, "#{MATCH_NAME}.state")
+raise "Match state not found: #{match_path}" unless File.file?(match_path)
+
+states_dir = FightingAI::Emulator::RetroArch::ConfigBuilder::STATES_DIR
+FileUtils.rm_rf(states_dir)
+FileUtils.mkdir_p(states_dir)
+FileUtils.cp(match_path, File.join(states_dir, "#{File.basename(ROM_PATH, '.*')}.state"))
+
+emulator = FightingAI::CLI.start_retro_arch(
+  rom_path:         ROM_PATH,
+  core_path:        CORE_PATH,
+  extra_watch_dirs: [MATCHES_DIR],
+  verbose:          false
+)
+FileUtils.rm_rf(FIGHT_LOGS_DIR)
+FileUtils.mkdir_p(FIGHT_LOGS_DIR)
+episode_number = INITIAL_EPISODE_NUMBER
+runner = nil
+stop_requested = false
+Signal.trap("INT") do
+  stop_requested = true
+  runner&.stop
+end
+
+begin
+  loop do
+    emulator.install_match_state(match_path)
+    break if stop_requested
+
+    log_path = File.join(FIGHT_LOGS_DIR, format(EPISODE_LOG_FILENAME_FORMAT, episode_number))
+    File.open(log_path, "w") do |log_file|
+      log_file.sync = true
+      runner = FightingAI::Runtime::FrameCaptureRunner.new(
+        emulator:    emulator,
+        output:      log_file,
+        frame_limit: EPISODE_FRAME_LIMIT
+      )
+      runner.run
+    end
+
+    break if stop_requested || runner.interrupted?
+
+    episode_number += EPISODE_INCREMENT
+  end
+ensure
+  emulator.stop
+end

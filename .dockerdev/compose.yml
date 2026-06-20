@@ -16,6 +16,7 @@ services:
       NVIDIA_DRIVER_CAPABILITIES: compute,utility
       AI_LOG:
       VISION:
+      LEARN_EMPTY_EPISODE_FRAMES:
 
   app_gpu:
     extends:

@@ -47,6 +47,11 @@ interaction:
     service: app_gpu
     command: bundle exec ruby bin/learn
 
+  learn_empty:
+    description: "Capture one screenshot per frame without scanning or training. Usage: dip learn_empty [match-name]"
+    service: app
+    command: bundle exec ruby bin/learn_empty
+
   learn_from_ppo:
     description: "Resume PPO training from a checkpoint. Usage: dip learn_from_ppo <ppo_path> [match-name] [debug]"
     service: app_gpu

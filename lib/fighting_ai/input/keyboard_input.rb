@@ -128,20 +128,20 @@ module FightingAI
           unless ids.empty?
             wid  = ids.first
             name = xdotool_output("getwindowname #{wid}")
-            $stderr.puts "[keys] window found by PID #{@pid}: id=#{wid} title=#{name.inspect}"
+            $stderr.puts "[keys] window found by PID #{@pid}: id=#{wid} title=#{name.inspect}" if @verbose
             return wid
           end
         end
 
         ids = xdotool_output("search --name RetroArch").split
         if ids.empty?
-          $stderr.puts "[keys] no RetroArch window found (DISPLAY=#{@display})"
+          $stderr.puts "[keys] no RetroArch window found (DISPLAY=#{@display})" if @verbose
           return nil
         end
 
         wid  = ids.first
         name = xdotool_output("getwindowname #{wid}")
-        $stderr.puts "[keys] window found by name: id=#{wid} title=#{name.inspect}"
+        $stderr.puts "[keys] window found by name: id=#{wid} title=#{name.inspect}" if @verbose
         wid
       end
 
