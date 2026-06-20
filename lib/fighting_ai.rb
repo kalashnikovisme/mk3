@@ -37,6 +37,7 @@ require_relative "fighting_ai/vision/position_detector"
 
 # Emulator adapters
 require_relative "fighting_ai/emulator/adapter"
+require_relative "fighting_ai/emulator/retro_arch/adapter_config"
 require_relative "fighting_ai/emulator/retro_arch/config_builder"
 require_relative "fighting_ai/emulator/retro_arch/network_commands"
 require_relative "fighting_ai/emulator/retro_arch/process"

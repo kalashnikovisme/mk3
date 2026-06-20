@@ -19,6 +19,8 @@ module FightingAI
         end
 
         def self.config(core_path)
+          cfg = AdapterConfig.new
+          throttled = cfg.speed <= 1.0
           <<~CFG
             network_cmd_enable = "true"
             network_cmd_port = "55355"
@@ -31,7 +33,8 @@ module FightingAI
             video_window_show_decorations = "false"
             video_smooth = "false"
             audio_driver = "#{AUDIO_DRIVER}"
-            audio_sync = "true"
+            audio_sync = "#{throttled}"
+            video_swap_interval = "#{throttled ? 1 : 0}"
             libretro_path = "#{core_path}"
             savestate_auto_load = "false"
             savestate_auto_save = "false"

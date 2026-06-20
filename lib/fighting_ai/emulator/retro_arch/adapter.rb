@@ -12,9 +12,9 @@ module FightingAI
   module Emulator
     module RetroArch
       class Adapter < FightingAI::Emulator::Adapter
-        # 6 SNES frames at 60 fps ≈ 100 ms per agent decision step.
-        STEP_DURATION   = 1.0 / 60.0 * 6
-        FRAME_DURATION  = 1.0 / 60.0
+        FRAMES_PER_SECOND = 60
+        FRAME_DURATION    = 1.0 / FRAMES_PER_SECOND
+        STEP_DURATION     = FRAME_DURATION * AdapterConfig.new.step_frames
         STARTUP_WAIT    = 6.0
         LOAD_STATE_WAIT = 1.0
         MATCH_STATE_SLOT = 0
