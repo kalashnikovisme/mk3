@@ -19,21 +19,23 @@ capture  # → an Observation object
 Wraps a path to a PNG screenshot captured by `RetroArch::FrameGrabber`.
 `FrameGrabber` captures the isolated X display with `xwd`, crops the top-left
 `297x216` pixels, converts the crop to PNG with ImageMagick, and returns the
-observation.
+observation. The PNG encoder is pinned to 8-bit truecolor (PNG color type 2),
+which is the pixel layout consumed by `FrameObservation`; this prevents
+ImageMagick from opportunistically emitting indexed-palette frames.
 
 ```ruby
 frame = Observation::FrameObservation.new("/tmp/fighting_ai/screenshots/frame_001.png")
 
-frame.path    # → String, absolute PNG path
-frame.width   # → Integer (lazy, parsed from PNG IHDR)
-frame.height  # → Integer (lazy, parsed from PNG IHDR)
-frame.pixels  # → Array of [r, g, b] triples (lazy, decoded from PNG IDAT)
-frame.to_tensor  # → flat Float Array, values in [0.0, 1.0], row-major, channels last
+frame.path           # → String, absolute PNG path
+frame.width          # → Integer (lazy, parsed from PNG IHDR on first access)
+frame.height         # → Integer (lazy, parsed from PNG IHDR on first access)
+frame.pixel_rgb(x,y) # → [r, g, b] Integer triple read directly from binary scanline
+frame.to_tensor      # → flat Float Array, values in [0.0, 1.0], row-major, channels last
 ```
 
-Pixel decoding is pure Ruby using `Zlib::Inflate` on the PNG IDAT chunks. No external image library is required.
+PNG decoding is pure Ruby using `Zlib::Inflate` on the PNG IDAT chunks — no image library required. The decompressed scanlines are stored as binary `String` objects; `pixel_rgb(x, y)` reads them with `String#getbyte` without allocating intermediate objects, making per-pixel health-bar scanning fast.
 
-`pixels` and `to_tensor` are memoized after the first call.
+All image data is loaded and decompressed once on the first method call that needs it.
 
 ### `Observation::MemoryObservation`
 

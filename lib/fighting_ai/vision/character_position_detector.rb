@@ -60,9 +60,9 @@ module FightingAI
         File.exist?(@script_path) && Dir.glob(File.join(@template_dir, "*_gray.png")).any?
       end
 
-      def detect(frame_observation)
+      def detect_path(path)
         ensure_started
-        request = { path: frame_observation.path }.to_json
+        request = { path: path }.to_json
         @stdin.write(request)
         @stdin.write(JSON_LINE_SEPARATOR)
         @stdin.flush
@@ -83,6 +83,10 @@ module FightingAI
           player2:      detections.fetch(SECOND_DETECTION_INDEX, nil),
           timer:        payload["timer"]
         }
+      end
+
+      def detect(frame_observation)
+        detect_path(frame_observation.path)
       end
 
       def stop

@@ -10,6 +10,7 @@ require_relative "characters"
 require_relative "characters/sub_zero"
 require_relative "../../vision/character_position_detector"
 require_relative "../../vision/health_bar_detector"
+require_relative "../../vision/async_vision_scanner"
 
 module FightingAI
   module Game
@@ -35,6 +36,7 @@ module FightingAI
           @reward_function  = RewardFunction.new(weights: reward_weights)
           @navigator        = MenuNavigator.new(emulator_adapter)
           @vision_detector  = vision_detector
+          @async_scanner    = vision_detector ? Vision::AsyncVisionScanner.new(vision_detector) : nil
           @health_detector  = Vision::HealthBarDetector.new(
             bar1:       P1_HEALTH_BAR,
             bar2:       P2_HEALTH_BAR,
@@ -55,8 +57,15 @@ module FightingAI
         end
 
         def extract_game_state(raw_snapshot, frame_observation: nil)
-          vision = vision_detect(frame_observation)
           health = frame_observation ? @health_detector.detect(frame_observation) : nil
+
+          vision = nil
+          if frame_observation && @async_scanner
+            @async_scanner.submit(frame_observation.path)
+            raw = @async_scanner.latest_result
+            vision = process_vision_result(raw) if raw
+          end
+
           StateExtractor.extract(
             raw_snapshot,
             vision_positions: vision&.fetch(:positions),
@@ -94,7 +103,7 @@ module FightingAI
         def detect_timer(frame_observation)
           return nil unless vision_enabled? && frame_observation
 
-          @vision_detector.detect(frame_observation)[:timer]
+          @async_scanner&.latest_result&.dig(:timer)
         end
 
         def start_game
@@ -160,14 +169,13 @@ module FightingAI
 
         private
 
-        def vision_detect(frame_observation)
-          return nil unless vision_enabled? && frame_observation
-
-          result       = @vision_detector.detect(frame_observation)
-          image_width  = result.fetch(:image_width)
-          image_height = result.fetch(:image_height)
-          positions    = assign_vision_positions(result[:detections], image_width: image_width, image_height: image_height)
-          { positions: positions, timer: result[:timer] }
+        def process_vision_result(raw)
+          positions = assign_vision_positions(
+            raw[:detections],
+            image_width:  raw[:image_width],
+            image_height: raw[:image_height]
+          )
+          { positions: positions, timer: raw[:timer] }
         end
 
         def assign_vision_positions(detections, image_width:, image_height:)

@@ -148,7 +148,7 @@ module FightingAI
       def log_vision_capture_warning(error)
         return if @vision_capture_warning_logged
 
-        message = "Vision screenshot capture failed (#{error.message}); falling back to WRAM positions."
+        message = "Vision screenshot capture failed (#{error.message}); positions will use last known values."
         @ui&.log(message)
         log(message) unless @ui
         @vision_capture_warning_logged = true

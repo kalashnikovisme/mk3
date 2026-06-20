@@ -15,8 +15,7 @@ FightingAI drives RetroArch (with the snes9x core) as the SNES emulator. Communi
 1. `RetroArch::ConfigBuilder.build` writes a temp `retroarch.cfg` with network commands enabled and P1/P2 keyboard bindings.
 2. `RetroArch::Adapter#start` starts the `display_server` first — either `XvfbServer` (`Xvfb :99`, headless) or `XephyrServer` (`Xephyr :99`, visible window on host desktop).
 3. `RetroArch::Process#start` spawns `retroarch` with `DISPLAY=:99` in a new process group with stdout/stderr redirected to `/dev/null`.
-4. After a startup pause, `RetroArch::Adapter#wait_for_wram` polls slot 9 save-states: it issues `SAVE_STATE` via UDP, then calls `SaveStateReader#try_locate_any` until the MK3 WRAM region is found.
-5. Once WRAM is located, the adapter loads slot 0 (the match state) and the run loop begins.
+4. After a startup pause, the adapter loads slot 0 (the match state) and the run loop begins.
 6. On stop, the adapter releases all keys, sends `QUIT` via UDP, kills the process group, then stops the display server.
 
 ## UDP Network Commands
@@ -140,6 +139,13 @@ decorations are disabled, and smoothing is disabled to keep captured pixels
 stable for vision debugging.
 
 The app does not use RetroArch's screenshot command. `FrameGrabber` captures the
-isolated X display directly with `xwd`, converts the result to PNG with
-ImageMagick, and crops the top-left `297x216` pixels. Runtime vision and the
-Scenario DSL `screenshot` method both use this X-server screenshot path.
+isolated X display directly with `xwd`, pipes the result directly into ImageMagick
+`convert` (no temp file), and crops the top-left `297x216` pixels as an 8-bit
+TrueColor PNG with no scanline filters (`-type TrueColor -depth 8
+-define png:compression-filter=0`). Runtime vision and the Scenario DSL
+`screenshot` method both use this X-server screenshot path.
+
+The headless `XvfbServer` runs at `320x240` (was `1024x768`), reducing each
+`xwd` capture from ~3 MB to ~300 KB. The watch-mode `XephyrServer` remains at
+`1024x768` for human readability — in watch mode the larger capture is
+acceptable.

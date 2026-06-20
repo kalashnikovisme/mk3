@@ -3,7 +3,7 @@ module FightingAI
     module RetroArch
       class XvfbServer
         DISPLAY = ":99"
-        SCREEN  = "1024x768x24"
+        SCREEN  = "320x240x24"
 
         attr_reader :display
 

@@ -20,11 +20,11 @@ RSpec.describe FightingAI::Runtime::MatchRunner do
   end
 
   describe "#capture_frame_observation" do
-    it "falls back to WRAM positions when vision screenshot capture fails" do
+    it "returns nil when vision screenshot capture fails" do
       allow(emulator).to receive(:capture_frame).and_raise(capture_error)
 
       expect(runner.send(:capture_frame_observation)).to be_nil
-      expect(logger_messages.join).to include("falling back to WRAM positions")
+      expect(logger_messages.join).to include("positions will use last known values")
     end
 
     it "logs the vision screenshot capture warning only once" do
@@ -33,7 +33,7 @@ RSpec.describe FightingAI::Runtime::MatchRunner do
       runner.send(:capture_frame_observation)
       runner.send(:capture_frame_observation)
 
-      warning_count = logger_messages.count { |message| message.include?("falling back to WRAM positions") }
+      warning_count = logger_messages.count { |message| message.include?("positions will use last known values") }
       expect(warning_count).to eq(EXPECTED_WARNING_COUNT)
     end
   end
