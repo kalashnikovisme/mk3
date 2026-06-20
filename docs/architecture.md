@@ -82,6 +82,7 @@ Wraps emulator output into observation objects for downstream use.
 - `Observation::MemoryObservation` — future WRAM-based structured observation (stub)
 - `Vision::CharacterPositionDetector` — optional Ruby wrapper around the Python CUDA detector (`bin/vision_detect.py --server`) that reads `FrameObservation` screenshots and returns detected character positions before `Core::Observation` is built
 - `Vision::TimerDetector` — timer-only wrapper around the persistent Python detector; loads timer templates without loading or matching fighter templates
+- `Vision::PositionDetector` — scales the persistent character detector's left-to-right player detections into MK3 coordinates and shares the same pass's timer result when requested
 
 **Rule**: Lives outside Core and outside the emulator layer.
 

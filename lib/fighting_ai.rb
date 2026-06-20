@@ -33,6 +33,7 @@ require_relative "fighting_ai/observation/memory_observation"
 require_relative "fighting_ai/vision/character_position_detector"
 require_relative "fighting_ai/vision/health_bar_detector"
 require_relative "fighting_ai/vision/timer_detector"
+require_relative "fighting_ai/vision/position_detector"
 
 # Emulator adapters
 require_relative "fighting_ai/emulator/adapter"

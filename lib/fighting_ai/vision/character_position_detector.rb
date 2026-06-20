@@ -40,7 +40,8 @@ module FightingAI
         script_path: DEFAULT_SCRIPT_PATH,
         action_mode: ENV.fetch(VISION_ACTION_ENV, DEFAULT_ACTION_MODE),
         areas: ENV.fetch(VISION_AREAS_ENV, nil),
-        full_screen: ENV.fetch(VISION_FULL_SCREEN_ENV, nil) == ENV_TRUE_VALUE
+        full_screen: ENV.fetch(VISION_FULL_SCREEN_ENV, nil) == ENV_TRUE_VALUE,
+        detect_timer: true
       )
         @character = character.to_sym
         @template_dir = File.join(template_root, character.to_s)
@@ -48,6 +49,7 @@ module FightingAI
         @action_mode = action_mode
         @areas = parse_areas(areas)
         @full_screen = full_screen
+        @detect_timer = detect_timer
         @stdin = nil
         @stdout = nil
         @stderr = nil
@@ -62,7 +64,7 @@ module FightingAI
 
       def detect_path(path)
         ensure_started
-        request = { path: path }.to_json
+        request = { path: path, detect_timer: @detect_timer }.to_json
         @stdin.write(request)
         @stdin.write(JSON_LINE_SEPARATOR)
         @stdin.flush

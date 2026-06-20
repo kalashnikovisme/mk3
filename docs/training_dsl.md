@@ -67,6 +67,10 @@ to each log line; all other detectors remain disabled.
 argument appends `t` using timer templates without loading or matching fighter
 templates. Detector arguments may be supplied in either order.
 
+`dip learn_empty health time positions` additionally appends `x1`, `y1`, `x2`,
+and `y2`. Position and timer results share one Python detector pass when both
+arguments are present.
+
 Unlike normal real-time training, this diagnostic mode pauses RetroArch and uses
 one `FRAME_ADVANCE` command per logged frame. Detector latency affects wall-clock
 throughput but does not skip game frames.

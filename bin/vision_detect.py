@@ -612,8 +612,7 @@ def detect_image(
                 )
                 if roi_matches:
                     completed_roi_indexes.add(roi_index)
-
-                matches.extend(roi_matches)
+                    matches.append(max(roi_matches, key=lambda detection: detection.confidence))
         else:
             matches = match_template(image, template, min_confidence, search_stride)
 
@@ -741,6 +740,7 @@ def detect_path_payload(
     max_detections: int,
     search_stride: int,
     rois: tuple[Roi, ...],
+    timer_enabled: bool = True,
 ) -> dict:
     if not path.exists():
         return {"ok": False, "error": "file not found", "path": str(path)}
@@ -772,7 +772,7 @@ def detect_path_payload(
         "match_seconds": match_seconds,
         "areas": [roi.__dict__ for roi in active_rois],
         "detections": [detection_to_dict(detection) for detection in detections],
-        "timer": detect_timer(image, timer_templates),
+        "timer": detect_timer(image, timer_templates) if timer_enabled else None,
     }
 
 
@@ -803,12 +803,23 @@ def run_server(
         try:
             request = json.loads(line)
             path = Path(request["path"])
+            timer_enabled = request.get("detect_timer", True)
         except Exception as error:
             print(json.dumps({"ok": False, "error": str(error)}), flush=True)
             continue
 
         try:
-            payload = detect_path_payload(path, templates, timer_templates, device, min_confidence, max_detections, search_stride, rois)
+            payload = detect_path_payload(
+                path,
+                templates,
+                timer_templates,
+                device,
+                min_confidence,
+                max_detections,
+                search_stride,
+                rois,
+                timer_enabled=timer_enabled,
+            )
         except Exception as error:
             payload = {"ok": False, "path": str(path), "error": str(error)}
         print(json.dumps(payload), flush=True)

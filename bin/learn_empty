@@ -14,12 +14,15 @@ FIGHT_LOGS_DIR     = File.expand_path("../data/fight_logs", __dir__)
 DEFAULT_MATCH_NAME = "sub-zero-vs-sub-zero"
 HEALTH_DETECTOR_ARGUMENT = "health"
 TIME_DETECTOR_ARGUMENT   = "time"
+POSITIONS_DETECTOR_ARGUMENT = "positions"
 MAXIMUM_MATCH_ARGUMENTS  = 1
 arguments = ARGV.dup
 health_enabled = arguments.delete(HEALTH_DETECTOR_ARGUMENT)
 time_enabled = arguments.delete(TIME_DETECTOR_ARGUMENT)
+positions_enabled = arguments.delete(POSITIONS_DETECTOR_ARGUMENT)
 if arguments.size > MAXIMUM_MATCH_ARGUMENTS
-  raise "Usage: dip learn_empty [#{HEALTH_DETECTOR_ARGUMENT}] [#{TIME_DETECTOR_ARGUMENT}] [match-name]"
+  raise "Usage: dip learn_empty [#{HEALTH_DETECTOR_ARGUMENT}] [#{TIME_DETECTOR_ARGUMENT}] " \
+    "[#{POSITIONS_DETECTOR_ARGUMENT}] [match-name]"
 end
 MATCH_NAME = arguments.first || ENV.fetch("MATCH", DEFAULT_MATCH_NAME)
 FRAMES_PER_GAME_SECOND       = 60
@@ -64,8 +67,27 @@ if health_enabled
     }
   end
 end
-timer_detector = FightingAI::Vision::TimerDetector.new if time_enabled
+position_detector = if positions_enabled
+  detector = FightingAI::Vision::CharacterPositionDetector.new(detect_timer: !!time_enabled)
+  FightingAI::Vision::PositionDetector.new(detector: detector)
+end
+timer_detector = FightingAI::Vision::TimerDetector.new if time_enabled && !position_detector
 metadata_detectors << ->(frame) { { t: timer_detector.detect(frame) } } if timer_detector
+if position_detector
+  metadata_detectors << lambda do |frame|
+    result = position_detector.detect(frame)
+    player1 = result[:player1]
+    player2 = result[:player2]
+    metadata = {}
+    metadata[:t] = result[:timer] if time_enabled
+    metadata.merge(
+      x1: player1&.fetch(:x),
+      y1: player1&.fetch(:y),
+      x2: player2&.fetch(:x),
+      y2: player2&.fetch(:y)
+    )
+  end
+end
 metadata_detector = unless metadata_detectors.empty?
   lambda do |frame|
     metadata_detectors.each_with_object({}) do |detector, metadata|
@@ -76,6 +98,7 @@ end
 FileUtils.rm_rf(FIGHT_LOGS_DIR)
 FileUtils.mkdir_p(FIGHT_LOGS_DIR)
 timer_detector&.start
+position_detector&.start
 emulator.install_match_state_paused(match_path)
 episode_number = INITIAL_EPISODE_NUMBER
 runner = nil
@@ -109,5 +132,6 @@ begin
   end
 ensure
   timer_detector&.stop
+  position_detector&.stop
   emulator.stop
 end

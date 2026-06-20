@@ -70,6 +70,22 @@ Combined lines have the form
 `f: 1; size: 35416; h1: 166; h2: 166; t: 87`. Timer-only mode does not load or
 match fighter templates.
 
+`positions` enables character-template matching and appends scaled `x1`, `y1`,
+`x2`, and `y2` coordinates. It composes with the other detectors:
+
+```bash
+dip learn_empty health time positions
+dip learn_empty positions sub-zero-vs-sub-zero
+```
+
+When `time` and `positions` are both requested, one persistent Python scan
+produces both results. With `positions` alone, timer matching is disabled.
+Missing character detections are logged as empty coordinate values. The command
+uses the GPU-enabled Dip service so position template matching does not fall back
+to the much slower CPU path. Default player ROIs retain at most one
+highest-confidence candidate each, preventing two P1-region matches from being
+misreported as P1 and P2.
+
 Timer templates are matched across a small horizontal search window because
 captured timer digits can shift by one pixel relative to their prepared
 templates. This prevents a visible `99` from being classified as `89` based on
