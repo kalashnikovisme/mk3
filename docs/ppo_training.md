@@ -129,6 +129,25 @@ File: `lib/fighting_ai/runtime/match_runner.rb`
 |-----------|-------|-------------|
 | `STALL_TIMEOUT` | 5.0 s | Round ends as stale if HP is unchanged for this duration |
 
+### Per-frame timing logs
+
+`dip learn` and `dip learn_watch` write one block per runtime iteration to
+`data/fight_logs/episode_%05d.log`. Timing values are rounded milliseconds:
+
+| Field | Measured work |
+|-------|---------------|
+| `snapshot_ms` | Emulator step wait and snapshot construction |
+| `capture_ms` | Fetching the latest screenshot from the streaming frame grabber |
+| `detect_ms` | Synchronous health detection and vision-result submission/readback |
+| `agents_ms` | Rewards, observation construction, both PPO agent decisions, action translation, and input injection including `xdotool` calls |
+| `runtime_ms` | All work after detection, including UI/status updates, frame bookkeeping, stale/round checks, and `agents_ms` |
+| `fight_log_ms` | Writing and flushing the frame data fields to the fight log |
+| `total_ms` | End-to-end iteration time from before the emulator step through the main fight-log write |
+
+`runtime_ms` includes `agents_ms`, so those fields must not be added together.
+The final two timing lines written after the measured fight-log flush are not
+included in `total_ms`.
+
 ## Training Loop
 
 File: `lib/fighting_ai/training/ppo_trainer.rb`

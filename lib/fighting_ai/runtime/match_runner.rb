@@ -79,20 +79,27 @@ module FightingAI
         stall_hp        = nil
         stall_since     = nil
         loop do
+          iteration_started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
           snapshot = @emulator.next_frame_snapshot
+          snapshot_finished_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
-          t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
           frame_observation = capture_frame_observation
-          t1 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+          capture_finished_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
           game_state = @game.extract_game_state(snapshot, frame_observation: frame_observation)
-          t2 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-
-          @fight_logger&.log_frame(
-            game_state,
-            capture_ms: ((t1 - t0) * MS_PER_SECOND).round,
-            detect_ms:  ((t2 - t1) * MS_PER_SECOND).round,
-            total_ms:   ((t2 - t0) * MS_PER_SECOND).round
-          )
+          detection_finished_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+          agents_ms = 0
+          log_frame = lambda do
+            work_finished_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+            @fight_logger&.log_frame(
+              game_state,
+              snapshot_ms: milliseconds_between(iteration_started_at, snapshot_finished_at),
+              capture_ms: milliseconds_between(snapshot_finished_at, capture_finished_at),
+              detect_ms: milliseconds_between(capture_finished_at, detection_finished_at),
+              agents_ms: agents_ms,
+              runtime_ms: milliseconds_between(detection_finished_at, work_finished_at),
+              work_ms: milliseconds_between(iteration_started_at, work_finished_at)
+            )
+          end
 
           if @ui && Time.now - last_ui_at >= UI_UPDATE_INTERVAL
             @ui.update(game_state: game_state)
@@ -131,10 +138,13 @@ module FightingAI
               log "Round #{round.number} stalled (HP unchanged for #{FightingAI.config.stale_timeout}s). Restarting."
               notify_agents_terminal_reward(game_state, prev_game_state, stale: true) if prev_game_state
               round.finish!(winner: nil, stale: true)
+              log_frame.call
               break
             end
 
+            agents_started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
             step_agents(game_state, prev_game_state, match.id)
+            agents_ms = milliseconds_since(agents_started_at)
           end
 
           if fight_seen && !game_state.fight_active?
@@ -142,11 +152,21 @@ module FightingAI
             winner = determine_round_winner(game_state)
             round.finish!(winner: winner)
             log "Round #{round.number} finished. Winner: #{winner}"
+            log_frame.call
             break
           end
 
           prev_game_state = game_state
+          log_frame.call
         end
+      end
+
+      def milliseconds_since(started_at)
+        milliseconds_between(started_at, Process.clock_gettime(Process::CLOCK_MONOTONIC))
+      end
+
+      def milliseconds_between(started_at, finished_at)
+        ((finished_at - started_at) * MS_PER_SECOND).round
       end
 
       def capture_frame_observation
