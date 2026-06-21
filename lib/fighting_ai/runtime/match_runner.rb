@@ -8,7 +8,8 @@ module FightingAI
     # Coordinates the emulator adapter, game adapter, agents, and recorder.
     # Does not know which game is being played or which emulator is used.
     class MatchRunner
-      WRAM_DUMP_DIR = File.expand_path("../../../data/memory", __dir__).freeze
+      WRAM_DUMP_DIR  = File.expand_path("../../../data/memory", __dir__).freeze
+      MS_PER_SECOND  = 1000
 
       def initialize(emulator_adapter:, game_adapter:, agents:, recorder: nil, logger: nil, ui: nil, wram_dump: false, max_rounds: nil, fight_logger: nil)
         @emulator        = emulator_adapter
@@ -77,10 +78,19 @@ module FightingAI
         stall_since     = nil
         loop do
           snapshot = @emulator.next_frame_snapshot
-          frame_observation = capture_frame_observation
-          game_state = @game.extract_game_state(snapshot, frame_observation: frame_observation)
 
-          @fight_logger&.log_frame(game_state)
+          t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+          frame_observation = capture_frame_observation
+          t1 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+          game_state = @game.extract_game_state(snapshot, frame_observation: frame_observation)
+          t2 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+          @fight_logger&.log_frame(
+            game_state,
+            capture_ms: ((t1 - t0) * MS_PER_SECOND).round,
+            detect_ms:  ((t2 - t1) * MS_PER_SECOND).round,
+            total_ms:   ((t2 - t0) * MS_PER_SECOND).round
+          )
 
           if @ui
             @ui.update(game_state: game_state)
