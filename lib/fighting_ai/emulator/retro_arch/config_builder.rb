@@ -7,8 +7,10 @@ module FightingAI
       module ConfigBuilder
         SCREENSHOT_DIR  = "/tmp/fighting_ai/screenshots"
         STATES_DIR      = "/tmp/fighting_ai/states"
-        NATIVE_VIDEO_SCALE = 1.0
-        AUDIO_DRIVER       = "pulse"
+        NATIVE_VIDEO_SCALE  = 1.0
+        AUDIO_DRIVER        = "pulse"
+        AUDIO_LATENCY_MS    = 10
+        VIDEO_FRAME_DELAY_MS = 15  # software throttle: (1000/60fps) - ~2ms render ≈ 15ms
 
         def self.build(core_path:)
           FileUtils.mkdir_p(SCREENSHOT_DIR)
@@ -34,7 +36,9 @@ module FightingAI
             video_smooth = "false"
             audio_driver = "#{AUDIO_DRIVER}"
             audio_sync = "#{throttled}"
+            audio_latency = "#{AUDIO_LATENCY_MS}"
             video_swap_interval = "#{throttled ? 1 : 0}"
+            video_frame_delay = "#{throttled ? VIDEO_FRAME_DELAY_MS : 0}"
             libretro_path = "#{core_path}"
             savestate_auto_load = "false"
             savestate_auto_save = "false"

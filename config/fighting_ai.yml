@@ -1,4 +1,4 @@
-stale_timeout: 1.0
+stale_timeout: 3.0
 reward_damage_dealt: 10.0
 reward_damage_taken: -5.0
 reward_distance: 25.0

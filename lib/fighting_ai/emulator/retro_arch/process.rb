@@ -23,7 +23,7 @@ module FightingAI
           FileUtils.mkdir_p(File.dirname(LOG_PATH))
           @log_io = File.open(LOG_PATH, "w")
 
-          env  = { "DISPLAY" => @display, "LIBGL_ALWAYS_SOFTWARE" => "1" }
+          env  = { "DISPLAY" => @display, "LIBGL_ALWAYS_SOFTWARE" => "1", "PULSE_LATENCY_MSEC" => "10" }
           args = [
             "retroarch",
             "--verbose",

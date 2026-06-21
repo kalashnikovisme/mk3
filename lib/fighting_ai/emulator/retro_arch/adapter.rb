@@ -14,7 +14,8 @@ module FightingAI
       class Adapter < FightingAI::Emulator::Adapter
         FRAMES_PER_SECOND = 60
         FRAME_DURATION    = 1.0 / FRAMES_PER_SECOND
-        STEP_DURATION     = FRAME_DURATION * AdapterConfig.new.step_frames
+        STEP_FRAMES       = AdapterConfig.new.step_frames
+        STEP_DURATION     = FRAME_DURATION * STEP_FRAMES
         STARTUP_WAIT    = 6.0
         LOAD_STATE_WAIT = 1.0
         MATCH_STATE_SLOT = 0
@@ -111,7 +112,6 @@ module FightingAI
         def send_input_sequence(player_index, frame_buttons_array)
           frame_buttons_array.each do |buttons|
             @keyboard.send_input(player_index, buttons)
-            sleep(FRAME_DURATION)
           end
         end
 

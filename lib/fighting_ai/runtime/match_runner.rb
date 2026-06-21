@@ -9,7 +9,8 @@ module FightingAI
     # Does not know which game is being played or which emulator is used.
     class MatchRunner
       WRAM_DUMP_DIR  = File.expand_path("../../../data/memory", __dir__).freeze
-      MS_PER_SECOND  = 1000
+      MS_PER_SECOND    = 1000
+      UI_UPDATE_INTERVAL = 1.0 / 10
 
       def initialize(emulator_adapter:, game_adapter:, agents:, recorder: nil, logger: nil, ui: nil, wram_dump: false, max_rounds: nil, fight_logger: nil)
         @emulator        = emulator_adapter
@@ -74,6 +75,7 @@ module FightingAI
         prev_game_state = nil
         fight_seen      = false
         last_status_at  = Time.now - 1
+        last_ui_at      = Time.now - UI_UPDATE_INTERVAL
         stall_hp        = nil
         stall_since     = nil
         loop do
@@ -92,8 +94,9 @@ module FightingAI
             total_ms:   ((t2 - t0) * MS_PER_SECOND).round
           )
 
-          if @ui
+          if @ui && Time.now - last_ui_at >= UI_UPDATE_INTERVAL
             @ui.update(game_state: game_state)
+            last_ui_at = Time.now
           elsif Time.now - last_status_at >= 1.0
             state = if game_state.fight_active?  then "fight"
                     elsif game_state.round_over? then "round_over"

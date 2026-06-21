@@ -115,6 +115,17 @@ dip learn-watch [match-name]
 
 `dip learn-watch` merges `.dockerdev/compose.watch.yml` on top of the base compose config, which mounts `/tmp/.X11-unix` and sets `DISPLAY_HOST`. Xephyr opens a `1024×768` window on the host desktop showing the live game.
 
+## Game Speed Throttling
+
+RetroArch is configured with `speed: 1.0` in `config/adapter.yml`. Throttling is harder than it looks in a headless container:
+
+- **`audio_sync = "true"`** relies on PulseAudio backpressure. With a null sink (`pactl load-module module-null-sink`), audio is consumed immediately with no backpressure — RetroArch runs as fast as the CPU allows (~10–25× real speed).
+- **`PULSE_LATENCY_MSEC=10`** and **`audio_latency = "10"`** were tried and do not fix the null-sink backpressure problem.
+- **`video_swap_interval = "1"`** requires display vsync. With software OpenGL (`LIBGL_ALWAYS_SOFTWARE=1`), there is no vsync — the setting is ignored.
+- **`video_frame_delay = "15"`** (used now) — a pure software sleep that RetroArch inserts at the start of each frame render. No audio or vsync dependency. With ~1–2ms render time, 15ms delay ≈ 17ms per frame ≈ 59fps ≈ 1.0× speed. `video_frame_delay_auto` is intentionally NOT set — the auto mode overrides the manual value from 0 and under software GL it fails to converge.
+
+The setting is applied when `cfg.speed <= 1.0` (the `throttled` flag in `ConfigBuilder`).
+
 ## RetroArch Configuration
 
 `RetroArch::ConfigBuilder.build` generates a temp config file:
