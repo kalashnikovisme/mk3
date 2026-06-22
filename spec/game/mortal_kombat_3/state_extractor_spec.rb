@@ -10,11 +10,11 @@ RSpec.describe FightingAI::Game::MortalKombat3::StateExtractor do
   VISION_P1_HP  = 120
   VISION_P2_HP  = 80
 
-  let(:snapshot) { { "type" => "frame", "frame" => 1234, "game" => "mortal_kombat_3" } }
+  let(:frame_number) { 1234 }
 
   subject(:game_state) do
     described_class.extract(
-      snapshot,
+      frame_number,
       vision_health: { PLAYER_ONE => VISION_P1_HP, PLAYER_TWO => VISION_P2_HP }
     )
   end
@@ -37,23 +37,23 @@ RSpec.describe FightingAI::Game::MortalKombat3::StateExtractor do
     end
 
     it "sets round timer from vision" do
-      state = described_class.extract(snapshot, vision_timer: 90)
+      state = described_class.extract(frame_number, vision_timer: 90)
       expect(state.round_time_remaining).to eq(90)
     end
 
     it "returns nil timer when vision provides no reading" do
-      state = described_class.extract(snapshot)
+      state = described_class.extract(frame_number)
       expect(state.round_time_remaining).to be_nil
     end
 
     it "defaults health to MAX_HEALTH when vision provides no reading" do
-      state = described_class.extract(snapshot)
+      state = described_class.extract(frame_number)
       expect(state.fighter1.health).to eq(FightingAI::Game::MortalKombat3::MemoryMap::MAX_HEALTH)
     end
 
     it "uses vision positions when provided" do
       state = described_class.extract(
-        snapshot,
+        frame_number,
         vision_positions: {
           PLAYER_ONE => { x: VISION_P1_X, y: VISION_P1_Y },
           PLAYER_TWO => { x: VISION_P2_X, y: VISION_P2_Y }
@@ -68,7 +68,7 @@ RSpec.describe FightingAI::Game::MortalKombat3::StateExtractor do
 
     it "detects round over when a fighter's health is 0" do
       state = described_class.extract(
-        snapshot,
+        frame_number,
         vision_health: { PLAYER_ONE => 50, PLAYER_TWO => 0 }
       )
       expect(state.round_over?).to be true

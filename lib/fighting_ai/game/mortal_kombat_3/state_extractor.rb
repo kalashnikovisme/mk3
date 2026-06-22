@@ -18,7 +18,7 @@ module FightingAI
         ZERO_HEALTH  = 0
         ZERO_TIMER   = 0
 
-        def self.extract(snapshot, vision_positions: nil, vision_timer: nil, vision_health: nil)
+        def self.extract(frame_number, vision_positions: nil, vision_timer: nil, vision_health: nil)
           fighter1 = build_fighter(PLAYER_ONE, vision_positions&.fetch(PLAYER_ONE, nil), vision_health&.fetch(PLAYER_ONE, nil))
           fighter2 = build_fighter(PLAYER_TWO, vision_positions&.fetch(PLAYER_TWO, nil), vision_health&.fetch(PLAYER_TWO, nil))
 
@@ -29,7 +29,7 @@ module FightingAI
           fight_active = !round_over
 
           Core::GameState.new(
-            frame_number:         snapshot.fetch("frame").to_i,
+            frame_number:         frame_number,
             fighter1:             fighter1,
             fighter2:             fighter2,
             round_time_remaining: round_time_remaining,

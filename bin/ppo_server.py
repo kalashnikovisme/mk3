@@ -92,11 +92,12 @@ def main():
     parser.add_argument("--hidden",  type=int, default=64,    help="Hidden layer size")
     args = parser.parse_args()
 
-    model     = ActorCritic(args.obs_dim, args.act_dim, args.hidden)
+    device    = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model     = ActorCritic(args.obs_dim, args.act_dim, args.hidden).to(device)
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
     # Signal to Ruby that the server is ready.
-    sys.stdout.write("ready\n")
+    sys.stdout.write(json.dumps({"ready": True, "device": str(device)}) + "\n")
     sys.stdout.flush()
 
     for raw_line in sys.stdin:
@@ -114,12 +115,12 @@ def main():
 
         # ── forward ──────────────────────────────────────────────────────────
         if cmd == "forward":
-            obs    = torch.tensor(req["obs"], dtype=torch.float32).unsqueeze(0)
+            obs    = torch.tensor(req["obs"], dtype=torch.float32).unsqueeze(0).to(device)
             with torch.no_grad():
                 logits, value = model(obs)
             dist = Categorical(logits=logits)
             if "action_index" in req:
-                action = torch.tensor(req["action_index"])
+                action = torch.tensor(req["action_index"]).to(device)
             else:
                 action = dist.sample()
             log_prob = dist.log_prob(action)
@@ -142,11 +143,11 @@ def main():
             advantages, returns = compute_gae(rew_arr, val_arr, done_arr)
             advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
-            obs_t    = torch.tensor(obs_arr)
-            act_t    = torch.tensor(act_arr)
-            ret_t    = torch.tensor(returns)
-            adv_t    = torch.tensor(advantages)
-            old_lp_t = torch.tensor(lp_arr)
+            obs_t    = torch.tensor(obs_arr).to(device)
+            act_t    = torch.tensor(act_arr).to(device)
+            ret_t    = torch.tensor(returns).to(device)
+            adv_t    = torch.tensor(advantages).to(device)
+            old_lp_t = torch.tensor(lp_arr).to(device)
 
             n            = len(trs)
             total_p_loss = 0.0
@@ -157,7 +158,7 @@ def main():
             for _ in range(PPO_EPOCHS):
                 indices = np.random.permutation(n)
                 for start in range(0, n, MINI_BATCH_SIZE):
-                    idx = torch.tensor(indices[start : start + MINI_BATCH_SIZE])
+                    idx = torch.tensor(indices[start : start + MINI_BATCH_SIZE]).to(device)
 
                     logits, values = model(obs_t[idx])
                     dist   = Categorical(logits=logits)
@@ -203,7 +204,7 @@ def main():
         elif cmd == "load":
             pt_path = os.path.join(req["path"], "policy.pt")
             if os.path.exists(pt_path):
-                ckpt = torch.load(pt_path, weights_only=True)
+                ckpt = torch.load(pt_path, weights_only=True, map_location=device)
                 model.load_state_dict(ckpt["model"])
                 optimizer.load_state_dict(ckpt["optimizer"])
                 _respond({"ok": True})

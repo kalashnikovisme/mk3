@@ -80,14 +80,13 @@ module FightingAI
         stall_since     = nil
         loop do
           iteration_started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-          snapshot = @emulator.next_frame_snapshot
+          frame_number = @emulator.advance_frame
           snapshot_finished_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
           frame_observation = capture_frame_observation
           capture_finished_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-          game_state = @game.extract_game_state(snapshot, frame_observation: frame_observation)
+          game_state = @game.extract_game_state(frame_number, frame_observation: frame_observation)
           detection_finished_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-          agents_ms = 0
           log_frame = lambda do
             work_finished_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
             @fight_logger&.log_frame(
@@ -95,7 +94,6 @@ module FightingAI
               snapshot_ms: milliseconds_between(iteration_started_at, snapshot_finished_at),
               capture_ms: milliseconds_between(snapshot_finished_at, capture_finished_at),
               detect_ms: milliseconds_between(capture_finished_at, detection_finished_at),
-              agents_ms: agents_ms,
               runtime_ms: milliseconds_between(detection_finished_at, work_finished_at),
               work_ms: milliseconds_between(iteration_started_at, work_finished_at)
             )
@@ -119,11 +117,10 @@ module FightingAI
             last_status_at = Time.now
           end
 
-          frame = Core::Frame.from_snapshot(
+          frame = Core::Frame.create(
             number:     game_state.frame_number,
             game_id:    @game.class::GAME_ID,
-            game_state: game_state,
-            raw_data:   snapshot
+            game_state: game_state
           )
           round.record_frame(frame)
 
@@ -142,9 +139,7 @@ module FightingAI
               break
             end
 
-            agents_started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
             step_agents(game_state, prev_game_state, match.id)
-            agents_ms = milliseconds_since(agents_started_at)
           end
 
           if fight_seen && !game_state.fight_active?
@@ -159,10 +154,6 @@ module FightingAI
           prev_game_state = game_state
           log_frame.call
         end
-      end
-
-      def milliseconds_since(started_at)
-        milliseconds_between(started_at, Process.clock_gettime(Process::CLOCK_MONOTONIC))
       end
 
       def milliseconds_between(started_at, finished_at)

@@ -81,10 +81,12 @@ module FightingAI
         @stdin.sync  = true
         @stdout.sync = true
 
-        ready = Timeout.timeout(STARTUP_TIMEOUT) { @stdout.readline.strip }
-        return if ready == "ready"
+        line  = Timeout.timeout(STARTUP_TIMEOUT) { @stdout.readline.strip }
+        msg   = JSON.parse(line)
+        raise "PPO server startup error: #{line}" unless msg["ready"]
 
-        raise "PPO server startup error: #{ready}"
+        $stdout.puts "PPO device: #{msg["device"]}"
+        $stdout.flush
       rescue Timeout::Error
         err = begin; @stderr.read_nonblock(8192); rescue; ""; end
         raise "PPO server did not start within #{STARTUP_TIMEOUT}s.\nstderr: #{err}"

@@ -16,18 +16,7 @@ module FightingAI
       # State extraction
       # -------------------------------------------------------------------------
 
-      # One-line human-readable description of a raw snapshot (stage, health, timer).
-      # Used for terminal status output; default falls back to raw screen value.
-      def describe_snapshot(raw_snapshot)
-        "screen=0x#{raw_snapshot['screen'].to_i.to_s(16).rjust(2, '0')}"
-      end
-
-      def snapshot_stage_name(raw_snapshot)
-        "screen=0x#{raw_snapshot['screen'].to_i.to_s(16).rjust(2, '0')}"
-      end
-
-      # Parse a raw frame snapshot Hash from the emulator into a Core::GameState.
-      def extract_game_state(raw_snapshot)
+      def extract_game_state(frame_number, frame_observation: nil)
         raise NotImplementedError, "#{self.class}#extract_game_state not implemented"
       end
 

@@ -56,7 +56,7 @@ module FightingAI
           }
         end
 
-        def extract_game_state(raw_snapshot, frame_observation: nil)
+        def extract_game_state(frame_number, frame_observation: nil)
           health = frame_observation ? @health_detector.detect(frame_observation) : nil
 
           vision = nil
@@ -67,7 +67,7 @@ module FightingAI
           end
 
           StateExtractor.extract(
-            raw_snapshot,
+            frame_number,
             vision_positions: vision&.fetch(:positions),
             vision_timer:     vision&.fetch(:timer),
             vision_health:    health

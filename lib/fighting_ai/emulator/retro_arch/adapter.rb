@@ -99,10 +99,9 @@ module FightingAI
           @process.pid
         end
 
-        def next_frame_snapshot
+        def advance_frame
           sleep(STEP_DURATION)
           @frame_counter += 1
-          build_mk3_snapshot(@frame_counter)
         end
 
         def send_input(player_index, buttons)
@@ -224,13 +223,6 @@ module FightingAI
           @save_state_reader.read_current
         end
 
-        def build_mk3_snapshot(frame_num)
-          {
-            "type"  => "frame",
-            "frame" => frame_num,
-            "game"  => "mortal_kombat_3"
-          }
-        end
       end
     end
   end

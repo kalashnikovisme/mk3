@@ -13,7 +13,6 @@ RSpec.describe FightingAI::Training::FightLogger do
   SNAPSHOT_MS = 17
   CAPTURE_MS = 3
   DETECT_MS = 5
-  AGENTS_MS = 211
   RUNTIME_MS = 218
   WORK_MS = 243
 
@@ -46,7 +45,6 @@ RSpec.describe FightingAI::Training::FightLogger do
         snapshot_ms: SNAPSHOT_MS,
         capture_ms: CAPTURE_MS,
         detect_ms: DETECT_MS,
-        agents_ms: AGENTS_MS,
         runtime_ms: RUNTIME_MS,
         work_ms: WORK_MS
       )
@@ -56,7 +54,6 @@ RSpec.describe FightingAI::Training::FightLogger do
       expect(output).to include("  snapshot_ms: #{SNAPSHOT_MS}\n")
       expect(output).to include("  capture_ms: #{CAPTURE_MS}\n")
       expect(output).to include("  detect_ms: #{DETECT_MS}\n")
-      expect(output).to include("  agents_ms: #{AGENTS_MS}\n")
       expect(output).to include("  runtime_ms: #{RUNTIME_MS}\n")
       expect(output).to match(/  fight_log_ms: \d+\n/)
       expect(output).to match(/  total_ms: \d+\n/)

@@ -17,8 +17,8 @@ module FightingAI
         raise NotImplementedError, "#{self.class}#connected? not implemented"
       end
 
-      def next_frame_snapshot
-        raise NotImplementedError, "#{self.class}#next_frame_snapshot not implemented"
+      def advance_frame
+        raise NotImplementedError, "#{self.class}#advance_frame not implemented"
       end
 
       # buttons: Hash of { logical_symbol => bool }
