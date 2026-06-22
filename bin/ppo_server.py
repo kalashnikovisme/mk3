@@ -96,6 +96,8 @@ def main():
     model     = ActorCritic(args.obs_dim, args.act_dim, args.hidden).to(device)
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
+    _warmup(model, device, args.obs_dim)
+
     # Signal to Ruby that the server is ready.
     sys.stdout.write(json.dumps({"ready": True, "device": str(device)}) + "\n")
     sys.stdout.flush()
@@ -213,6 +215,18 @@ def main():
 
         else:
             _respond({"error": f"unknown cmd: {cmd!r}"})
+
+
+WARMUP_RUNS = 5
+
+def _warmup(model, device, obs_dim: int):
+    dummy = torch.zeros(1, obs_dim, device=device)
+    with torch.no_grad():
+        for _ in range(WARMUP_RUNS):
+            logits, value = model(dummy)
+            Categorical(logits=logits).sample()
+    if device.type == "cuda":
+        torch.cuda.synchronize()
 
 
 def _respond(payload: dict):

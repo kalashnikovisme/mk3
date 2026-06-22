@@ -68,6 +68,7 @@ module FightingAI
         @window_id ||= find_window
         return unless @window_id
 
+        parts   = []
         key_map = PLAYER_KEYS.fetch(player_index)
         current = @key_state[player_index]
 
@@ -79,14 +80,44 @@ module FightingAI
 
           if pressed && !was_pressed
             $stdout.puts "[keys] P#{player_index} ▼ #{logical}" if @verbose
-            xdotool("keydown #{key}")
+            parts << "keydown #{key}"
             current[logical] = true
           elsif !pressed && was_pressed
             $stdout.puts "[keys] P#{player_index} ▲ #{logical}" if @verbose
-            xdotool("keyup #{key}")
+            parts << "keyup #{key}"
             current[logical] = false
           end
         end
+
+        xdotool(parts.join(" ")) unless parts.empty?
+      end
+
+      def send_input_sequence(player_index, frame_buttons_array)
+        @window_id ||= find_window
+        return unless @window_id
+
+        parts   = []
+        key_map = PLAYER_KEYS.fetch(player_index)
+        current = @key_state[player_index]
+
+        frame_buttons_array.each do |buttons|
+          buttons.each do |logical, pressed|
+            key = key_map[logical]
+            next unless key
+
+            was_pressed = current[logical]
+
+            if pressed && !was_pressed
+              parts << "keydown #{key}"
+              current[logical] = true
+            elsif !pressed && was_pressed
+              parts << "keyup #{key}"
+              current[logical] = false
+            end
+          end
+        end
+
+        xdotool(parts.join(" ")) unless parts.empty?
       end
 
       def load_state

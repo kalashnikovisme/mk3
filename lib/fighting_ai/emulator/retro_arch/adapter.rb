@@ -109,8 +109,10 @@ module FightingAI
         end
 
         def send_input_sequence(player_index, frame_buttons_array)
-          frame_buttons_array.each do |buttons|
-            @keyboard.send_input(player_index, buttons)
+          if @keyboard.respond_to?(:send_input_sequence)
+            @keyboard.send_input_sequence(player_index, frame_buttons_array)
+          else
+            frame_buttons_array.each { |buttons| @keyboard.send_input(player_index, buttons) }
           end
         end
 
