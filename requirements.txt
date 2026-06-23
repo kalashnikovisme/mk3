@@ -2,3 +2,4 @@
 torch==2.5.1+cu121
 numpy>=1.24.0
 Pillow>=10.0.0
+msgpack>=1.0.0

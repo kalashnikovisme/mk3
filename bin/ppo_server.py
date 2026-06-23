@@ -2,8 +2,11 @@
 """
 PPO policy server for FightingAI.
 
-Communicates with the Ruby training layer via stdin/stdout using
-newline-delimited JSON. Stays alive for the entire training session.
+Communicates with the Ruby training layer via binary stdin/stdout using
+length-prefixed msgpack frames. Stays alive for the entire training session.
+
+Startup: one JSON+newline {"ready": true, "device": "..."} written to stdout.
+All subsequent frames: 4-byte big-endian uint32 length, then msgpack payload.
 
 Commands
 --------
@@ -23,8 +26,16 @@ load     { "cmd": "load", "path": "/path/to/dir" }
 import sys
 import os
 import json
+import struct
 import argparse
 import numpy as np
+
+try:
+    import msgpack
+except ImportError:
+    sys.stdout.write(json.dumps({"error": "msgpack not installed. Run: pip install msgpack"}) + "\n")
+    sys.stdout.flush()
+    sys.exit(1)
 
 try:
     import torch
@@ -35,6 +46,9 @@ except ImportError:
     sys.stdout.write(json.dumps({"error": "torch not installed. Run: pip install torch"}) + "\n")
     sys.stdout.flush()
     sys.exit(1)
+
+_stdin_buf  = None  # set to sys.stdin.buffer after startup
+_stdout_buf = None  # set to sys.stdout.buffer after startup
 
 # ── Hyperparameters ──────────────────────────────────────────────────────────
 LEARNING_RATE   = 3e-4
@@ -98,19 +112,28 @@ def main():
 
     _warmup(model, device, args.obs_dim)
 
-    # Signal to Ruby that the server is ready.
+    # Startup signal: JSON + newline so Ruby can use readline to detect readiness.
     sys.stdout.write(json.dumps({"ready": True, "device": str(device)}) + "\n")
     sys.stdout.flush()
 
-    for raw_line in sys.stdin:
-        line = raw_line.strip()
-        if not line:
-            continue
+    # Switch to binary msgpack framing for all subsequent messages.
+    global _stdin_buf, _stdout_buf
+    _stdin_buf  = sys.stdin.buffer
+    _stdout_buf = sys.stdout.buffer
+
+    while True:
+        header = _stdin_buf.read(4)
+        if not header or len(header) < 4:
+            break
+        (length,) = struct.unpack(">I", header)
+        data = _stdin_buf.read(length)
+        if len(data) < length:
+            break
 
         try:
-            req = json.loads(line)
-        except json.JSONDecodeError as exc:
-            _respond({"error": f"JSON parse error: {exc}"})
+            req = msgpack.unpackb(data, raw=False)
+        except Exception as exc:
+            _respond({"error": f"msgpack parse error: {exc}"})
             continue
 
         cmd = req.get("cmd")
@@ -230,8 +253,9 @@ def _warmup(model, device, obs_dim: int):
 
 
 def _respond(payload: dict):
-    sys.stdout.write(json.dumps(payload) + "\n")
-    sys.stdout.flush()
+    data = msgpack.packb(payload, use_bin_type=True)
+    _stdout_buf.write(struct.pack(">I", len(data)) + data)
+    _stdout_buf.flush()
 
 
 if __name__ == "__main__":

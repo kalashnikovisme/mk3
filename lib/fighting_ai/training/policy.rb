@@ -1,4 +1,5 @@
 require "json"
+require "msgpack"
 require "open3"
 require "timeout"
 
@@ -7,10 +8,12 @@ module FightingAI
     # PPO policy backed by a Python/PyTorch subprocess.
     #
     # All neural-network computation runs in the Python server (bin/ppo_server.py).
-    # Ruby communicates over stdin/stdout using newline-delimited JSON so that the
-    # entire Ruby API stays clean and no Python code leaks into the training layer.
+    # Ruby communicates over binary stdin/stdout using length-prefixed msgpack frames.
+    # The startup handshake is a one-time JSON+newline exchange (not on the hot path).
     #
-    # Protocol:
+    # Protocol (after startup):
+    #   Each message: 4-byte big-endian uint32 length, then msgpack payload.
+    #
     #   forward: { cmd: "forward", obs: [Float, ...] }
     #            → { action_index: Integer, log_prob: Float, value: Float }
     #
@@ -78,6 +81,8 @@ module FightingAI
                "--act-dim", @action_dim.to_s]
 
         @stdin, @stdout, @stderr, @process = Open3.popen3(*cmd)
+        @stdin.binmode
+        @stdout.binmode
         @stdin.sync  = true
         @stdout.sync = true
 
@@ -93,8 +98,12 @@ module FightingAI
       end
 
       def request(payload)
-        @stdin.puts(JSON.generate(payload))
-        JSON.parse(@stdout.readline)
+        data = payload.to_msgpack
+        @stdin.write([data.bytesize].pack("N") + data)
+        header = @stdout.read(4)
+        raise EOFError, "server closed stdout" if header.nil? || header.bytesize < 4
+        length = header.unpack1("N")
+        MessagePack.unpack(@stdout.read(length))
       rescue EOFError, IOError => e
         err = begin; @stderr.read_nonblock(8192); rescue; ""; end
         raise "PPO server connection lost: #{e.message}\nstderr: #{err}"

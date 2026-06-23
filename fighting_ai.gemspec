@@ -16,6 +16,7 @@ Gem::Specification.new do |spec|
   spec.files = Dir["lib/**/*", "lua/**/*", "docs/**/*", "config/**/*", "*.md"]
 
   spec.add_dependency "json",          "~> 2.0"
+  spec.add_dependency "msgpack",       "~> 1.7"
   spec.add_dependency "colorize",      "~> 1.0"
   spec.add_dependency "anyway_config", "~> 2.6"
   spec.add_dependency "chunky_png",    "~> 1.4"

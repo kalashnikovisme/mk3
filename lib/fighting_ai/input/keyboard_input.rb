@@ -1,3 +1,4 @@
+require "open3"
 require_relative "device"
 
 module FightingAI
@@ -39,11 +40,14 @@ module FightingAI
       }.freeze
 
       def initialize(verbose: true, display: ":1")
-        @verbose   = verbose
-        @display   = display
-        @pid       = nil
-        @window_id = nil
-        @key_state = { 1 => {}, 2 => {} }
+        @verbose         = verbose
+        @display         = display
+        @pid             = nil
+        @window_id       = nil
+        @key_state       = { 1 => {}, 2 => {} }
+        @xdotool_stdin   = nil
+        @xdotool_proc    = nil
+        start_xdotool_process
       end
 
       def start(pid: nil)
@@ -61,6 +65,8 @@ module FightingAI
 
       def stop
         [1, 2].each { |p| release_all(p) }
+        @xdotool_stdin&.close rescue nil
+        @xdotool_proc&.value  rescue nil
         @window_id = nil
       end
 
@@ -149,8 +155,18 @@ module FightingAI
         %w[alt shift ctrl super].each { |mod| xdotool("keyup #{mod}") }
       end
 
+      def start_xdotool_process
+        @xdotool_stdin, _out, _err, @xdotool_proc = Open3.popen3(
+          { "DISPLAY" => @display }, "xdotool", "-"
+        )
+        @xdotool_stdin.sync = true
+      end
+
       def xdotool(args)
-        system("DISPLAY=#{@display} xdotool #{args} 2>/dev/null")
+        @xdotool_stdin.puts(args)
+      rescue Errno::EPIPE
+        start_xdotool_process
+        retry
       end
 
       def find_window
