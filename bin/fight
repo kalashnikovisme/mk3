@@ -21,10 +21,21 @@ require "fighting_ai/cli/bootstrap"
 require_relative "../config/mk3"
 
 if ARGV.size < 3
-  abort "Usage: bin/fight <state_file> <ppo_file_1> <ppo_file_2>"
+  abort "Usage: bin/fight <state_file_or_match_name> <ppo_file_1> <ppo_file_2>"
 end
 
-STATE_FILE = File.expand_path(ARGV[0])
+MATCHES_DIR = File.expand_path("../data/matches", __dir__)
+
+STATE_FILE = begin
+  raw = ARGV[0]
+  candidates = [
+    File.expand_path(raw),
+    File.join(MATCHES_DIR, raw),
+    File.join(MATCHES_DIR, "#{raw}.state")
+  ]
+  candidates.find { |p| File.exist?(p) } ||
+    abort("State file not found. Tried:\n#{candidates.map { |p| "  #{p}" }.join("\n")}")
+end
 PPO_FILE_1 = File.expand_path(ARGV[1])
 PPO_FILE_2 = File.expand_path(ARGV[2])
 ROM_PATH   = ENV.fetch("ROM_PATH",  File.expand_path("../mk3.sfc", __dir__))
@@ -34,7 +45,6 @@ VISION_ACTION = ENV.fetch("VISION_ACTION", FightingAI::Vision::CharacterPosition
 VISION_AREAS = ENV.fetch("VISION_AREAS", "(default)")
 VISION_FULL_SCREEN = ENV.fetch("VISION_FULL_SCREEN", "0")
 
-abort "State file not found: #{STATE_FILE}" unless File.exist?(STATE_FILE)
 abort "PPO file 1 not found: #{PPO_FILE_1}" unless File.exist?(PPO_FILE_1)
 abort "PPO file 2 not found: #{PPO_FILE_2}" unless File.exist?(PPO_FILE_2)
 
