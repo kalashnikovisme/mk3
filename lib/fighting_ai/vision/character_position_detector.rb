@@ -3,7 +3,13 @@ require "open3"
 
 module FightingAI
   module Vision
-    Detection = Data.define(:template_name, :x, :y, :width, :height, :center_x, :bottom_y, :confidence)
+    Detection = Data.define(:template_name, :x, :y, :width, :height, :center_x, :bottom_y, :confidence) do
+      ACTION_NAME_SEPARATOR = "/"
+
+      def action
+        template_name.split(ACTION_NAME_SEPARATOR).first
+      end
+    end
 
     class CharacterPositionDetector
       DEFAULT_CHARACTER = :sub_zero

@@ -42,11 +42,16 @@ module FightingAI
             bar2:       P2_HEALTH_BAR,
             max_health: MemoryMap::MAX_HEALTH
           )
-          @vision_characters = {}
+          @vision_characters      = {}
+          @latest_vision_actions  = {}
         end
 
         def vision_enabled?
           @vision_detector&.available?
+        end
+
+        def latest_vision_actions
+          @latest_vision_actions
         end
 
         def configure_vision_characters(player1_character:, player2_character:)
@@ -175,7 +180,26 @@ module FightingAI
             image_width:  raw[:image_width],
             image_height: raw[:image_height]
           )
+          @latest_vision_actions = extract_vision_actions(raw[:detections], raw[:image_width])
           { positions: positions, timer: raw[:timer] }
+        end
+
+        def extract_vision_actions(detections, image_width)
+          return {} if detections.empty?
+
+          sub_zero_players = @vision_characters.select { |_, character| character == SUB_ZERO_CHARACTER }.keys
+
+          if sub_zero_players.size == PLAYER_TWO && detections.size >= PLAYER_TWO
+            { PLAYER_ONE => detections.first.action, PLAYER_TWO => detections.last.action }
+          elsif sub_zero_players.size == PLAYER_ONE
+            best = detections.max_by(&:confidence)
+            { sub_zero_players.first => best.action }
+          elsif detections.size >= PLAYER_TWO
+            { PLAYER_ONE => detections.first.action, PLAYER_TWO => detections.last.action }
+          else
+            inferred = detections.first.center_x <= image_width / MIDPOINT_DIVISOR ? PLAYER_ONE : PLAYER_TWO
+            { inferred => detections.first.action }
+          end
         end
 
         def assign_vision_positions(detections, image_width:, image_height:)

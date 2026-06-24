@@ -13,6 +13,8 @@ module FightingAI
       RUNTIME_MS_KEY      = :runtime_ms
       FIGHT_LOG_MS_KEY    = :fight_log_ms
       TOTAL_MS_KEY        = :total_ms
+      FIGHTER1_ACTION_KEY = :fighter1_action
+      FIGHTER2_ACTION_KEY = :fighter2_action
 
       def initialize(path)
         FileUtils.mkdir_p(File.dirname(path))
@@ -22,6 +24,7 @@ module FightingAI
 
       def log_frame(
         game_state,
+        actions: {},
         snapshot_ms: nil,
         capture_ms: nil,
         detect_ms: nil,
@@ -31,6 +34,7 @@ module FightingAI
         started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         @file.puts(format_frame(
           game_state,
+          actions: actions,
           snapshot_ms: snapshot_ms,
           capture_ms: capture_ms,
           detect_ms: detect_ms,
@@ -49,7 +53,7 @@ module FightingAI
 
       private
 
-      def format_frame(gs, snapshot_ms:, capture_ms:, detect_ms:, runtime_ms:)
+      def format_frame(gs, actions:, snapshot_ms:, capture_ms:, detect_ms:, runtime_ms:)
         fields = {
           timer:      gs.round_time_remaining,
           health_1:   gs.fighter1.health,
@@ -59,6 +63,8 @@ module FightingAI
           fighter2_x: gs.fighter2.x,
           fighter2_y: gs.fighter2.y
         }
+        fields[FIGHTER1_ACTION_KEY] = actions[1] if actions[1]
+        fields[FIGHTER2_ACTION_KEY] = actions[2] if actions[2]
         fields[SNAPSHOT_MS_KEY] = snapshot_ms unless snapshot_ms.nil?
         fields[CAPTURE_MS_KEY]  = capture_ms unless capture_ms.nil?
         fields[DETECT_MS_KEY]   = detect_ms  unless detect_ms.nil?
