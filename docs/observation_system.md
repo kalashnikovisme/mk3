@@ -225,6 +225,16 @@ confidence is `0.82`; override it for tuning:
 MIN_CONFIDENCE=0.75 dip vision:detect data/screenshots/example.png
 ```
 
+Add `--verbose` when you need the full candidate list from the detector pass,
+including rejected template matches that did not survive non-overlap selection:
+verbose output sorts candidates by descending confidence and highlights the
+ranked confidence values for quick scanning.
+
+```bash
+dip vision:detect --verbose data/screenshots/example.png
+dip vision:detect idle --verbose data/screenshots/example.png
+```
+
 Without an action argument, `dip vision:detect` scans every non-reference
 template inside the active ROIs. Use `all --full-screen` only when you need an
 exhaustive full-screenshot debug pass. For targeted checks, pass an action mode

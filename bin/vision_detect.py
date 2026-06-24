@@ -710,9 +710,9 @@ def detect_image(
     active_rois = tuple(filter(None, (clamp_roi(roi, image_width, image_height) for roi in rois)))
     match_started_at = time.perf_counter()
     candidates: list[Detection] = []
-    completed_roi_indexes: set[int] = set()
-    template_index = 0
-    total_templates = sum(len(g.probes) + len(g.members) for g in template_groups)
+
+    all_templates = [t for group in template_groups for t in (*group.probes, *group.members)]
+    total_templates = len(all_templates)
 
     roi_crops = [crop_image(image, roi) for roi in active_rois]
     patches_cache: dict[tuple[int, int, int], torch.Tensor | None] = {}
@@ -732,32 +732,27 @@ def detect_image(
                 )
         return patches_cache[key]
 
-    def run_template(template: Template, confidence: float) -> list[Detection]:
-        nonlocal template_index
-        template_index += 1
+    for template_index, template in enumerate(all_templates, start=FIRST_HUMAN_INDEX):
         template_started_at = time.perf_counter()
         if active_rois:
             matches = []
             for roi_index, roi in enumerate(active_rois):
-                if roi_index in completed_roi_indexes:
-                    continue
                 patches = get_patches(roi_index, template)
                 if patches is None:
                     continue
                 roi_matches = match_template(
                     roi_crops[roi_index],
                     template,
-                    confidence,
+                    min_confidence,
                     search_stride,
                     origin_x=roi.x,
                     origin_y=roi.y,
                     precomputed_patches=patches,
                 )
                 if roi_matches:
-                    completed_roi_indexes.add(roi_index)
                     matches.append(max(roi_matches, key=lambda d: d.confidence))
         else:
-            matches = match_template(image, template, confidence, search_stride)
+            matches = match_template(image, template, min_confidence, search_stride)
 
         if device.type == "cuda":
             torch.cuda.synchronize()
@@ -767,38 +762,12 @@ def detect_image(
                 template=template,
                 matches=matches,
                 total_candidates=len(candidates),
-                completed_roi_count=len(completed_roi_indexes),
+                completed_roi_count=NO_CANDIDATES,
                 active_roi_count=len(active_rois),
                 total_templates=total_templates,
                 seconds=time.perf_counter() - template_started_at,
             )
-        return matches
-
-    # Pass 1: probe templates (variant 01 of each group) at the lower probe threshold.
-    # Groups whose probe matches at least one ROI are promoted to hot.
-    hot_groups: set[str] = set()
-    for group in template_groups:
-        if active_rois and len(completed_roi_indexes) >= len(active_rois):
-            break
-        for template in group.probes:
-            if active_rois and len(completed_roi_indexes) >= len(active_rois):
-                break
-            matches = run_template(template, probe_min_confidence)
-            if matches:
-                hot_groups.add(group.name)
-            candidates.extend(matches)
-
-    # Pass 2: remaining variants of hot groups only at the full threshold; cold groups are skipped.
-    for group in template_groups:
-        if group.name not in hot_groups:
-            continue
-        if active_rois and len(completed_roi_indexes) >= len(active_rois):
-            break
-        for template in group.members:
-            if active_rois and len(completed_roi_indexes) >= len(active_rois):
-                break
-            matches = run_template(template, min_confidence)
-            candidates.extend(matches)
+        candidates.extend(matches)
 
     detections = select_non_overlapping(candidates, max_detections)
     return detections, candidates, active_rois, time.perf_counter() - match_started_at
@@ -945,6 +914,7 @@ def detect_image_payload(
         "match_seconds": match_seconds,
         "areas": [roi.__dict__ for roi in active_rois],
         "detections": [detection_to_dict(detection) for detection in detections],
+        "candidates": [detection_to_dict(detection) for detection in candidates],
         "timer": detect_timer(image, timer_templates, timer_min_confidence, timer_search_radius) if timer_enabled else None,
     }
 

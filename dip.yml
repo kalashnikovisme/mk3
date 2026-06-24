@@ -155,14 +155,14 @@ interaction:
       run_options: [no-deps]
 
   "vision:detect":
-    description: "Run Sub-Zero template detection against screenshot PNGs. Usage: dip vision:detect [action] <screenshot.png> [more.png ...]"
+    description: "Run Sub-Zero template detection against screenshot PNGs. Usage: dip vision:detect [action] [--verbose] <screenshot.png> [more.png ...]"
     service: app_gpu
     command: bundle exec ruby bin/vision_detect
     compose:
       run_options: [no-deps]
 
   "vision:detect-cpu":
-    description: "Run Sub-Zero template detection without Docker GPU access. Usage: dip vision:detect-cpu [action] <screenshot.png>"
+    description: "Run Sub-Zero template detection without Docker GPU access. Usage: dip vision:detect-cpu [action] [--verbose] <screenshot.png>"
     service: app
     command: bundle exec ruby bin/vision_detect
     compose:

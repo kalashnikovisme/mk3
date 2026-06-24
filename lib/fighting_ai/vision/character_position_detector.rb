@@ -25,6 +25,7 @@ module FightingAI
       FIRST_DETECTION_INDEX = 0
       SECOND_DETECTION_INDEX = 1
       JSON_LINE_SEPARATOR = "\n"
+      EMPTY_DETECTIONS = [].freeze
       PYTHON_BIN = "python3"
       SERVER_ARG = "--server"
       AREA_ARG = "--area"
@@ -38,7 +39,8 @@ module FightingAI
       VISION_FULL_SCREEN_ENV = "VISION_FULL_SCREEN"
       SEARCH_STRIDE_ENV = "SEARCH_STRIDE"
       AREA_SEPARATOR = ";"
-      READY_EVENT = "ready"
+      READY_EVENT   = "ready"
+      MS_PER_SECOND = 1000
 
       attr_reader :character
 
@@ -168,14 +170,17 @@ module FightingAI
         raise "Vision detector error: #{payload.fetch("error")}" unless payload.fetch("ok")
 
         detections = payload.fetch("detections").map { |raw_detection| build_detection(raw_detection) }
+        candidates = payload.fetch("candidates", EMPTY_DETECTIONS).map { |raw_detection| build_detection(raw_detection) }
         {
           character:    @character,
           detections:   detections,
+          candidates:   candidates,
           image_width:  payload.fetch("image_width"),
           image_height: payload.fetch("image_height"),
           player1:      detections.fetch(FIRST_DETECTION_INDEX, nil),
           player2:      detections.fetch(SECOND_DETECTION_INDEX, nil),
-          timer:        payload["timer"]
+          timer:        payload["timer"],
+          detect_ms:    payload["match_seconds"] ? (payload["match_seconds"] * MS_PER_SECOND).round : nil
         }
       end
 

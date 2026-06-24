@@ -8,6 +8,11 @@ require "colorize"
 require "fighting_ai/vision/health_bar_detector"
 require "fighting_ai/vision/character_position_detector"
 
+VERBOSE_FLAG = "--verbose"
+PNG_EXTENSION = ".png"
+FIRST_HUMAN_INDEX = 1
+VERBOSE_RANK_WIDTH = 2
+
 P1_HEALTH_BAR = FightingAI::Vision::HealthBarDetector::BarConfig.new(
   x: 19, y: 19, width: 112, height: 10, direction: :left_to_right
 ).freeze
@@ -44,6 +49,17 @@ def health_color(health)
   end
 end
 
+def confidence_color(confidence)
+  label = format("%.3f", confidence)
+  if confidence >= 0.9
+    label.green
+  elsif confidence >= 0.85
+    label.yellow
+  else
+    label.red
+  end
+end
+
 def detect_health(path)
   image = ChunkyPNG::Image.from_file(path)
   pixels = Array.new(image.width * image.height) do |i|
@@ -56,6 +72,7 @@ end
 def print_file_result(result, path)
   puts path
   detections   = result[:detections]
+  candidates   = result[:candidates]
   image_width  = result[:image_width]
   image_height = result[:image_height]
 
@@ -70,8 +87,10 @@ def print_file_result(result, path)
     end
   end
 
-  timer = result[:timer]
-  puts "  timer: #{timer ? timer.to_s.cyan : 'not detected'}"
+  timer    = result[:timer]
+  detect_ms = result[:detect_ms]
+  puts "  timer:     #{timer ? timer.to_s.cyan : 'not detected'}"
+  puts "  detect_ms: #{detect_ms ? detect_ms.to_s.yellow : 'n/a'}"
 
   health = detect_health(path)
   { 1 => result[:player1], 2 => result[:player2] }.each do |player_index, detection|
@@ -85,17 +104,41 @@ def print_file_result(result, path)
       puts "  P#{player_index}: #{hp}  position=not detected"
     end
   end
+
+  return unless verbose?
+
+  if candidates.empty?
+    puts "  candidates: none"
+  else
+    puts "  candidates:"
+    candidates.sort_by { |candidate| -candidate.confidence }.each_with_index do |candidate, index|
+      scaled = FightingAI::Vision::CharacterPositionDetector.scale_position(
+        candidate, image_width: image_width, image_height: image_height
+      )
+      rank = format("%0#{VERBOSE_RANK_WIDTH}d", index + FIRST_HUMAN_INDEX).cyan
+      puts "    ##{rank} #{candidate.template_name.bold}  action=#{candidate.action}  " \
+           "box=(#{candidate.x},#{candidate.y} #{candidate.width}x#{candidate.height})  " \
+           "foot=(#{candidate.center_x},#{candidate.bottom_y})  " \
+           "mk3=(#{scaled[:x]},#{scaled[:y]})  conf=#{confidence_color(candidate.confidence)}"
+    end
+  end
 rescue => e
   puts "  health: #{e.message}".red
 ensure
   puts
 end
 
-png_paths  = ARGV.select { |a| a.end_with?(".png") }
-action_arg = (ARGV - png_paths).first
+def verbose?
+  @verbose == true
+end
+
+arguments = ARGV.dup
+@verbose = !!arguments.delete(VERBOSE_FLAG)
+png_paths  = arguments.select { |argument| argument.end_with?(PNG_EXTENSION) }
+action_arg = (arguments - png_paths).first
 
 if png_paths.empty?
-  warn "Usage: dip vision:detect [action] <screenshot.png> [more.png ...]"
+  warn "Usage: dip vision:detect [action] [#{VERBOSE_FLAG}] <screenshot.png> [more.png ...]"
   exit 1
 end
 
