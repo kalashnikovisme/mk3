@@ -1,11 +1,12 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+$LOAD_PATH.unshift File.expand_path("../lib", __dir__)
+
 require "chunky_png"
 require "colorize"
-require "json"
-require "open3"
-require_relative "../lib/fighting_ai/vision/health_bar_detector"
+require "fighting_ai/vision/health_bar_detector"
+require "fighting_ai/vision/character_position_detector"
 
 P1_HEALTH_BAR = FightingAI::Vision::HealthBarDetector::BarConfig.new(
   x: 19, y: 19, width: 112, height: 10, direction: :left_to_right
@@ -16,19 +17,20 @@ P2_HEALTH_BAR = FightingAI::Vision::HealthBarDetector::BarConfig.new(
 ).freeze
 
 MAX_HEALTH        = 0xA6
-MK3_AXIS_MAX      = 255
 HIGH_HEALTH_RATIO = 0.6
 LOW_HEALTH_RATIO  = 0.3
 
-FramePixels = Data.define(:pixels, :width)
+FramePixels = Data.define(:pixels, :width) do
+  def pixel_rgb(x, y)
+    pixels[y * width + x]
+  end
+end
 
 HEALTH_DETECTOR = FightingAI::Vision::HealthBarDetector.new(
   bar1: P1_HEALTH_BAR,
   bar2: P2_HEALTH_BAR,
   max_health: MAX_HEALTH
 ).freeze
-
-PYTHON_SCRIPT = File.join(__dir__, "vision_detect.py")
 
 def health_color(health)
   ratio = health.to_f / MAX_HEALTH
@@ -51,76 +53,59 @@ def detect_health(path)
   HEALTH_DETECTOR.detect(FramePixels.new(pixels: pixels, width: image.width))
 end
 
-def scale_axis(value, image_size)
-  denominator = [image_size - 1, 1].max
-  [[(value * MK3_AXIS_MAX.to_f / denominator).round, 0].max, MK3_AXIS_MAX].min
-end
-
 def print_file_result(result, path)
   puts path
-  if result["ok"]
-    detections    = result["detections"]
-    image_width   = result["image_width"]
-    image_height  = result["image_height"]
+  detections   = result[:detections]
+  image_width  = result[:image_width]
+  image_height = result[:image_height]
 
-    if detections.empty?
-      puts "  detections: none"
-    else
-      detections.each_with_index do |d, i|
-        mk3_x = scale_axis(d["center_x"], image_width)
-        mk3_y = scale_axis(d["bottom_y"], image_height)
-        puts "  ##{i + 1} #{d['template_name'].bold}  mk3=(#{mk3_x},#{mk3_y})  conf=#{format('%.3f', d['confidence']).green}"
-      end
-    end
-
-    timer = result["timer"]
-    puts "  timer: #{timer ? timer.to_s.cyan : 'not detected'}"
+  if detections.empty?
+    puts "  detections: none"
   else
-    puts "  error: #{result['error']}".red
+    detections.each_with_index do |d, i|
+      scaled = FightingAI::Vision::CharacterPositionDetector.scale_position(
+        d, image_width: image_width, image_height: image_height
+      )
+      puts "  ##{i + 1} #{d.template_name.bold}  action=#{d.action}  mk3=(#{scaled[:x]},#{scaled[:y]})  conf=#{format('%.3f', d.confidence).green}"
+    end
   end
 
+  timer = result[:timer]
+  puts "  timer: #{timer ? timer.to_s.cyan : 'not detected'}"
+
   health = detect_health(path)
-  puts "  P1: #{health_color(health[1])}"
-  puts "  P2: #{health_color(health[2])}"
+  { 1 => result[:player1], 2 => result[:player2] }.each do |player_index, detection|
+    hp = health_color(health[player_index])
+    if detection
+      scaled = FightingAI::Vision::CharacterPositionDetector.scale_position(
+        detection, image_width: image_width, image_height: image_height
+      )
+      puts "  P#{player_index}: #{hp}  x=#{scaled[:x]} y=#{scaled[:y]}  action=#{detection.action}"
+    else
+      puts "  P#{player_index}: #{hp}  position=not detected"
+    end
+  end
 rescue => e
   puts "  health: #{e.message}".red
 ensure
   puts
 end
 
-verbose   = ARGV.delete("--verbose")
-png_paths = ARGV.select { |arg| arg.end_with?(".png") }
+png_paths  = ARGV.select { |a| a.end_with?(".png") }
+action_arg = (ARGV - png_paths).first
 
-if verbose
-  system("python3", PYTHON_SCRIPT, *ARGV)
-
-  exit if png_paths.empty?
-
-  puts "Health"
-  png_paths.each do |path|
-    health = detect_health(path)
-    puts "  #{path}"
-    puts "    P1: #{health_color(health[1])}"
-    puts "    P2: #{health_color(health[2])}"
-  rescue => e
-    puts "  #{path}: #{e.message}".red
-  end
-else
-  if png_paths.empty?
-    warn "Usage: dip vision:detect [action] <screenshot.png> [more.png ...] [--verbose]"
-    exit 1
-  end
-
-  Open3.popen2("python3", PYTHON_SCRIPT, "--server", *ARGV) do |stdin, stdout, wait_thr|
-    ready = JSON.parse(stdout.gets)
-    abort "vision_detect not ready: #{ready['error']}".red unless ready["ok"]
-
-    png_paths.each do |path|
-      stdin.puts(JSON.generate({ "path" => File.expand_path(path) }))
-      print_file_result(JSON.parse(stdout.gets), path)
-    end
-
-    stdin.close
-    wait_thr.value
-  end
+if png_paths.empty?
+  warn "Usage: dip vision:detect [action] <screenshot.png> [more.png ...]"
+  exit 1
 end
+
+detector = FightingAI::Vision::CharacterPositionDetector.new(
+  action_mode:  action_arg || ENV.fetch(
+    FightingAI::Vision::CharacterPositionDetector::VISION_ACTION_ENV,
+    FightingAI::Vision::CharacterPositionDetector::DEFAULT_ACTION_MODE
+  ),
+  detect_timer: true
+)
+
+png_paths.each { |path| print_file_result(detector.detect_path(File.expand_path(path)), path) }
+detector.stop
