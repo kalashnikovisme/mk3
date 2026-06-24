@@ -3,7 +3,7 @@ module FightingAI
     module RetroArch
       class XephyrServer
         DISPLAY = ":99"
-        SCREEN  = "1024x768"
+        SCREEN  = "#{ConfigBuilder::RETROARCH_WINDOW_WIDTH}x#{ConfigBuilder::RETROARCH_WINDOW_HEIGHT}"
 
         attr_reader :display
 

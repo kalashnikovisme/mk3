@@ -7,7 +7,13 @@ module FightingAI
       module ConfigBuilder
         SCREENSHOT_DIR  = "/tmp/fighting_ai/screenshots"
         STATES_DIR      = "/tmp/fighting_ai/states"
+        SNES_NATIVE_WIDTH   = 256
+        SNES_NATIVE_HEIGHT  = 224
         NATIVE_VIDEO_SCALE  = 1.0
+        # RetroArch applies 4:3 aspect-ratio correction to the 256×224 SNES output,
+        # expanding the width to ~297px. Pin the window to this size so Xephyr matches.
+        RETROARCH_WINDOW_WIDTH  = 297
+        RETROARCH_WINDOW_HEIGHT = SNES_NATIVE_HEIGHT
         AUDIO_DRIVER        = "pulse"
         AUDIO_LATENCY_MS    = 10
         VIDEO_FRAME_DELAY_MS = 15  # software throttle: (1000/60fps) - ~2ms render ≈ 15ms
@@ -32,6 +38,8 @@ module FightingAI
             video_windowed_fullscreen = "false"
             video_scale = "#{format('%.1f', NATIVE_VIDEO_SCALE)}"
             video_scale_integer = "true"
+            video_window_width = "#{RETROARCH_WINDOW_WIDTH}"
+            video_window_height = "#{RETROARCH_WINDOW_HEIGHT}"
             video_window_show_decorations = "false"
             video_smooth = "false"
             audio_driver = "#{AUDIO_DRIVER}"
