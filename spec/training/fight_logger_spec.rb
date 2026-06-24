@@ -10,6 +10,8 @@ RSpec.describe FightingAI::Training::FightLogger do
   LOGGER_PLAYER_ONE_Y = 210
   LOGGER_PLAYER_TWO_X = 173
   LOGGER_PLAYER_TWO_Y = 209
+  LOGGER_PLAYER_ONE_AREA = { "x" => 40, "y" => 104, "width" => 72, "height" => 120 }
+  LOGGER_PLAYER_TWO_AREA = { "x" => 152, "y" => 104, "width" => 72, "height" => 120 }
   SNAPSHOT_MS = 17
   CAPTURE_MS = 3
   DETECT_MS = 5
@@ -42,6 +44,7 @@ RSpec.describe FightingAI::Training::FightLogger do
       logger = described_class.new(path)
       logger.log_frame(
         game_state,
+        areas: [LOGGER_PLAYER_ONE_AREA, LOGGER_PLAYER_TWO_AREA],
         snapshot_ms: SNAPSHOT_MS,
         capture_ms: CAPTURE_MS,
         detect_ms: DETECT_MS,
@@ -54,6 +57,8 @@ RSpec.describe FightingAI::Training::FightLogger do
       expect(output).to include("  snapshot_ms: #{SNAPSHOT_MS}\n")
       expect(output).to include("  capture_ms: #{CAPTURE_MS}\n")
       expect(output).to include("  detect_ms: #{DETECT_MS}\n")
+      expect(output).to include("  fighter1_area: 40,104,72,120\n")
+      expect(output).to include("  fighter2_area: 152,104,72,120\n")
       expect(output).to include("  runtime_ms: #{RUNTIME_MS}\n")
       expect(output).to match(/  fight_log_ms: \d+\n/)
       expect(output).to match(/  total_ms: \d+\n/)

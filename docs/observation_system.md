@@ -175,7 +175,11 @@ VISION=0 dip fight data/matches/sub-zero-vs-sub-zero.state models/ppo_10 models/
 If `VISION_ACTION` is omitted, runtime vision uses `all`, so learning scans every
 non-reference action template inside the active ROIs. Use `VISION_ACTION=idle`
 for the faster startup-stance-only workflow. If `VISION_AREAS` is omitted, the
-detector uses the same two default initial stance ROIs as the CLI.
+runtime detector uses the same two default initial stance ROIs as before.
+
+The per-frame fight log records `fighter1_area` and `fighter2_area` so you can
+see the search regions the detector used on that frame. When the detector scans
+full-screen, the log writes `full-screen` for both fields.
 
 ## Detection Debugging
 
@@ -236,9 +240,9 @@ dip vision:detect idle --verbose data/screenshots/example.png
 ```
 
 Without an action argument, `dip vision:detect` scans every non-reference
-template inside the active ROIs. Use `all --full-screen` only when you need an
-exhaustive full-screenshot debug pass. For targeted checks, pass an action mode
-as the first argument:
+template across the full screenshot. Use `all --full-screen` only when you want
+the full-screen behavior explicit. For targeted checks, pass an action mode as
+the first argument:
 
 ```bash
 dip vision:detect idle data/screenshots/example.png
@@ -260,22 +264,15 @@ fastest targeted check; broad modes scan more templates. The detector warms up
 CUDA after loading templates so reported per-frame matching time does not
 include the first CUDA kernel initialization cost.
 
-Detection uses regions of interest by default. If no `--area`/`--roi` arguments
-are provided, the detector searches the two initial Sub-Zero stance regions:
-`40,104,72,120` for P1 and `152,104,72,120` for P2. These defaults cover the
-startup idle detections around `box=(52,116 33x94)` and
-`box=(164,116 32x95)`. Each area is treated as one character slot: once an area
-produces a detection above `MIN_CONFIDENCE`, that area is skipped for the
-remaining templates. Override the default areas with one or more explicit areas:
+Detection uses the full screenshot by default. Pass one or more `--area`/`--roi`
+arguments to narrow the search to regions of interest. Each area is treated as
+one character slot: once an area produces a detection above `MIN_CONFIDENCE`,
+that area is skipped for the remaining templates. Use `--full-screen` to make
+the default explicit:
 
 ```bash
 dip vision:detect idle --area 40,104,72,120 --area 152,104,72,120 data/screenshots/example.png
 dip vision:detect idle --roi 32,96,88,128 --roi 144,96,88,128 data/screenshots/example.png
-```
-
-Use `--full-screen` only for exhaustive debugging:
-
-```bash
 dip vision:detect idle --full-screen data/screenshots/example.png
 ```
 

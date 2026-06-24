@@ -54,6 +54,10 @@ module FightingAI
           @latest_vision_actions
         end
 
+        def latest_vision_areas
+          @latest_vision_areas
+        end
+
         def configure_vision_characters(player1_character:, player2_character:)
           @vision_characters = {
             PLAYER_ONE => player1_character.to_sym,
@@ -175,6 +179,7 @@ module FightingAI
         private
 
         def process_vision_result(raw)
+          @latest_vision_areas = raw[:areas]
           positions = assign_vision_positions(
             raw[:detections],
             image_width:  raw[:image_width],

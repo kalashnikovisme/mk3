@@ -73,7 +73,7 @@ dip vision:detect [action_mode] [--verbose] <screenshot.png> [more.png ...]
 ### Examples
 
 ```bash
-# Detect everything (default)
+# Detect everything across the full screen (default)
 dip vision:detect frame.png
 
 # Restrict to guard-related templates only

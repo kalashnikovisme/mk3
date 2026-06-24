@@ -26,6 +26,7 @@ module FightingAI
       SECOND_DETECTION_INDEX = 1
       JSON_LINE_SEPARATOR = "\n"
       EMPTY_DETECTIONS = [].freeze
+      EMPTY_AREAS = [].freeze
       PYTHON_BIN = "python3"
       SERVER_ARG = "--server"
       AREA_ARG = "--area"
@@ -175,6 +176,7 @@ module FightingAI
           character:    @character,
           detections:   detections,
           candidates:   candidates,
+          areas:        payload.fetch("areas", EMPTY_AREAS),
           image_width:  payload.fetch("image_width"),
           image_height: payload.fetch("image_height"),
           player1:      detections.fetch(FIRST_DETECTION_INDEX, nil),

@@ -354,7 +354,7 @@ def usage() -> str:
 
 def parse_options(raw_args: list[str]) -> DetectorOptions:
     if not raw_args:
-        return DetectorOptions(ACTION_MODE_ALL, [], DEFAULT_INITIAL_STANCE_ROIS, False)
+        return DetectorOptions(ACTION_MODE_ALL, [], (), False)
 
     remaining_args = list(raw_args)
     server = False
@@ -363,7 +363,7 @@ def parse_options(raw_args: list[str]) -> DetectorOptions:
         server = True
 
     if not remaining_args:
-        return DetectorOptions(ACTION_MODE_ALL, [], DEFAULT_INITIAL_STANCE_ROIS, server)
+        return DetectorOptions(ACTION_MODE_ALL, [], (), server)
 
     requested_mode = remaining_args[NO_CANDIDATES]
     if requested_mode in ACTION_TEMPLATE_PREFIXES:
@@ -392,7 +392,12 @@ def parse_options(raw_args: list[str]) -> DetectorOptions:
     if full_screen:
         return DetectorOptions(action_mode, screenshot_paths, (), server)
 
-    return DetectorOptions(action_mode, screenshot_paths, tuple(rois) if rois else DEFAULT_INITIAL_STANCE_ROIS, server)
+    return DetectorOptions(
+        action_mode,
+        screenshot_paths,
+        tuple(rois) if rois else (),
+        server
+    )
 
 
 def load_grayscale(path: Path) -> torch.Tensor:

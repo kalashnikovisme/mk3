@@ -71,6 +71,10 @@ templates. Detector arguments may be supplied in either order.
 and `y2`. Position and timer results share one Python detector pass when both
 arguments are present.
 
+Per-frame fight logs written by `dip learn` also include `fighter1_area` and
+`fighter2_area`, which reflect the detector search region used for each side on
+that frame.
+
 Unlike normal real-time training, this diagnostic mode pauses RetroArch and uses
 one `FRAME_ADVANCE` command per logged frame. Detector latency affects wall-clock
 throughput but does not skip game frames.
