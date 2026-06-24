@@ -17,6 +17,7 @@ module FightingAI
         AUDIO_DRIVER        = "pulse"
         AUDIO_LATENCY_MS    = 10
         VIDEO_FRAME_DELAY_MS = 15  # software throttle: (1000/60fps) - ~2ms render ≈ 15ms
+        VIDEO_FONT_ENABLE = "false"
 
         def self.build(core_path:)
           FileUtils.mkdir_p(SCREENSHOT_DIR)
@@ -42,6 +43,7 @@ module FightingAI
             video_window_height = "#{RETROARCH_WINDOW_HEIGHT}"
             video_window_show_decorations = "false"
             video_smooth = "false"
+            video_font_enable = "#{VIDEO_FONT_ENABLE}"
             audio_driver = "#{AUDIO_DRIVER}"
             audio_sync = "#{throttled}"
             audio_latency = "#{AUDIO_LATENCY_MS}"

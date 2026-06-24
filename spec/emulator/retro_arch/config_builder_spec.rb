@@ -10,6 +10,7 @@ RSpec.describe FightingAI::Emulator::RetroArch::ConfigBuilder do
   INTEGER_SCALE_SETTING = 'video_scale_integer = "true"'
   WINDOW_DECORATION_SETTING = 'video_window_show_decorations = "false"'
   PIXEL_SMOOTHING_SETTING = 'video_smooth = "false"'
+  OSD_MESSAGES_SETTING = 'video_font_enable = "false"'
 
   describe ".config" do
     it "does not configure RetroArch screenshot capture" do
@@ -28,6 +29,7 @@ RSpec.describe FightingAI::Emulator::RetroArch::ConfigBuilder do
       expect(config).to include(INTEGER_SCALE_SETTING)
       expect(config).to include(WINDOW_DECORATION_SETTING)
       expect(config).to include(PIXEL_SMOOTHING_SETTING)
+      expect(config).to include(OSD_MESSAGES_SETTING)
     end
   end
 end

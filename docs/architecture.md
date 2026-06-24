@@ -96,7 +96,7 @@ Manages the emulator process, captures frames, and delegates input injection.
 - `Emulator::RetroArch::NetworkCommands` — UDP commands (pause/frame advance/reset/save state/quit)
 - `Emulator::RetroArch::SaveStateReader` — reads RZIP-compressed save-state files; locates the 128 KB WRAM region; used only to read the frame counter
 - `Emulator::RetroArch::FrameGrabber` — captures the isolated X display with `xwd`, crops the top-left game region, converts it to PNG, and returns `FrameObservation`
-- `Emulator::RetroArch::ConfigBuilder` — generates `retroarch.cfg` with network commands and keyboard bindings
+- `Emulator::RetroArch::ConfigBuilder` — generates `retroarch.cfg` with network commands, keyboard bindings, and notification suppression
 
 **Rule**: No game-specific memory addresses or button names here.
 

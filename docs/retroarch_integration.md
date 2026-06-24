@@ -139,6 +139,7 @@ video_scale = "1.0"
 video_scale_integer = "true"
 video_window_show_decorations = "false"
 video_smooth = "false"
+video_font_enable = "false"
 savestate_auto_load = "false"
 savestate_auto_save = "false"
 # P1 keyboard: arrow keys + z/x/a/s/q/w
@@ -148,8 +149,8 @@ savestate_auto_save = "false"
 RetroArch runs windowed, with windowed fullscreen disabled and `video_scale =
 "1.0"`, so the rendered game window opens at native core scale instead of
 expanding to the full Xvfb/Xephyr screen. Integer scaling is enabled, window
-decorations are disabled, and smoothing is disabled to keep captured pixels
-stable for vision debugging.
+decorations are disabled, smoothing is disabled, and OSD messages are disabled
+by turning off `video_font_enable` to keep captured pixels stable for vision debugging.
 
 The app does not use RetroArch's screenshot command. `FrameGrabber` captures the
 isolated X display directly with `xwd`, pipes the result directly into ImageMagick
