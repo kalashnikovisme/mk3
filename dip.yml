@@ -43,9 +43,11 @@ interaction:
       run_options: [no-deps]
 
   learn:
-    description: "PPO training. Usage: dip learn [match-name] [debug]  e.g. dip learn sub-zero-vs-sindel debug"
+    description: "PPO training. Usage: dip learn [match-name] [debug]  e.g. dip learn sub-zero-vs-sub-zero debug"
     service: app_gpu
     command: bundle exec ruby bin/learn
+    environment:
+      MATCH: sub-zero-vs-sub-zero
 
   learn_empty:
     description: "Capture frame diagnostics. Usage: dip learn_empty [health] [time] [positions] [match-name]"
@@ -63,11 +65,15 @@ interaction:
     description: "Resume PPO training from a checkpoint. Usage: dip learn_from_ppo <ppo_path> [match-name] [debug]"
     service: app_gpu
     command: bundle exec ruby bin/learn_from_ppo
+    environment:
+      MATCH: sub-zero-vs-sub-zero
 
   learn_watch_from_ppo:
     description: "Resume PPO training from a checkpoint with live Xephyr window. Usage: dip learn_watch_from_ppo <ppo_path> [match-name] [debug]"
     service: app_watch
     command: bundle exec ruby bin/learn_from_ppo
+    environment:
+      MATCH: sub-zero-vs-sub-zero
 
   fight:
     description: "PPO vs PPO match. Usage: dip fight <state_file> <ppo_file_1> <ppo_file_2>"
@@ -83,6 +89,8 @@ interaction:
     description: "PPO training with live Xephyr window on host desktop. Usage: dip learn_watch [match-name]"
     service: app_watch
     command: bundle exec ruby bin/learn
+    environment:
+      MATCH: sub-zero-vs-sub-zero
 
   learn_watch_ai:
     description: "PPO training with live Xephyr window, AI-readable JSON log (no status bar). Usage: dip learn_watch_ai [match-name]"
@@ -91,6 +99,7 @@ interaction:
     environment:
       AI_LOG: "1"
       VISION: "0"
+      MATCH: sub-zero-vs-sub-zero
 
   retroarch:
     description: Launch RetroArch with the MK3 ROM and snes9x core

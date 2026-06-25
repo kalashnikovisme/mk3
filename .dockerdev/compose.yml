@@ -18,6 +18,7 @@ services:
       VISION:
       LEARN_EMPTY_EPISODE_FRAMES:
       SHOW_ERRORS:
+      MATCH:
 
   app_gpu:
     extends:
