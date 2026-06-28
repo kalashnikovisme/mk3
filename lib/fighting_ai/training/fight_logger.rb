@@ -7,9 +7,9 @@ module FightingAI
       FIELD_INDENT        = "  "
       FIELD_FORMAT        = "%s: %s"
       MS_PER_SECOND       = 1000
+      SLEEP_MS_KEY        = :sleep_ms
       CAPTURE_MS_KEY      = :capture_ms
       DETECT_MS_KEY       = :detect_ms
-      SNAPSHOT_MS_KEY     = :snapshot_ms
       RUNTIME_MS_KEY      = :runtime_ms
       FIGHT_LOG_MS_KEY    = :fight_log_ms
       TOTAL_MS_KEY        = :total_ms
@@ -28,7 +28,7 @@ module FightingAI
         game_state,
         actions: {},
         areas: nil,
-        snapshot_ms: nil,
+        sleep_ms: nil,
         capture_ms: nil,
         detect_ms: nil,
         runtime_ms: nil,
@@ -39,7 +39,7 @@ module FightingAI
           game_state,
           actions: actions,
           areas: areas,
-          snapshot_ms: snapshot_ms,
+          sleep_ms: sleep_ms,
           capture_ms: capture_ms,
           detect_ms: detect_ms,
           runtime_ms: runtime_ms
@@ -57,7 +57,7 @@ module FightingAI
 
       private
 
-      def format_frame(gs, actions:, areas:, snapshot_ms:, capture_ms:, detect_ms:, runtime_ms:)
+      def format_frame(gs, actions:, areas:, sleep_ms:, capture_ms:, detect_ms:, runtime_ms:)
         fields = {
           timer:      gs.round_time_remaining,
           health_1:   gs.fighter1.health,
@@ -73,7 +73,7 @@ module FightingAI
           fields[FIGHTER1_AREA_KEY] = format_area(areas[0])
           fields[FIGHTER2_AREA_KEY] = format_area(areas[1])
         end
-        fields[SNAPSHOT_MS_KEY] = snapshot_ms unless snapshot_ms.nil?
+        fields[SLEEP_MS_KEY]    = sleep_ms   unless sleep_ms.nil?
         fields[CAPTURE_MS_KEY]  = capture_ms unless capture_ms.nil?
         fields[DETECT_MS_KEY]   = detect_ms  unless detect_ms.nil?
         fields[RUNTIME_MS_KEY]  = runtime_ms unless runtime_ms.nil?
