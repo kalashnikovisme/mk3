@@ -54,6 +54,7 @@ AREA_ARG = "--area"
 ROI_ARG = "--roi"
 FULL_SCREEN_ARG = "--full-screen"
 SERVER_ARG = "--server"
+REQUEST_ROIS_KEY = "rois"
 P1_INITIAL_STANCE_ROI_X = 40
 P1_INITIAL_STANCE_ROI_Y = 104
 P2_INITIAL_STANCE_ROI_X = 152
@@ -994,6 +995,12 @@ def run_server(
         try:
             request = json.loads(line)
             timer_enabled = request.get("detect_timer", True)
+            raw_request_rois = request.get(REQUEST_ROIS_KEY)
+            effective_rois = (
+                tuple(Roi(x=r["x"], y=r["y"], width=r["width"], height=r["height"]) for r in raw_request_rois)
+                if raw_request_rois is not None
+                else rois
+            )
         except Exception as error:
             print(json.dumps({"ok": False, "error": str(error)}), flush=True)
             continue
@@ -1011,7 +1018,7 @@ def run_server(
                     payload = detect_image_payload(
                         image, width, height,
                         template_groups, timer_templates, device,
-                        min_confidence, probe_min_confidence, max_detections, search_stride, rois,
+                        min_confidence, probe_min_confidence, max_detections, search_stride, effective_rois,
                         timer_enabled=timer_enabled,
                         timer_min_confidence=timer_min_confidence,
                         timer_search_radius=timer_search_radius,
@@ -1027,7 +1034,7 @@ def run_server(
                     probe_min_confidence,
                     max_detections,
                     search_stride,
-                    rois,
+                    effective_rois,
                     timer_enabled=timer_enabled,
                     timer_min_confidence=timer_min_confidence,
                     timer_search_radius=timer_search_radius,

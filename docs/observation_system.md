@@ -181,6 +181,77 @@ The per-frame fight log records `fighter1_area` and `fighter2_area` so you can
 see the search regions the detector used on that frame. When the detector scans
 full-screen, the log writes `full-screen` for both fields.
 
+## Character Tracking (`Vision::CharacterTracker`)
+
+`Vision::CharacterTracker` wraps `CharacterPositionDetector` with the same `detect(frame_observation)` interface and adds an optimization layer that avoids scanning the full screen on every frame.
+
+### Tracking lifecycle
+
+| State | Trigger | Action |
+|-------|---------|--------|
+| No tracks (startup or all tracks lost) | — | Full-screen scan, `areas: []` |
+| Tracks active | frame % `full_screen_interval` == 0 | Periodic full-screen recovery scan |
+| Tracks active | all other frames | Regional scan: one padded area per active track |
+
+### Track initialization and update algorithm
+
+1. **Full-screen frame** — `reinitialize_tracks`: replace all tracks with one `Track` per detection. Each `Track` stores the detection bounding box and `frames_lost: 0`.
+2. **Regional frame** — `update_existing_tracks`: for each active track compute its `padded_region`, find any detection whose center falls inside that region, update the track's bounding box and reset `frames_lost`, or increment `frames_lost`. Tracks with `frames_lost >= max_lost_frames` are discarded.
+3. **All tracks lost** — fall back to full-screen on the next frame.
+
+### Padded region
+
+```
+x      = max(bbox.x - pad, 0)
+y      = max(bbox.y - pad, 0)
+right  = min(bbox.x + bbox.width + pad, image_width)
+bottom = min(bbox.y + bbox.height + pad, image_height)
+```
+
+where `pad = max_movement_per_frame`. The clamping prevents search areas from extending outside the captured frame.
+
+### Configuration
+
+| Parameter | Default | Meaning |
+|-----------|---------|---------|
+| `max_movement_per_frame` | 15 px | Padding added to each side of a track bounding box to form the search area |
+| `max_lost_frames` | 5 | Frames without a match before a track is discarded |
+| `full_screen_interval` | 60 | Frames between forced full-screen recovery scans (0 disables) |
+
+### Usage
+
+`FightingAI.build_mk3_adapter` wraps `CharacterPositionDetector` in `CharacterTracker` automatically when vision is enabled:
+
+```ruby
+inner = Vision::CharacterPositionDetector.new(
+  search_stride: Vision::CharacterPositionDetector::POSITION_SEARCH_STRIDE
+)
+tracker = Vision::CharacterTracker.new(detector: inner)
+```
+
+`POSITION_SEARCH_STRIDE = 4` makes full-screen scans ~16× faster (every 4th pixel checked vs every pixel). The tracker further reduces per-frame scan area to small padded regions once characters are located, giving an additional 4–8× speedup.
+
+### Debug logging
+
+Each frame the tracker emits a line to stderr:
+
+```
+[CharacterTracker] frame=12 mode=regional active_tracks=2
+[CharacterTracker] frame=13 mode=full_screen active_tracks=2
+```
+
+`mode=full_screen` appears on the first frame, when all tracks are lost, and on every `full_screen_interval`-th frame.
+
+### Per-request ROI protocol
+
+The tracker passes per-frame `areas:` to `CharacterPositionDetector#detect`. The detector serializes them as a JSON `rois` array in the stdin request to `bin/vision_detect.py`:
+
+```json
+{"path": "/tmp/.../frame.png", "detect_timer": true, "rois": [{"x": 30, "y": 90, "width": 70, "height": 100}]}
+```
+
+If `rois` is absent the Python server uses its startup ROIs (or full-screen when none were given). The `rois` key overrides startup ROIs for that single request only.
+
 ## Detection Debugging
 
 Prepared templates can be tested against screenshot PNGs without starting

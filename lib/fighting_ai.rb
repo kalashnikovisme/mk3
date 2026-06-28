@@ -31,6 +31,7 @@ require_relative "fighting_ai/observation/memory_observation"
 
 # Vision
 require_relative "fighting_ai/vision/character_position_detector"
+require_relative "fighting_ai/vision/character_tracker"
 require_relative "fighting_ai/vision/health_bar_detector"
 require_relative "fighting_ai/vision/timer_detector"
 require_relative "fighting_ai/vision/position_detector"
@@ -153,7 +154,12 @@ module FightingAI
 
     def build_mk3_adapter(emulator_adapter:, reward_weights: {}, vision: ENV.fetch(VISION_ENV_KEY, VISION_ADAPTER_DEFAULT_VALUE) == VISION_ENABLED_VALUE)
       game_def = game(:mortal_kombat_3)
-      vision_detector = vision ? Vision::CharacterPositionDetector.new : nil
+      vision_detector = if vision
+        inner = Vision::CharacterPositionDetector.new(
+          search_stride: Vision::CharacterPositionDetector::POSITION_SEARCH_STRIDE
+        )
+        Vision::CharacterTracker.new(detector: inner)
+      end
       Game::MortalKombat3::Adapter.new(
         emulator_adapter: emulator_adapter,
         game_definition:  game_def,

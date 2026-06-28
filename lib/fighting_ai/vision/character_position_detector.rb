@@ -42,8 +42,10 @@ module FightingAI
       AREA_SEPARATOR = ";"
       READY_EVENT   = "ready"
       MS_PER_SECOND = 1000
+      REQUEST_ROIS_KEY = :rois
+      POSITION_SEARCH_STRIDE = 4
 
-      attr_reader :character
+      attr_reader :character, :search_areas
 
       def initialize(
         character: DEFAULT_CHARACTER,
@@ -60,6 +62,7 @@ module FightingAI
         @script_path = script_path
         @action_mode = action_mode
         @areas = parse_areas(areas)
+        @search_areas = @areas.dup.freeze
         @full_screen = full_screen
         @detect_timer = detect_timer
         @search_stride = search_stride
@@ -75,27 +78,29 @@ module FightingAI
         File.exist?(@script_path) && Dir.glob(File.join(@template_dir, "**", "*_gray.png")).any?
       end
 
-      def detect_path(path)
+      def detect_path(path, areas: nil)
         ensure_started
-        request = { path: path, detect_timer: @detect_timer }.to_json
-        @stdin.write(request)
+        request = { path: path, detect_timer: @detect_timer }
+        request[REQUEST_ROIS_KEY] = serialize_areas(areas) if areas&.any?
+        @stdin.write(request.to_json)
         @stdin.write(JSON_LINE_SEPARATOR)
         @stdin.flush
         parse_response
       end
 
-      def detect_raw(frame_observation)
+      def detect_raw(frame_observation, areas: nil)
         ensure_started
-        request = { width: frame_observation.width, height: frame_observation.height, detect_timer: @detect_timer }.to_json
-        @stdin.write(request)
+        request = { width: frame_observation.width, height: frame_observation.height, detect_timer: @detect_timer }
+        request[REQUEST_ROIS_KEY] = serialize_areas(areas) if areas&.any?
+        @stdin.write(request.to_json)
         @stdin.write(JSON_LINE_SEPARATOR)
         @stdin.write(frame_observation.raw_bytes)
         @stdin.flush
         parse_response
       end
 
-      def detect(frame_observation)
-        frame_observation.path ? detect_path(frame_observation.path) : detect_raw(frame_observation)
+      def detect(frame_observation, areas: nil)
+        frame_observation.path ? detect_path(frame_observation.path, areas: areas) : detect_raw(frame_observation, areas: areas)
       end
 
       def start
@@ -190,6 +195,10 @@ module FightingAI
         return [] unless raw_areas && !raw_areas.empty?
 
         raw_areas.split(AREA_SEPARATOR)
+      end
+
+      def serialize_areas(areas)
+        areas.map { |a| { x: a[:x], y: a[:y], width: a[:width], height: a[:height] } }
       end
 
       def build_detection(raw_detection)

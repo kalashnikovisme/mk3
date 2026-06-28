@@ -44,6 +44,9 @@ module FightingAI
           )
           @vision_characters      = {}
           @latest_vision_actions  = {}
+          @bootstrap_done         = false
+          @cached_positions       = nil
+          @cached_timer           = nil
         end
 
         def vision_enabled?
@@ -70,9 +73,14 @@ module FightingAI
 
           vision = nil
           if frame_observation && @async_scanner
-            @async_scanner.submit(frame_observation)
-            raw = @async_scanner.latest_result
-            vision = process_vision_result(raw) if raw
+            raw = if @bootstrap_done
+              @async_scanner.submit(frame_observation)
+              @async_scanner.latest_result
+            else
+              @bootstrap_done = true
+              @vision_detector.detect(frame_observation)
+            end
+            vision = apply_vision_result(raw)
           end
 
           StateExtractor.extract(
@@ -178,15 +186,19 @@ module FightingAI
 
         private
 
-        def process_vision_result(raw)
-          @latest_vision_areas = raw[:areas]
-          positions = assign_vision_positions(
-            raw[:detections],
-            image_width:  raw[:image_width],
-            image_height: raw[:image_height]
-          )
-          @latest_vision_actions = extract_vision_actions(raw[:detections], raw[:image_width])
-          { positions: positions, timer: raw[:timer] }
+        def apply_vision_result(raw)
+          if raw
+            @latest_vision_areas = raw[:areas]
+            new_positions = assign_vision_positions(
+              raw[:detections],
+              image_width:  raw[:image_width],
+              image_height: raw[:image_height]
+            )
+            @latest_vision_actions = extract_vision_actions(raw[:detections], raw[:image_width])
+            @cached_positions = (@cached_positions || {}).merge(new_positions) if new_positions
+            @cached_timer = raw[:timer] unless raw[:timer].nil?
+          end
+          { positions: @cached_positions, timer: @cached_timer }
         end
 
         def extract_vision_actions(detections, image_width)
