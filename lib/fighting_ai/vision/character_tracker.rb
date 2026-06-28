@@ -19,9 +19,7 @@ module FightingAI
       MIN_COORDINATE                 = 0
       FULL_SCREEN_MODE               = :full_screen
       REGIONAL_MODE                  = :regional
-      LOG_PREFIX                     = "[CharacterTracker]"
-
-      Track = Struct.new(:bounding_box, :frames_lost, keyword_init: true)
+Track = Struct.new(:bounding_box, :frames_lost, keyword_init: true)
 
       def initialize(
         detector:,
@@ -43,8 +41,6 @@ module FightingAI
         @frame_count += 1
         mode  = scan_mode
         areas = mode == REGIONAL_MODE ? build_search_areas : []
-
-        warn "#{LOG_PREFIX} frame=#{@frame_count} mode=#{mode} active_tracks=#{active_tracks.size}"
 
         result = @detector.detect(frame_observation, areas: areas)
         @last_image_width  = result[:image_width]

@@ -231,17 +231,6 @@ tracker = Vision::CharacterTracker.new(detector: inner)
 
 `POSITION_SEARCH_STRIDE = 4` makes full-screen scans ~16× faster (every 4th pixel checked vs every pixel). The tracker further reduces per-frame scan area to small padded regions once characters are located, giving an additional 4–8× speedup.
 
-### Debug logging
-
-Each frame the tracker emits a line to stderr:
-
-```
-[CharacterTracker] frame=12 mode=regional active_tracks=2
-[CharacterTracker] frame=13 mode=full_screen active_tracks=2
-```
-
-`mode=full_screen` appears on the first frame, when all tracks are lost, and on every `full_screen_interval`-th frame.
-
 ### Per-request ROI protocol
 
 The tracker passes per-frame `areas:` to `CharacterPositionDetector#detect`. The detector serializes them as a JSON `rois` array in the stdin request to `bin/vision_detect.py`:
