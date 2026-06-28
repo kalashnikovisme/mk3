@@ -30,7 +30,8 @@ module FightingAI
         wram_dump: false,
         max_rounds: nil,
         initial_checkpoint: nil,
-        fight_logs_dir: nil
+        fight_logs_dir: nil,
+        screenshots_dir: nil
       )
         @emulator           = emulator
         @game               = game
@@ -45,6 +46,7 @@ module FightingAI
         @max_rounds          = max_rounds
         @initial_checkpoint  = initial_checkpoint
         @fight_logs_dir      = fight_logs_dir
+        @screenshots_dir     = screenshots_dir
         @episode             = 0
         @training_step       = 0
         @zero_entropy_streak = 0
@@ -97,7 +99,8 @@ module FightingAI
       def run_episode
         @emulator.install_match_state(@match_state[:path])
 
-        fight_logger = build_fight_logger
+        fight_logger      = build_fight_logger
+        screenshot_saver  = build_screenshot_saver
 
         runner = Runtime::MatchRunner.new(
           emulator_adapter: @emulator,
@@ -107,7 +110,8 @@ module FightingAI
           ui:               @ui,
           wram_dump:        @wram_dump,
           max_rounds:       @max_rounds,
-          fight_logger:     fight_logger
+          fight_logger:     fight_logger,
+          screenshot_saver: screenshot_saver
         )
 
         match  = runner.run(
@@ -119,6 +123,7 @@ module FightingAI
         log_episode(result)
       ensure
         fight_logger&.close
+        screenshot_saver&.stop
       end
 
       def build_fight_logger
@@ -126,6 +131,17 @@ module FightingAI
 
         filename = "episode_%05d.log" % @episode
         FightLogger.new(File.join(@fight_logs_dir, filename))
+      end
+
+      def build_screenshot_saver
+        return nil unless @screenshots_dir
+
+        dir = File.join(@screenshots_dir, "episode_%05d" % @episode)
+        ScreenshotSaver.new(
+          dir,
+          width:  Emulator::RetroArch::StreamingFrameGrabber::FRAME_WIDTH,
+          height: Emulator::RetroArch::StreamingFrameGrabber::FRAME_HEIGHT
+        )
       end
 
       ENTROPY_COLLAPSE_THRESHOLD  = 1e-6

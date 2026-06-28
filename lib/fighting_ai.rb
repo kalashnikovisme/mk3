@@ -78,6 +78,7 @@ require_relative "fighting_ai/training/trajectory_buffer"
 require_relative "fighting_ai/training/policy"
 require_relative "fighting_ai/training/checkpoint_manager"
 require_relative "fighting_ai/training/fight_logger"
+require_relative "fighting_ai/training/screenshot_saver"
 require_relative "fighting_ai/training/ppo_trainer"
 
 # Runtime

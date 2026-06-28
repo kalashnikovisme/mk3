@@ -12,17 +12,18 @@ module FightingAI
       MS_PER_SECOND    = 1000
       UI_UPDATE_INTERVAL = 1.0 / 10
 
-      def initialize(emulator_adapter:, game_adapter:, agents:, recorder: nil, logger: nil, ui: nil, wram_dump: false, max_rounds: nil, fight_logger: nil)
-        @emulator        = emulator_adapter
-        @game            = game_adapter
-        @agents          = agents   # Hash { 1 => Agent, 2 => Agent }
-        @recorder        = recorder
-        @logger          = logger || method(:default_log)
-        @ui              = ui
-        @wram_dump       = wram_dump
-        @wram_dump_index = 0
-        @max_rounds      = max_rounds
-        @fight_logger    = fight_logger
+      def initialize(emulator_adapter:, game_adapter:, agents:, recorder: nil, logger: nil, ui: nil, wram_dump: false, max_rounds: nil, fight_logger: nil, screenshot_saver: nil)
+        @emulator          = emulator_adapter
+        @game              = game_adapter
+        @agents            = agents   # Hash { 1 => Agent, 2 => Agent }
+        @recorder          = recorder
+        @logger            = logger || method(:default_log)
+        @ui                = ui
+        @wram_dump         = wram_dump
+        @wram_dump_index   = 0
+        @max_rounds        = max_rounds
+        @fight_logger      = fight_logger
+        @screenshot_saver  = screenshot_saver
         @vision_capture_warning_logged = false
         FileUtils.mkdir_p(WRAM_DUMP_DIR) if @wram_dump
       end
@@ -84,6 +85,7 @@ module FightingAI
           snapshot_finished_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
           frame_observation = capture_frame_observation
+          @screenshot_saver&.save(frame_observation, frame_number)
           capture_finished_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
           game_state = @game.extract_game_state(frame_number, frame_observation: frame_observation)
           vision_actions = @game.respond_to?(:latest_vision_actions) ? @game.latest_vision_actions : {}
