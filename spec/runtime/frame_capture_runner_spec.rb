@@ -56,7 +56,7 @@ RSpec.describe FightingAI::Runtime::FrameCaptureRunner do
   end
 
   it "exits quietly when capture is interrupted during shutdown" do
-    capture_error = FightingAI::Emulator::RetroArch::FrameGrabber::CaptureError.new("display stopped")
+    capture_error = FightingAI::Emulator::RetroArch::StreamingFrameGrabber::CaptureError.new("display stopped")
     emulator = instance_double(FightingAI::Emulator::Adapter)
     allow(emulator).to receive(:capture_frame).and_raise(capture_error)
     output = StringIO.new

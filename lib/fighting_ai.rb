@@ -42,7 +42,6 @@ require_relative "fighting_ai/emulator/retro_arch/adapter_config"
 require_relative "fighting_ai/emulator/retro_arch/config_builder"
 require_relative "fighting_ai/emulator/retro_arch/network_commands"
 require_relative "fighting_ai/emulator/retro_arch/process"
-require_relative "fighting_ai/emulator/retro_arch/frame_grabber"
 require_relative "fighting_ai/emulator/retro_arch/streaming_frame_grabber"
 require_relative "fighting_ai/emulator/retro_arch/save_state_reader"
 require_relative "fighting_ai/emulator/retro_arch/adapter"
@@ -131,7 +130,7 @@ module FightingAI
     def build_retro_arch_adapter(rom_path:, core_path:, display: ":1")
       config_path       = Emulator::RetroArch::ConfigBuilder.build(core_path: core_path)
       keyboard          = Input::KeyboardInput.new
-      frame_grabber     = Emulator::RetroArch::FrameGrabber.new
+      frame_grabber     = Emulator::RetroArch::StreamingFrameGrabber.new(display: display)
       save_state_reader = Emulator::RetroArch::SaveStateReader.new(
         watch_dirs:   [
           Emulator::RetroArch::ConfigBuilder.states_dir,

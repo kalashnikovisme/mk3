@@ -5,7 +5,7 @@ RSpec.describe FightingAI::Runtime::MatchRunner do
   CAPTURE_ERROR_MESSAGE = "X server screenshot capture failed"
 
   let(:capture_error) do
-    FightingAI::Emulator::RetroArch::FrameGrabber::CaptureError.new(CAPTURE_ERROR_MESSAGE)
+    FightingAI::Emulator::RetroArch::StreamingFrameGrabber::CaptureError.new(CAPTURE_ERROR_MESSAGE)
   end
   let(:emulator) { instance_double(FightingAI::Emulator::Adapter) }
   let(:game) { double("GameAdapter", vision_enabled?: true) }

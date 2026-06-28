@@ -61,7 +61,7 @@ module FightingAI
 
       def capture_frame
         @emulator.capture_frame
-      rescue Emulator::RetroArch::FrameGrabber::CaptureError
+      rescue Emulator::RetroArch::StreamingFrameGrabber::CaptureError
         raise if @running
       end
     end

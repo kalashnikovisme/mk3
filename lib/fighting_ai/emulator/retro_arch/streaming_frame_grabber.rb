@@ -1,12 +1,11 @@
 require "open3"
 require_relative "../../observation/frame_observation"
-require_relative "frame_grabber"
 
 module FightingAI
   module Emulator
     module RetroArch
       class StreamingFrameGrabber
-        CaptureError = FrameGrabber::CaptureError
+        CaptureError = Class.new(RuntimeError)
 
         FFMPEG_BIN           = "ffmpeg"
         FFMPEG_LOGLEVEL_ARG  = "-loglevel"
@@ -22,10 +21,10 @@ module FightingAI
         FFMPEG_OUTPUT_FORMAT = "rawvideo"
         FFMPEG_PIPE_OUTPUT   = "pipe:1"
 
-        FRAME_WIDTH     = FrameGrabber::SCREENSHOT_CROP_WIDTH
-        FRAME_HEIGHT    = FrameGrabber::SCREENSHOT_CROP_HEIGHT
-        CROP_X          = FrameGrabber::SCREENSHOT_CROP_X
-        CROP_Y          = FrameGrabber::SCREENSHOT_CROP_Y
+        FRAME_WIDTH     = 297
+        FRAME_HEIGHT    = 216
+        CROP_X          = 0
+        CROP_Y          = 0
         BYTES_PER_PIXEL = Observation::FrameObservation::RGB_CHANNELS
         FRAME_BYTES     = FRAME_WIDTH * FRAME_HEIGHT * BYTES_PER_PIXEL
 
