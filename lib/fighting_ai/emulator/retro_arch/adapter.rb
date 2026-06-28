@@ -15,7 +15,6 @@ module FightingAI
         FRAMES_PER_SECOND = 60
         FRAME_DURATION    = 1.0 / FRAMES_PER_SECOND
         STEP_FRAMES       = AdapterConfig.new.step_frames
-        STEP_DURATION     = FRAME_DURATION * STEP_FRAMES
         STARTUP_WAIT    = 6.0
         LOAD_STATE_WAIT = 1.0
         MATCH_STATE_SLOT = 0
@@ -100,7 +99,6 @@ module FightingAI
         end
 
         def advance_frame
-          sleep(STEP_DURATION)
           @frame_counter += 1
         end
 

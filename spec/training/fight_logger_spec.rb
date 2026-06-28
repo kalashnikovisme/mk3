@@ -12,11 +12,9 @@ RSpec.describe FightingAI::Training::FightLogger do
   LOGGER_PLAYER_TWO_Y = 209
   LOGGER_PLAYER_ONE_AREA = { "x" => 40, "y" => 104, "width" => 72, "height" => 120 }
   LOGGER_PLAYER_TWO_AREA = { "x" => 152, "y" => 104, "width" => 72, "height" => 120 }
-  SLEEP_MS = 17
   CAPTURE_MS = 3
   DETECT_MS = 5
   RUNTIME_MS = 218
-  WORK_MS = 243
 
   it "writes component and end-to-end frame timings" do
     fighter1 = double(
@@ -45,16 +43,13 @@ RSpec.describe FightingAI::Training::FightLogger do
       logger.log_frame(
         game_state,
         areas: [LOGGER_PLAYER_ONE_AREA, LOGGER_PLAYER_TWO_AREA],
-        sleep_ms: SLEEP_MS,
         capture_ms: CAPTURE_MS,
         detect_ms: DETECT_MS,
-        runtime_ms: RUNTIME_MS,
-        work_ms: WORK_MS
+        runtime_ms: RUNTIME_MS
       )
       logger.close
       output = File.read(path)
 
-      expect(output).to include("  sleep_ms: #{SLEEP_MS}\n")
       expect(output).to include("  capture_ms: #{CAPTURE_MS}\n")
       expect(output).to include("  detect_ms: #{DETECT_MS}\n")
       expect(output).to include("  fighter1_area: 40,104,72,120\n")

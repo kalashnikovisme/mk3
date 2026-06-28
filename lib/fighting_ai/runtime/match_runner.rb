@@ -95,11 +95,9 @@ module FightingAI
               game_state,
               actions: vision_actions,
               areas: vision_areas,
-              sleep_ms: milliseconds_between(iteration_started_at, snapshot_finished_at),
               capture_ms: milliseconds_between(snapshot_finished_at, capture_finished_at),
               detect_ms: milliseconds_between(capture_finished_at, detection_finished_at),
-              runtime_ms: milliseconds_between(detection_finished_at, work_finished_at),
-              work_ms: milliseconds_between(iteration_started_at, work_finished_at)
+              runtime_ms: milliseconds_between(detection_finished_at, work_finished_at)
             )
           end
 

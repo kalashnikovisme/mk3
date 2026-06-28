@@ -7,7 +7,6 @@ module FightingAI
       FIELD_INDENT        = "  "
       FIELD_FORMAT        = "%s: %s"
       MS_PER_SECOND       = 1000
-      SLEEP_MS_KEY        = :sleep_ms
       CAPTURE_MS_KEY      = :capture_ms
       DETECT_MS_KEY       = :detect_ms
       RUNTIME_MS_KEY      = :runtime_ms
@@ -28,24 +27,22 @@ module FightingAI
         game_state,
         actions: {},
         areas: nil,
-        sleep_ms: nil,
         capture_ms: nil,
         detect_ms: nil,
-        runtime_ms: nil,
-        work_ms: nil
+        runtime_ms: nil
       )
         started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         @file.puts(format_frame(
           game_state,
           actions: actions,
           areas: areas,
-          sleep_ms: sleep_ms,
           capture_ms: capture_ms,
           detect_ms: detect_ms,
           runtime_ms: runtime_ms
         ))
         fight_log_ms = elapsed_ms(started_at)
-        total_ms = work_ms.nil? ? nil : work_ms + fight_log_ms
+        parts = [capture_ms, detect_ms, runtime_ms, fight_log_ms].compact
+        total_ms = parts.empty? ? nil : parts.sum
         @file.puts(FIELD_INDENT + format(FIELD_FORMAT, FIGHT_LOG_MS_KEY, fight_log_ms))
         @file.puts(FIELD_INDENT + format(FIELD_FORMAT, TOTAL_MS_KEY, total_ms)) unless total_ms.nil?
         @file.puts
@@ -57,7 +54,7 @@ module FightingAI
 
       private
 
-      def format_frame(gs, actions:, areas:, sleep_ms:, capture_ms:, detect_ms:, runtime_ms:)
+      def format_frame(gs, actions:, areas:, capture_ms:, detect_ms:, runtime_ms:)
         fields = {
           timer:      gs.round_time_remaining,
           health_1:   gs.fighter1.health,
@@ -73,7 +70,6 @@ module FightingAI
           fields[FIGHTER1_AREA_KEY] = format_area(areas[0])
           fields[FIGHTER2_AREA_KEY] = format_area(areas[1])
         end
-        fields[SLEEP_MS_KEY]    = sleep_ms   unless sleep_ms.nil?
         fields[CAPTURE_MS_KEY]  = capture_ms unless capture_ms.nil?
         fields[DETECT_MS_KEY]   = detect_ms  unless detect_ms.nil?
         fields[RUNTIME_MS_KEY]  = runtime_ms unless runtime_ms.nil?
