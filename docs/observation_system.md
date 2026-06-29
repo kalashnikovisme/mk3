@@ -158,6 +158,10 @@ Round over is detected when either fighter's health reaches zero or when the tim
 
 When enabled, `Runtime::MatchRunner` captures a `FrameObservation` and passes it to `Game::MortalKombat3::Adapter#extract_game_state`. The adapter runs `Vision::CharacterPositionDetector`, which keeps a persistent `python3 bin/vision_detect.py --server` process alive. Runtime vision therefore uses the same Python CUDA detector, action modes, ROI defaults, and early-stop rules as `dip vision:detect`.
 
+The adapter also records `latest_vision_actions` for fight logs. Those action labels are now derived from the same player-to-detection assignment used for positions, so the logged action for each fighter stays aligned with the fighter that produced the detection instead of being inferred from raw detection order alone.
+
+When a new match starts, the adapter clears cached vision positions, timer, areas, and per-frame action labels before the first scan. Missing detections now log as absent instead of carrying labels forward from a previous frame.
+
 If X display capture fails, runtime training treats that frame as a vision miss instead of aborting the episode. `MatchRunner` logs one warning; health defaults to `MAX_HEALTH` and positions to 0 for that frame.
 
 Runtime vision is enabled by default for `dip learn`, `dip learn_from_ppo`,

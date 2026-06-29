@@ -66,6 +66,11 @@ module FightingAI
             PLAYER_ONE => player1_character.to_sym,
             PLAYER_TWO => player2_character.to_sym
           }
+          @latest_vision_actions = {}
+          @latest_vision_areas = nil
+          @cached_positions = nil
+          @cached_timer = nil
+          @bootstrap_done = false
         end
 
         def extract_game_state(frame_number, frame_observation: nil)
@@ -187,58 +192,57 @@ module FightingAI
         private
 
         def apply_vision_result(raw)
+          @latest_vision_actions = {}
           if raw
             @latest_vision_areas = raw[:areas]
-            new_positions = assign_vision_positions(
+            player_detections = assign_vision_detections(
               raw[:detections],
               image_width:  raw[:image_width],
               image_height: raw[:image_height]
             )
-            @latest_vision_actions = extract_vision_actions(raw[:detections], raw[:image_width])
-            @cached_positions = (@cached_positions || {}).merge(new_positions) if new_positions
+            @latest_vision_actions = extract_vision_actions(player_detections)
+            @cached_positions = (@cached_positions || {}).merge(scale_vision_positions(player_detections, raw[:image_width], raw[:image_height])) if player_detections
             @cached_timer = raw[:timer] unless raw[:timer].nil?
           end
           { positions: @cached_positions, timer: @cached_timer }
         end
 
-        def extract_vision_actions(detections, image_width)
-          return {} if detections.empty?
+        def extract_vision_actions(player_detections)
+          return {} if player_detections.nil? || player_detections.empty?
 
-          sub_zero_players = @vision_characters.select { |_, character| character == SUB_ZERO_CHARACTER }.keys
-
-          if sub_zero_players.size == PLAYER_TWO && detections.size >= PLAYER_TWO
-            { PLAYER_ONE => detections.first.action, PLAYER_TWO => detections.last.action }
-          elsif sub_zero_players.size == PLAYER_ONE
-            best = detections.max_by(&:confidence)
-            { sub_zero_players.first => best.action }
-          elsif detections.size >= PLAYER_TWO
-            { PLAYER_ONE => detections.first.action, PLAYER_TWO => detections.last.action }
-          else
-            inferred = detections.first.center_x <= image_width / MIDPOINT_DIVISOR ? PLAYER_ONE : PLAYER_TWO
-            { inferred => detections.first.action }
+          player_detections.each_with_object({}) do |(player_index, detection), actions|
+            actions[player_index] = detection.action if detection
           end
         end
 
-        def assign_vision_positions(detections, image_width:, image_height:)
+        def assign_vision_detections(detections, image_width:, image_height:)
           return nil if detections.empty?
 
           sub_zero_players = @vision_characters.select { |_, character| character == SUB_ZERO_CHARACTER }.keys
-          player_positions = {}
+          player_detections = {}
 
           if sub_zero_players.size == PLAYER_TWO && detections.size >= PLAYER_TWO
-            player_positions[PLAYER_ONE] = scale_detection(detections.first, image_width, image_height)
-            player_positions[PLAYER_TWO] = scale_detection(detections.last, image_width, image_height)
+            player_detections[PLAYER_ONE] = detections.first
+            player_detections[PLAYER_TWO] = detections.last
           elsif sub_zero_players.size == PLAYER_ONE
-            player_positions[sub_zero_players.first] = scale_detection(detections.max_by(&:confidence), image_width, image_height)
+            player_detections[sub_zero_players.first] = detections.max_by(&:confidence)
           elsif detections.size >= PLAYER_TWO
-            player_positions[PLAYER_ONE] = scale_detection(detections.first, image_width, image_height)
-            player_positions[PLAYER_TWO] = scale_detection(detections.last, image_width, image_height)
+            player_detections[PLAYER_ONE] = detections.first
+            player_detections[PLAYER_TWO] = detections.last
           else
             inferred_player = detections.first.center_x <= image_width / MIDPOINT_DIVISOR ? PLAYER_ONE : PLAYER_TWO
-            player_positions[inferred_player] = scale_detection(detections.first, image_width, image_height)
+            player_detections[inferred_player] = detections.first
           end
 
-          player_positions
+          player_detections
+        end
+
+        def scale_vision_positions(player_detections, image_width, image_height)
+          return nil if player_detections.nil? || player_detections.empty?
+
+          player_detections.each_with_object({}) do |(player_index, detection), positions|
+            positions[player_index] = scale_detection(detection, image_width, image_height) if detection
+          end
         end
 
         def scale_detection(detection, image_width, image_height)

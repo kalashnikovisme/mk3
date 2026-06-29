@@ -98,6 +98,18 @@ RSpec.describe FightingAI::Game::MortalKombat3::Adapter do
       expect(scanner).to have_received(:submit).with(frame_observation)
     end
 
+    it 'keeps action labels aligned with the assigned player detections' do
+      allow(vision_detector).to receive(:detect).with(frame_observation).and_return(bootstrap_result)
+      allow(scanner).to receive(:latest_result).and_return(nil)
+
+      adapter.extract_game_state(frame_number_one, frame_observation: frame_observation)
+
+      expect(adapter.latest_vision_actions).to eq(
+        1 => 'idle_fighting_stance',
+        2 => 'ice_clone_crouch'
+      )
+    end
+
     it 'reuses the last detected positions when an async scan result is not ready yet' do
       allow(vision_detector).to receive(:detect).with(frame_observation).and_return(bootstrap_result)
       allow(scanner).to receive(:latest_result).and_return(nil)
