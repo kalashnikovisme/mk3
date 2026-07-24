@@ -184,6 +184,14 @@ runtime detector uses the same two default initial stance ROIs as before.
 The per-frame fight log records `fighter1_area` and `fighter2_area` so you can
 see the search regions the detector used on that frame. When the detector scans
 full-screen, the log writes `full-screen` for both fields.
+When fight screenshot saving is enabled, each episode directory under
+`data/fight_screenshots` contains three subdirectories:
+
+| Directory | Contents |
+|-----------|----------|
+| `screen/` | Whole captured frame PPMs named `frame_%05d.ppm` |
+| `fighter1/` | PPM crops for the first detector ROI, using the same frame filename |
+| `fighter2/` | PPM crops for the second detector ROI, using the same frame filename |
 
 ## Character Tracking (`Vision::CharacterTracker`)
 

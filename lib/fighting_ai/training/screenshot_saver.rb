@@ -6,19 +6,19 @@ module FightingAI
       PPM_MAGIC             = "P6"
       PPM_MAX_COLOR         = 255
       FRAME_FILENAME_FORMAT = "frame_%05d.ppm"
-      AREA_FILENAME_FORMAT  = "frame_%05d%s.ppm"
-      FIGHTER1_AREA_SUFFIX  = "_fighter1_area"
-      FIGHTER2_AREA_SUFFIX  = "_fighter2_area"
-      AREA_SUFFIXES         = [FIGHTER1_AREA_SUFFIX, FIGHTER2_AREA_SUFFIX].freeze
+      SCREEN_DIRNAME        = "screen"
+      FIGHTER1_DIRNAME      = "fighter1"
+      FIGHTER2_DIRNAME      = "fighter2"
+      AREA_DIRNAMES         = [FIGHTER1_DIRNAME, FIGHTER2_DIRNAME].freeze
       BYTES_PER_PIXEL       = 3
       WORKER_JOIN_TIMEOUT   = 10
 
       def initialize(dir, width:, height:)
-        FileUtils.mkdir_p(dir)
         @dir    = dir
         @width  = width
         @height = height
         @queue  = Queue.new
+        prepare_directories
         @worker = Thread.new { work_loop }
         @worker.report_on_exception = true
       end
@@ -48,7 +48,7 @@ module FightingAI
       end
 
       def write_ppm(bytes, frame_number)
-        path = File.join(@dir, FRAME_FILENAME_FORMAT % frame_number)
+        path = File.join(@dir, SCREEN_DIRNAME, FRAME_FILENAME_FORMAT % frame_number)
         File.open(path, "wb") do |f|
           f.write("#{PPM_MAGIC}\n#{@width} #{@height}\n#{PPM_MAX_COLOR}\n")
           f.write(bytes)
@@ -57,13 +57,13 @@ module FightingAI
 
       def write_area_ppms(bytes, frame_number, areas)
         areas.each_with_index do |area, index|
-          suffix = AREA_SUFFIXES[index]
-          next unless suffix
+          dirname = AREA_DIRNAMES[index]
+          next unless dirname
 
           cropped = crop_rgb_bytes(bytes, area)
           next unless cropped
 
-          path = File.join(@dir, AREA_FILENAME_FORMAT % [frame_number, suffix])
+          path = File.join(@dir, dirname, FRAME_FILENAME_FORMAT % frame_number)
           File.open(path, "wb") do |f|
             f.write("#{PPM_MAGIC}\n#{area.fetch("width")} #{area.fetch("height")}\n#{PPM_MAX_COLOR}\n")
             f.write(cropped)
@@ -90,6 +90,13 @@ module FightingAI
           cropped << bytes.byteslice(row_start, crop_row_bytes)
         end
         cropped
+      end
+
+      def prepare_directories
+        FileUtils.mkdir_p(File.join(@dir, SCREEN_DIRNAME))
+        AREA_DIRNAMES.each do |dirname|
+          FileUtils.mkdir_p(File.join(@dir, dirname))
+        end
       end
     end
   end
