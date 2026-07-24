@@ -1,0 +1,188 @@
+#!/usr/bin/env python3
+"""Print the initial character detection areas as ASCII art on the game screen."""
+
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+
+VISION_DETECT_PATH = Path(__file__).parent / "vision_detect.py"
+
+SCREEN_WIDTH  = 256
+SCREEN_HEIGHT = 224
+CHAR_PX_W     = 4
+CHAR_PX_H     = 8
+DRAW_COLS     = SCREEN_WIDTH  // CHAR_PX_W
+DRAW_ROWS     = SCREEN_HEIGHT // CHAR_PX_H
+
+CONSTANTS_NEEDED = (
+    "P1_INITIAL_STANCE_ROI_X",
+    "P1_INITIAL_STANCE_ROI_Y",
+    "P1_INITIAL_STANCE_ROI_WIDTH",
+    "P2_INITIAL_STANCE_ROI_X",
+    "P2_INITIAL_STANCE_ROI_Y",
+    "P2_INITIAL_STANCE_ROI_WIDTH",
+    "INITIAL_STANCE_ROI_HEIGHT",
+)
+
+
+def parse_int_constants(path: Path, names: tuple[str, ...]) -> dict[str, int]:
+    text = path.read_text()
+    found: dict[str, int] = {}
+    for line in text.splitlines():
+        m = re.match(r"^([A-Z][A-Z0-9_]*)\s*=\s*(\d+)\s*$", line.strip())
+        if m and m.group(1) in names:
+            found[m.group(1)] = int(m.group(2))
+    return found
+
+
+def px_col(x: int) -> int:
+    return round(x / CHAR_PX_W) + 1
+
+
+def px_row(y: int) -> int:
+    return round(y / CHAR_PX_H) + 1
+
+
+def put(grid: list[str], col: int, text: str) -> None:
+    n = len(grid)
+    for i, ch in enumerate(text):
+        if 0 <= col + i < n:
+            grid[col + i] = ch
+
+
+def draw_hline(canvas: list[list[str]], row: int, c1: int, c2: int, ch: str) -> None:
+    for c in range(c1, c2 + 1):
+        if 0 <= c < len(canvas[row]):
+            canvas[row][c] = ch
+
+
+def draw_vline(canvas: list[list[str]], col: int, r1: int, r2: int, ch: str) -> None:
+    for r in range(r1, r2 + 1):
+        if 0 <= r < len(canvas) and 0 <= col < len(canvas[r]):
+            canvas[r][col] = ch
+
+
+def draw_box(canvas: list[list[str]], r1: int, c1: int, r2: int, c2: int) -> None:
+    draw_hline(canvas, r1, c1 + 1, c2 - 1, "─")
+    draw_hline(canvas, r2, c1 + 1, c2 - 1, "─")
+    draw_vline(canvas, c1, r1 + 1, r2 - 1, "│")
+    draw_vline(canvas, c2, r1 + 1, r2 - 1, "│")
+    canvas[r1][c1] = "┌"; canvas[r1][c2] = "┐"
+    canvas[r2][c1] = "└"; canvas[r2][c2] = "┘"
+
+
+def render(vals: dict[str, int]) -> None:
+    p1x = vals["P1_INITIAL_STANCE_ROI_X"]
+    p1y = vals["P1_INITIAL_STANCE_ROI_Y"]
+    p1w = vals["P1_INITIAL_STANCE_ROI_WIDTH"]
+    p2x = vals["P2_INITIAL_STANCE_ROI_X"]
+    p2y = vals["P2_INITIAL_STANCE_ROI_Y"]
+    p2w = vals["P2_INITIAL_STANCE_ROI_WIDTH"]
+    h   = vals["INITIAL_STANCE_ROI_HEIGHT"]
+
+    CROWS = DRAW_ROWS + 2
+    CCOLS = DRAW_COLS + 2
+
+    canvas: list[list[str]] = [[" "] * CCOLS for _ in range(CROWS)]
+
+    # Outer screen border
+    draw_hline(canvas, 0,          0, CCOLS - 1, "─")
+    draw_hline(canvas, CROWS - 1,  0, CCOLS - 1, "─")
+    draw_vline(canvas, 0,          0, CROWS - 1, "│")
+    draw_vline(canvas, CCOLS - 1,  0, CROWS - 1, "│")
+    canvas[0][0] = "┌";          canvas[0][CCOLS - 1] = "┐"
+    canvas[CROWS-1][0] = "└";    canvas[CROWS-1][CCOLS-1] = "┘"
+
+    # Health bars
+    put(canvas[1], 2, "[P1 ████████████]")
+    put(canvas[1], CCOLS // 2 - 1, "99")
+    hp2 = "[████████████ P2]"
+    put(canvas[1], CCOLS - 1 - len(hp2), hp2)
+
+    # "not searched" label centred in the upper area
+    ns = "── not searched ──"
+    ns_row = max(px_row(p1y) // 2, 3)
+    put(canvas[ns_row], CCOLS // 2 - len(ns) // 2, ns)
+
+    # Detection rows/cols (clamped to canvas interior)
+    dr1  = px_row(p1y)
+    dr2  = min(px_row(p1y + h), CROWS - 2)
+    p1c1 = px_col(p1x)
+    p1c2 = min(px_col(p1x + p1w), CCOLS - 2)
+    p2c1 = px_col(p2x)
+    p2c2 = min(px_col(p2x + p2w), CCOLS - 2)
+
+    # Dotted dividers at top and bottom of detection band
+    for col in range(1, CCOLS - 1):
+        canvas[dr1][col] = "·"
+        canvas[dr2][col] = "·"
+
+    # Detection boxes (corners overwrite divider dots)
+    draw_box(canvas, dr1, p1c1, dr2, p1c2)
+    draw_box(canvas, dr1, p2c1, dr2, p2c2)
+
+    # Labels inside boxes
+    mid_r = (dr1 + dr2) // 2
+    put(canvas[mid_r], p1c1 + 1, "P1")
+    put(canvas[mid_r], p2c1 + 1, "P2")
+
+    # --- Print with y labels on the left ---
+    y_tagged = {
+        0:          "y=0",
+        dr1:        f"y={p1y}",
+        dr2:        f"y={p1y + h}",
+        CROWS - 1:  f"y={SCREEN_HEIGHT}",
+    }
+    YLBL_W = 7
+    INDENT = " " * (YLBL_W + 3)
+
+    print(f"Screen {SCREEN_WIDTH}×{SCREEN_HEIGHT} px  (1 char = {CHAR_PX_W}×{CHAR_PX_H} px)\n")
+    for ri, row in enumerate(canvas):
+        lbl = y_tagged.get(ri, "")
+        print(f"  {lbl:>{YLBL_W}} {''.join(row)}")
+
+    # --- x-axis annotations ---
+    arrows = [" "] * CCOLS
+    for col in [p1c1, p1c2, p2c1, p2c2]:
+        if 0 <= col < CCOLS:
+            arrows[col] = "↑"
+    print(INDENT + "".join(arrows))
+
+    # x value labels placed centred on their arrow, right-to-left to avoid stomping
+    xlabels = [" "] * CCOLS
+    for col, val in sorted([(p2c2, p2x+p2w), (p2c1, p2x), (p1c2, p1x+p1w), (p1c1, p1x)], reverse=True):
+        text = f"x={val}"
+        put(xlabels, max(col - len(text) // 2, 0), text)
+    print(INDENT + "".join(xlabels))
+
+    # Width annotations centred between each pair of arrows
+    wlabels = [" "] * CCOLS
+    for c1, c2, w in [(p1c1, p1c2, p1w), (p2c1, p2c2, p2w)]:
+        text = f"←{w}px→"
+        put(wlabels, (c1 + c2) // 2 - len(text) // 2, text)
+    print(INDENT + "".join(wlabels))
+
+    print()
+    print(f"  P1: ({p1x}, {p1y}) → ({p1x + p1w}, {p1y + h})   w={p1w}  h={h}")
+    print(f"  P2: ({p2x}, {p2y}) → ({p2x + p2w}, {p2y + h})   w={p2w}  h={h}")
+
+
+def main() -> int:
+    if not VISION_DETECT_PATH.exists():
+        print(f"Error: not found: {VISION_DETECT_PATH}", file=sys.stderr)
+        return 1
+
+    vals = parse_int_constants(VISION_DETECT_PATH, CONSTANTS_NEEDED)
+    missing = set(CONSTANTS_NEEDED) - set(vals)
+    if missing:
+        print(f"Error: missing in {VISION_DETECT_PATH.name}: {', '.join(sorted(missing))}", file=sys.stderr)
+        return 1
+
+    render(vals)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -55,12 +55,13 @@ ROI_ARG = "--roi"
 FULL_SCREEN_ARG = "--full-screen"
 SERVER_ARG = "--server"
 REQUEST_ROIS_KEY = "rois"
-P1_INITIAL_STANCE_ROI_X = 40
-P1_INITIAL_STANCE_ROI_Y = 104
-P2_INITIAL_STANCE_ROI_X = 152
-P2_INITIAL_STANCE_ROI_Y = 104
-INITIAL_STANCE_ROI_WIDTH = 72
-INITIAL_STANCE_ROI_HEIGHT = 120
+P1_INITIAL_STANCE_ROI_X = 60
+P1_INITIAL_STANCE_ROI_Y = 150
+P1_INITIAL_STANCE_ROI_WIDTH = 33
+P2_INITIAL_STANCE_ROI_X = 217
+P2_INITIAL_STANCE_ROI_Y = 150
+P2_INITIAL_STANCE_ROI_WIDTH = 33
+INITIAL_STANCE_ROI_HEIGHT = 150
 
 DEFAULT_TIMER_TEMPLATE_DIR = Path("/app/data/vision/timers")
 TIMER_ROI_X = 136
@@ -250,13 +251,13 @@ DEFAULT_INITIAL_STANCE_ROIS = (
     Roi(
         x=P1_INITIAL_STANCE_ROI_X,
         y=P1_INITIAL_STANCE_ROI_Y,
-        width=INITIAL_STANCE_ROI_WIDTH,
+        width=P1_INITIAL_STANCE_ROI_WIDTH,
         height=INITIAL_STANCE_ROI_HEIGHT,
     ),
     Roi(
         x=P2_INITIAL_STANCE_ROI_X,
         y=P2_INITIAL_STANCE_ROI_Y,
-        width=INITIAL_STANCE_ROI_WIDTH,
+        width=P2_INITIAL_STANCE_ROI_WIDTH,
         height=INITIAL_STANCE_ROI_HEIGHT,
     ),
 )
@@ -999,7 +1000,7 @@ def run_server(
             effective_rois = (
                 tuple(Roi(x=r["x"], y=r["y"], width=r["width"], height=r["height"]) for r in raw_request_rois)
                 if raw_request_rois is not None
-                else rois
+                else (rois if rois else DEFAULT_INITIAL_STANCE_ROIS)
             )
         except Exception as error:
             print(json.dumps({"ok": False, "error": str(error)}), flush=True)
