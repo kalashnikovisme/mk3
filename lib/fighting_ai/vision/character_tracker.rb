@@ -16,7 +16,10 @@ module FightingAI
       DEFAULT_MAX_MOVEMENT_PER_FRAME = 15
       DEFAULT_MAX_LOST_FRAMES        = 5
       DEFAULT_FULL_SCREEN_INTERVAL   = 60
+      DEFAULT_MIN_SEARCH_REGION_WIDTH  = 72
+      DEFAULT_MIN_SEARCH_REGION_HEIGHT = 120
       MIN_COORDINATE                 = 0
+      REGION_CENTER_DIVISOR          = 2
       FULL_SCREEN_MODE               = :full_screen
       REGIONAL_MODE                  = :regional
 Track = Struct.new(:bounding_box, :frames_lost, keyword_init: true)
@@ -25,12 +28,16 @@ Track = Struct.new(:bounding_box, :frames_lost, keyword_init: true)
         detector:,
         max_movement_per_frame: DEFAULT_MAX_MOVEMENT_PER_FRAME,
         max_lost_frames: DEFAULT_MAX_LOST_FRAMES,
-        full_screen_interval: DEFAULT_FULL_SCREEN_INTERVAL
+        full_screen_interval: DEFAULT_FULL_SCREEN_INTERVAL,
+        min_search_region_width: DEFAULT_MIN_SEARCH_REGION_WIDTH,
+        min_search_region_height: DEFAULT_MIN_SEARCH_REGION_HEIGHT
       )
         @detector               = detector
         @max_movement_per_frame = max_movement_per_frame
         @max_lost_frames        = max_lost_frames
         @full_screen_interval   = full_screen_interval
+        @min_search_region_width = min_search_region_width
+        @min_search_region_height = min_search_region_height
         @tracks                 = []
         @frame_count            = 0
         @last_image_width       = nil
@@ -96,9 +103,31 @@ Track = Struct.new(:bounding_box, :frames_lost, keyword_init: true)
         y      = [bbox[:y] - pad, MIN_COORDINATE].max
         right  = bbox[:x] + bbox[:width] + pad
         bottom = bbox[:y] + bbox[:height] + pad
+        x, right = expand_axis_range(x, right, @min_search_region_width, @last_image_width)
+        y, bottom = expand_axis_range(y, bottom, @min_search_region_height, @last_image_height)
         right  = [right, @last_image_width].min  if @last_image_width
         bottom = [bottom, @last_image_height].min if @last_image_height
         { x: x, y: y, width: right - x, height: bottom - y }
+      end
+
+      def expand_axis_range(start_coord, end_coord, min_size, max_size)
+        current_size = end_coord - start_coord
+        return [start_coord, end_coord] if current_size >= min_size
+
+        center = (start_coord + end_coord) / REGION_CENTER_DIVISOR
+        start_coord = center - (min_size / REGION_CENTER_DIVISOR)
+        end_coord = start_coord + min_size
+
+        if max_size && end_coord > max_size
+          end_coord = max_size
+          start_coord = [end_coord - min_size, MIN_COORDINATE].max
+        end
+        if start_coord < MIN_COORDINATE
+          start_coord = MIN_COORDINATE
+          end_coord = [start_coord + min_size, max_size].compact.min
+        end
+
+        [start_coord, end_coord]
       end
 
       def update_tracks(detections, mode:)

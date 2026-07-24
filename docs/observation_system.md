@@ -213,6 +213,10 @@ bottom = min(bbox.y + bbox.height + pad, image_height)
 ```
 
 where `pad = max_movement_per_frame`. The clamping prevents search areas from extending outside the captured frame.
+After padding, regional search areas are expanded around the tracked box center
+to at least `72x120` pixels when the frame bounds allow it. This keeps the next
+scan covering a full standing/crouching fighter even if the previous selected
+template was a small partial match.
 
 ### Configuration
 
@@ -221,6 +225,8 @@ where `pad = max_movement_per_frame`. The clamping prevents search areas from ex
 | `max_movement_per_frame` | 15 px | Padding added to each side of a track bounding box to form the search area |
 | `max_lost_frames` | 5 | Frames without a match before a track is discarded |
 | `full_screen_interval` | 60 | Frames between forced full-screen recovery scans (0 disables) |
+| `min_search_region_width` | 72 px | Minimum regional ROI width after padding |
+| `min_search_region_height` | 120 px | Minimum regional ROI height after padding |
 
 ### Usage
 
@@ -297,6 +303,14 @@ Add `--verbose` when you need the full candidate list from the detector pass,
 including rejected template matches that did not survive non-overlap selection:
 verbose output sorts candidates by descending confidence and highlights the
 ranked confidence values for quick scanning.
+
+Selected character detections are ranked by confidence plus a small template
+coverage bias for bounding-box area and height. Short bounding boxes below the
+full-body minimum also receive a score penalty. This keeps small partial
+matches, such as a low knockdown fragment that resembles a standing fighter's
+legs, from displacing a slightly lower-confidence full-body match in the active
+ROI. The raw `top_candidates` debug list remains sorted by confidence so false
+positives are still visible during tuning.
 
 ```bash
 dip vision:detect --verbose data/screenshots/example.png

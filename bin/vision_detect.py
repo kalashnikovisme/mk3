@@ -47,6 +47,11 @@ CENTER_DIVISOR = 2
 IMAGE_MAX_INDEX_ADJUSTMENT = 1
 MIN_AXIS_VALUE = 0
 MK3_AXIS_MAX = 255
+DETECTION_AREA_SCORE_WEIGHT = 0.03
+DETECTION_HEIGHT_SCORE_WEIGHT = 0.06
+FULL_BODY_DETECTION_MIN_HEIGHT = 80
+SHORT_DETECTION_SCORE_PENALTY = 0.08
+NO_SCORE_PENALTY = 0.0
 ENV_LIST_SEPARATOR = ","
 REFERENCE_TEMPLATE_MARKER = "reference"
 PROBE_VARIANT_NUMBER = "01"
@@ -657,9 +662,31 @@ def overlap_ratio(left: Detection, right: Detection) -> float:
     return overlap_area / min(left_area, right_area)
 
 
+def detection_area(detection: Detection) -> int:
+    return detection.width * detection.height
+
+
+def detection_score(detection: Detection, max_area: int, max_height: int) -> float:
+    area_ratio = detection_area(detection) / max(max_area, IMAGE_MAX_INDEX_ADJUSTMENT)
+    height_ratio = detection.height / max(max_height, IMAGE_MAX_INDEX_ADJUSTMENT)
+    short_detection_penalty = (
+        SHORT_DETECTION_SCORE_PENALTY
+        if detection.height < FULL_BODY_DETECTION_MIN_HEIGHT
+        else NO_SCORE_PENALTY
+    )
+    return (
+        detection.confidence
+        + (area_ratio * DETECTION_AREA_SCORE_WEIGHT)
+        + (height_ratio * DETECTION_HEIGHT_SCORE_WEIGHT)
+        - short_detection_penalty
+    )
+
+
 def select_non_overlapping(candidates: list[Detection], max_detections: int) -> list[Detection]:
     selected: list[Detection] = []
-    for candidate in sorted(candidates, key=lambda detection: -detection.confidence):
+    max_area = max((detection_area(candidate) for candidate in candidates), default=IMAGE_MAX_INDEX_ADJUSTMENT)
+    max_height = max((candidate.height for candidate in candidates), default=IMAGE_MAX_INDEX_ADJUSTMENT)
+    for candidate in sorted(candidates, key=lambda detection: -detection_score(detection, max_area, max_height)):
         if any(overlap_ratio(existing, candidate) >= IOU_REJECTION_THRESHOLD for existing in selected):
             continue
 

@@ -14,6 +14,12 @@ RSpec.describe FightingAI::Vision::CharacterTracker do
   TRACKER_PAD      = 10
   TRACKER_MAX_LOST = 3
   TRACKER_INTERVAL = 5
+  TRACKER_MIN_REGION_WIDTH = 72
+  TRACKER_MIN_REGION_HEIGHT = 120
+  TRACKER_MIN_REGION_P1_X = 29
+  TRACKER_MIN_REGION_P1_Y = 80
+  PARTIAL_BBOX_W = 27
+  PARTIAL_BBOX_H = 51
 
   let(:inner_detector) { instance_double(FightingAI::Vision::CharacterPositionDetector) }
   let(:frame)          { instance_double(FightingAI::Observation::FrameObservation) }
@@ -49,7 +55,9 @@ RSpec.describe FightingAI::Vision::CharacterTracker do
       detector:               inner_detector,
       max_movement_per_frame: TRACKER_PAD,
       max_lost_frames:        TRACKER_MAX_LOST,
-      full_screen_interval:   TRACKER_INTERVAL
+      full_screen_interval:   TRACKER_INTERVAL,
+      min_search_region_width: TRACKER_MIN_REGION_WIDTH,
+      min_search_region_height: TRACKER_MIN_REGION_HEIGHT
     )
   end
 
@@ -105,12 +113,12 @@ RSpec.describe FightingAI::Vision::CharacterTracker do
         expect(captured_areas[0].keys).to match_array(%i[x y width height])
       end
 
-      it "pads each search area by max_movement_per_frame on all four sides" do
+      it "pads each search area by max_movement_per_frame and expands to the minimum region" do
         expected_p1 = {
-          x:      [P1_BBOX_X - TRACKER_PAD, 0].max,
-          y:      [P1_BBOX_Y - TRACKER_PAD, 0].max,
-          width:  P1_BBOX_W + (2 * TRACKER_PAD),
-          height: P1_BBOX_H + (2 * TRACKER_PAD)
+          x:      TRACKER_MIN_REGION_P1_X,
+          y:      TRACKER_MIN_REGION_P1_Y,
+          width:  TRACKER_MIN_REGION_WIDTH,
+          height: TRACKER_MIN_REGION_HEIGHT
         }
         captured_areas = nil
         allow(inner_detector).to receive(:detect) do |_, areas:|
@@ -121,6 +129,22 @@ RSpec.describe FightingAI::Vision::CharacterTracker do
         tracker.detect(frame)
 
         expect(captured_areas[0]).to eq(expected_p1)
+      end
+
+      it "keeps a small partial detection inside a full-body search region" do
+        partial = make_detection(x: P1_BBOX_X, y: P1_BBOX_Y, width: PARTIAL_BBOX_W, height: PARTIAL_BBOX_H)
+        allow(inner_detector).to receive(:detect).and_return(make_result(partial))
+        tracker.detect(frame)
+
+        captured_areas = nil
+        allow(inner_detector).to receive(:detect) do |_, areas:|
+          captured_areas = areas
+          make_result
+        end
+        tracker.detect(frame)
+
+        expect(captured_areas.first[:width]).to be >= TRACKER_MIN_REGION_WIDTH
+        expect(captured_areas.first[:height]).to be >= TRACKER_MIN_REGION_HEIGHT
       end
 
       it "updates the track bounding box when a detection lands in the search area" do
