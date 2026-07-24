@@ -170,7 +170,7 @@ or evaluation. Action and area settings are controlled by environment variables:
 
 ```bash
 dip learn sub-zero-vs-sub-zero
-VISION_ACTION=front_kick VISION_AREAS="40,104,72,120;152,104,72,120" dip learn sub-zero-vs-sub-zero
+VISION_ACTION=front_kick VISION_AREAS="36,96,96,120;164,96,96,120" dip learn sub-zero-vs-sub-zero
 VISION_ACTION=idle dip learn sub-zero-vs-sub-zero
 VISION=0 dip learn sub-zero-vs-sub-zero
 VISION=0 dip fight data/matches/sub-zero-vs-sub-zero.state models/ppo_10 models/ppo_5
@@ -222,7 +222,7 @@ bottom = min(bbox.y + bbox.height + pad, image_height)
 
 where `pad = max_movement_per_frame`. The clamping prevents search areas from extending outside the captured frame.
 After padding, regional search areas are expanded around the tracked box center
-to at least `72x120` pixels when the frame bounds allow it. This keeps the next
+to at least `96x120` pixels when the frame bounds allow it. This keeps the next
 scan covering a full standing/crouching fighter even if the previous selected
 template was a small partial match.
 
@@ -233,7 +233,7 @@ template was a small partial match.
 | `max_movement_per_frame` | 15 px | Padding added to each side of a track bounding box to form the search area |
 | `max_lost_frames` | 5 | Frames without a match before a track is discarded |
 | `full_screen_interval` | 60 | Frames between forced full-screen recovery scans (0 disables) |
-| `min_search_region_width` | 72 px | Minimum regional ROI width after padding |
+| `min_search_region_width` | 96 px | Minimum regional ROI width after padding |
 | `min_search_region_height` | 120 px | Minimum regional ROI height after padding |
 
 ### Usage
@@ -268,7 +268,7 @@ container has GPU access:
 ```bash
 dip vision:detect data/screenshots/example.png
 dip vision:detect idle data/screenshots/example.png
-dip vision:detect idle --area 40,104,72,120 --area 152,104,72,120 data/screenshots/example.png
+dip vision:detect idle --area 36,96,96,120 --area 164,96,96,120 data/screenshots/example.png
 ```
 
 `dip vision:detect` runs through the `app_gpu` Compose service, which requests
@@ -357,7 +357,7 @@ that area is skipped for the remaining templates. Use `--full-screen` to make
 the default explicit:
 
 ```bash
-dip vision:detect idle --area 40,104,72,120 --area 152,104,72,120 data/screenshots/example.png
+dip vision:detect idle --area 36,96,96,120 --area 164,96,96,120 data/screenshots/example.png
 dip vision:detect idle --roi 32,96,88,128 --roi 144,96,88,128 data/screenshots/example.png
 dip vision:detect idle --full-screen data/screenshots/example.png
 ```

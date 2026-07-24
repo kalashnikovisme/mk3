@@ -21,7 +21,7 @@ detector as `dip vision:detect`:
 
 ```bash
 dip learn sub-zero-vs-sub-zero
-VISION_ACTION=front_kick VISION_AREAS="40,104,72,120;152,104,72,120" dip learn sub-zero-vs-sub-zero
+VISION_ACTION=front_kick VISION_AREAS="36,96,96,120;164,96,96,120" dip learn sub-zero-vs-sub-zero
 VISION_ACTION=idle dip learn sub-zero-vs-sub-zero
 VISION=0 dip learn sub-zero-vs-sub-zero
 ```
