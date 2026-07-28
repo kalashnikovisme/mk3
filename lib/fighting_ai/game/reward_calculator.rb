@@ -9,6 +9,7 @@ module FightingAI
           close_range:       config.reward_close_range,
           approach:          config.reward_approach,
           distance_reset:    config.reward_distance_reset,
+          distance_escape:   config.reward_distance_escape,
           round_win:         config.reward_win,
           round_loss:        config.reward_loss,
           round_draw:        config.reward_draw,

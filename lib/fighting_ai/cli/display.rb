@@ -30,6 +30,7 @@ module FightingAI
         close_range:       "rng",
         approach:          "app",
         distance_reset:    "rst",
+        distance_escape:   "esc",
         round_win:         "win",
         round_loss:        "loss",
         round_draw:        "draw",
@@ -224,7 +225,7 @@ module FightingAI
     # Machine-readable display for AI-driven log analysis.
     # Emits one JSON line per event; suppresses the live status bar entirely.
     class PPOAIDisplay
-      COMPONENT_KEYS = %i[damage_dealt damage_taken close_range approach distance_reset round_win round_loss round_draw stale].freeze
+      COMPONENT_KEYS = %i[damage_dealt damage_taken close_range approach distance_reset distance_escape round_win round_loss round_draw stale].freeze
 
       attr_writer :log_file
 

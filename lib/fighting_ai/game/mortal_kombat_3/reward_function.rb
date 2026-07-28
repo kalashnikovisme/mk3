@@ -32,7 +32,8 @@ module FightingAI
             damage_taken:      damage_taken * @weights[:damage_taken],
             close_range:       close_range_reward(me_next, opp_next),
             approach:          approach_reward(me_prev, opp_prev, me_next, opp_next),
-            distance_reset:    distance_reset_reward(me_prev, opp_prev, me_next, opp_next)
+            distance_reset:    distance_reset_reward(me_prev, opp_prev, me_next, opp_next),
+            distance_escape:   distance_escape_reward(me_prev, opp_prev, me_next, opp_next)
           }
 
           if stale
@@ -76,6 +77,15 @@ module FightingAI
 
           opening_delta = [next_distance - prev_distance, DISTANCE_REWARD_FLOOR].max
           (opening_delta / MemoryMap::MAX_FIGHT_DISTANCE.to_f) * @weights[:distance_reset]
+        end
+
+        def distance_escape_reward(me_prev, opp_prev, me_next, opp_next)
+          prev_distance = clamped_distance(me_prev, opp_prev)
+          next_distance = clamped_distance(me_next, opp_next)
+          return DISTANCE_REWARD_FLOOR unless too_close_range?(prev_distance)
+          return DISTANCE_REWARD_FLOOR unless preferred_range?(next_distance)
+
+          @weights[:distance_escape]
         end
 
         def preferred_range_ratio(distance)

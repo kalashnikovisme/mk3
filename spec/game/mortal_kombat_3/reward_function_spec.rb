@@ -108,6 +108,26 @@ RSpec.describe FightingAI::Game::MortalKombat3::RewardFunction do
     end
   end
 
+  describe "distance escape" do
+    it "rewards escaping from too close into the preferred band" do
+      prev = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: TOO_CLOSE_PLAYER_TWO_X)
+      after = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: PREFERRED_RANGE_PLAYER_TWO_X)
+
+      reward = reward_fn.call(prev, after, player_index: REWARD_PLAYER_ONE)
+
+      expect(reward.components[:distance_escape]).to eq(FightingAI.config.reward_distance_escape)
+    end
+
+    it "does not reward escaping if the fighters remain too close" do
+      prev = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: TOO_CLOSE_PLAYER_TWO_X)
+      after = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: TOO_CLOSE_PLAYER_TWO_X + 1)
+
+      reward = reward_fn.call(prev, after, player_index: REWARD_PLAYER_ONE)
+
+      expect(reward.components[:distance_escape]).to eq(0.0)
+    end
+  end
+
   describe "round win" do
     it "gives large positive reward for winning the round" do
       prev  = make_state(h1: WINNER_HEALTH, h2: LOSER_HEALTH)
