@@ -78,10 +78,11 @@ arguments are present.
 Per-frame fight logs written by `dip learn` also include `fighter1_area` and
 `fighter2_area`, which reflect the detector search region used for each side on
 that frame.
-Fight screenshots are grouped by episode under `data/fight_screenshots`. Each
-episode directory contains `screen/` for whole-frame PPMs, `fighter1/` for the
-first detector ROI crop, and `fighter2/` for the second detector ROI crop. All
-three folders use the same `frame_%05d.ppm` filename pattern.
+
+Fight screenshots are currently disabled during normal `dip learn` and
+`dip learn_from_ppo` runs. The screenshot saver code remains available in the
+training runtime, but the standard training entrypoints no longer create
+`data/fight_screenshots` or write per-frame PPMs.
 
 Unlike normal real-time training, this diagnostic mode pauses RetroArch and uses
 one `FRAME_ADVANCE` command per logged frame. Detector latency affects wall-clock

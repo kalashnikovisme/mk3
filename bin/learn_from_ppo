@@ -30,7 +30,6 @@ MATCHES_DIR    = File.expand_path("../data/matches", __dir__)
 MODELS_DIR     = File.expand_path("../models", __dir__)
 MEMORY_DIR     = File.expand_path("../data/memory", __dir__)
 FIGHT_LOGS_DIR        = File.expand_path("../data/fight_logs", __dir__)
-FIGHT_SCREENSHOTS_DIR = File.expand_path("../data/fight_screenshots", __dir__)
 DEBUG        = REST_ARGS.include?("debug")
 WRAM_DEBUG   = DEBUG
 VISION_ENABLED = ENV.fetch(FightingAI::VISION_ENV_KEY, FightingAI::VISION_LEARN_DEFAULT_VALUE) == FightingAI::VISION_ENABLED_VALUE
@@ -51,8 +50,6 @@ end
 
 FileUtils.rm_rf(FIGHT_LOGS_DIR)
 FileUtils.mkdir_p(FIGHT_LOGS_DIR)
-FileUtils.rm_rf(FIGHT_SCREENSHOTS_DIR)
-FileUtils.mkdir_p(FIGHT_SCREENSHOTS_DIR)
 
 if WRAM_DEBUG
   FileUtils.mkdir_p(MEMORY_DIR)
@@ -119,8 +116,7 @@ trainer = FightingAI::Training::PPOTrainer.new(
   wram_dump:           WRAM_DEBUG,
   max_rounds:          1,
   initial_checkpoint:  PPO_PATH,
-  fight_logs_dir:      FIGHT_LOGS_DIR,
-  screenshots_dir:     FIGHT_SCREENSHOTS_DIR
+  fight_logs_dir:      FIGHT_LOGS_DIR
 )
 trainer_ref = trainer
 
