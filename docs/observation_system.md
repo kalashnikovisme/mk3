@@ -160,6 +160,8 @@ When enabled, `Runtime::MatchRunner` captures a `FrameObservation` and passes it
 
 The adapter also records `latest_vision_actions` for fight logs. Those action labels are now derived from the same player-to-detection assignment used for positions, so the logged action for each fighter stays aligned with the fighter that produced the detection instead of being inferred from raw detection order alone.
 
+When fighters cross sides, runtime vision preserves player identity by track continuity rather than reassigning `player1` and `player2` from raw left-to-right detection order on each frame. Startup still seeds identity from the initial stance, but subsequent regional scans and periodic full-screen recovery scans keep following the same fighter across throws, jumps, and side switches.
+
 When a new match starts, the adapter clears cached vision positions, timer, areas, and per-frame action labels before the first scan. Missing detections now log as absent instead of carrying labels forward from a previous frame.
 
 If X display capture fails, runtime training treats that frame as a vision miss instead of aborting the episode. `MatchRunner` logs one warning; health defaults to `MAX_HEALTH` and positions to 0 for that frame.
@@ -208,7 +210,7 @@ When fight screenshot saving is enabled, each episode directory under
 ### Track initialization and update algorithm
 
 1. **Full-screen frame** — `reinitialize_tracks`: replace all tracks with one `Track` per detection. Each `Track` stores the detection bounding box and `frames_lost: 0`.
-2. **Regional frame** — `update_existing_tracks`: for each active track compute its `padded_region`, find any detection whose center falls inside that region, update the track's bounding box and reset `frames_lost`, or increment `frames_lost`. Tracks with `frames_lost >= max_lost_frames` are discarded.
+2. **Regional frame** — `update_existing_tracks`: for each active track compute its `padded_region`, predict the next center from the previous two matched boxes, then choose the nearest unmatched detection. This preserves fighter identity when the characters cross sides. Tracks with `frames_lost >= max_lost_frames` are discarded.
 3. **All tracks lost** — fall back to full-screen on the next frame.
 
 ### Padded region

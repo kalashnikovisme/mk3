@@ -20,6 +20,10 @@ RSpec.describe FightingAI::Vision::CharacterTracker do
   TRACKER_MIN_REGION_P1_Y = 80
   PARTIAL_BBOX_W = 27
   PARTIAL_BBOX_H = 51
+  CROSS_STEP_ONE_P1_BBOX_X = 90
+  CROSS_STEP_ONE_P2_BBOX_X = 130
+  CROSS_STEP_TWO_P1_BBOX_X = 140
+  CROSS_STEP_TWO_P2_BBOX_X = 85
 
   let(:inner_detector) { instance_double(FightingAI::Vision::CharacterPositionDetector) }
   let(:frame)          { instance_double(FightingAI::Observation::FrameObservation) }
@@ -240,6 +244,33 @@ RSpec.describe FightingAI::Vision::CharacterTracker do
         tracks = tracker.instance_variable_get(:@tracks)
         expect(tracks[0].bounding_box[:x]).to eq(P1_BBOX_X)
         expect(tracks[1].bounding_box[:x]).to eq(P2_BBOX_X + 5)
+      end
+
+      it "preserves fighter identity through a gradual side swap and full-screen recovery" do
+        p1 = make_detection(x: P1_BBOX_X, y: P1_BBOX_Y, width: P1_BBOX_W, height: P1_BBOX_H)
+        p2 = make_detection(x: P2_BBOX_X, y: P2_BBOX_Y, width: P2_BBOX_W, height: P2_BBOX_H)
+        allow(inner_detector).to receive(:detect).with(frame, areas: []).and_return(make_result(p1, p2))
+        tracker.detect(frame)
+
+        cross_step_one_p1 = make_detection(x: CROSS_STEP_ONE_P1_BBOX_X, y: P1_BBOX_Y, width: P1_BBOX_W, height: P1_BBOX_H)
+        cross_step_one_p2 = make_detection(x: CROSS_STEP_ONE_P2_BBOX_X, y: P2_BBOX_Y, width: P2_BBOX_W, height: P2_BBOX_H)
+        cross_step_two_p1 = make_detection(x: CROSS_STEP_TWO_P1_BBOX_X, y: P1_BBOX_Y, width: P1_BBOX_W, height: P1_BBOX_H)
+        cross_step_two_p2 = make_detection(x: CROSS_STEP_TWO_P2_BBOX_X, y: P2_BBOX_Y, width: P2_BBOX_W, height: P2_BBOX_H)
+
+        allow(inner_detector).to receive(:detect).and_return(
+          make_result(cross_step_one_p1, cross_step_one_p2),
+          make_result(cross_step_two_p2, cross_step_two_p1),
+          make_result(cross_step_two_p2, cross_step_two_p1),
+          make_result(cross_step_two_p2, cross_step_two_p1)
+        )
+
+        tracker.detect(frame)
+        tracker.detect(frame)
+        tracker.detect(frame)
+        result = tracker.detect(frame)
+
+        expect(result[:player1]).to eq(cross_step_two_p1)
+        expect(result[:player2]).to eq(cross_step_two_p2)
       end
     end
 

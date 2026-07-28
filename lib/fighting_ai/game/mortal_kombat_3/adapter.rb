@@ -196,7 +196,7 @@ module FightingAI
           if raw
             @latest_vision_areas = raw[:areas]
             player_detections = assign_vision_detections(
-              raw[:detections],
+              raw,
               image_width:  raw[:image_width],
               image_height: raw[:image_height]
             )
@@ -215,7 +215,14 @@ module FightingAI
           end
         end
 
-        def assign_vision_detections(detections, image_width:, image_height:)
+        def assign_vision_detections(raw_result, image_width:, image_height:)
+          explicit_player_detections = {
+            PLAYER_ONE => raw_result[:player1],
+            PLAYER_TWO => raw_result[:player2]
+          }.compact
+          return explicit_player_detections unless explicit_player_detections.empty?
+
+          detections = raw_result[:detections]
           return nil if detections.empty?
 
           sub_zero_players = @vision_characters.select { |_, character| character == SUB_ZERO_CHARACTER }.keys

@@ -13,6 +13,8 @@ module FightingAI
     # The public #detect interface matches CharacterPositionDetector so the
     # tracker can be passed directly to AsyncVisionScanner.
     class CharacterTracker
+      PLAYER_ONE = 1
+      PLAYER_TWO = 2
       DEFAULT_MAX_MOVEMENT_PER_FRAME = 15
       DEFAULT_MAX_LOST_FRAMES        = 5
       DEFAULT_FULL_SCREEN_INTERVAL   = 60
@@ -22,7 +24,7 @@ module FightingAI
       REGION_CENTER_DIVISOR          = 2
       FULL_SCREEN_MODE               = :full_screen
       REGIONAL_MODE                  = :regional
-Track = Struct.new(:bounding_box, :frames_lost, keyword_init: true)
+      Track = Struct.new(:player_index, :bounding_box, :previous_bounding_box, :frames_lost, :last_detection, keyword_init: true)
 
       def initialize(
         detector:,
@@ -53,7 +55,7 @@ Track = Struct.new(:bounding_box, :frames_lost, keyword_init: true)
         @last_image_width  = result[:image_width]
         @last_image_height = result[:image_height]
         update_tracks(result[:detections], mode: mode)
-        result
+        result.merge(player1: detection_for_player(PLAYER_ONE), player2: detection_for_player(PLAYER_TWO))
       end
 
       def tracking?
@@ -94,7 +96,7 @@ Track = Struct.new(:bounding_box, :frames_lost, keyword_init: true)
       end
 
       def build_search_areas
-        active_tracks.map { |t| padded_region(t.bounding_box) }
+        active_tracks.sort_by(&:player_index).map { |t| padded_region(t.bounding_box) }
       end
 
       def padded_region(bbox)
@@ -139,21 +141,79 @@ Track = Struct.new(:bounding_box, :frames_lost, keyword_init: true)
       end
 
       def reinitialize_tracks(detections)
-        @tracks = detections.map { |det| Track.new(bounding_box: bbox_from(det), frames_lost: 0) }
+        if @tracks.empty?
+          initialize_tracks_from_left_to_right(detections)
+        else
+          update_existing_tracks(detections)
+        end
       end
 
       def update_existing_tracks(detections)
+        remaining_detections = detections.dup
+
         @tracks.each do |track|
-          area    = padded_region(track.bounding_box)
-          matched = detections.find { |det| detection_center_in_area?(det, area) }
+          area = padded_region(track.bounding_box)
+          matched = best_detection_for_track(track, remaining_detections, area: area)
           if matched
+            track.previous_bounding_box = track.bounding_box
             track.bounding_box = bbox_from(matched)
             track.frames_lost  = 0
+            track.last_detection = matched
+            remaining_detections.delete(matched)
           else
             track.frames_lost += 1
           end
         end
         @tracks.reject! { |t| t.frames_lost >= @max_lost_frames }
+      end
+
+      def initialize_tracks_from_left_to_right(detections)
+        sorted = detections.sort_by(&:center_x)
+        @tracks = sorted.first(PLAYER_TWO).each_with_index.map do |detection, index|
+          Track.new(
+            player_index: index + 1,
+            bounding_box: bbox_from(detection),
+            previous_bounding_box: nil,
+            frames_lost: 0,
+            last_detection: detection
+          )
+        end
+      end
+
+      def detection_for_player(player_index)
+        track = active_tracks.find { |candidate| candidate.player_index == player_index }
+        track&.last_detection
+      end
+
+      def best_detection_for_track(track, detections, area:)
+        return nil if detections.empty?
+
+        track_center_x, track_center_y = predicted_track_center(track)
+        detections.min_by { |detection| detection_distance_squared(detection, track_center_x, track_center_y) }
+      end
+
+      def detection_distance_squared(detection, track_center_x, track_center_y)
+        dx = detection.center_x - track_center_x
+        detection_center_y = detection.bottom_y - (detection.height / REGION_CENTER_DIVISOR)
+        dy = detection_center_y - track_center_y
+        (dx * dx) + (dy * dy)
+      end
+
+      def bbox_center(bounding_box)
+        center_x = bounding_box[:x] + (bounding_box[:width] / REGION_CENTER_DIVISOR)
+        center_y = bounding_box[:y] + (bounding_box[:height] / REGION_CENTER_DIVISOR)
+        [center_x, center_y]
+      end
+
+      def predicted_track_center(track)
+        current_center_x, current_center_y = bbox_center(track.bounding_box)
+        return [current_center_x, current_center_y] unless track.previous_bounding_box
+
+        previous_center_x, previous_center_y = bbox_center(track.previous_bounding_box)
+        [
+          current_center_x + (current_center_x - previous_center_x),
+          current_center_y + (current_center_y - previous_center_y)
+        ]
       end
 
       def detection_center_in_area?(detection, area)

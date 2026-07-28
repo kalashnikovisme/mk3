@@ -143,5 +143,26 @@ RSpec.describe FightingAI::Game::MortalKombat3::Adapter do
       expect(third_state.fighter1.x).to eq(second_state.fighter1.x)
       expect(third_state.fighter2.x).to eq(second_state.fighter2.x)
     end
+
+    it 'uses explicit tracked player assignments instead of raw detection order after a side swap' do
+      swapped_result = {
+        detections: [player_two_detection, player_one_detection],
+        player1: player_one_detection,
+        player2: player_two_detection,
+        areas: [],
+        image_width: vision_image_width,
+        image_height: vision_image_height,
+        timer: timer_ninety_nine
+      }
+      allow(vision_detector).to receive(:detect).with(frame_observation).and_return(swapped_result)
+
+      state = adapter.extract_game_state(frame_number_one, frame_observation: frame_observation)
+
+      expect(state.fighter1.x).to be < state.fighter2.x
+      expect(adapter.latest_vision_actions).to eq(
+        1 => 'idle_fighting_stance',
+        2 => 'ice_clone_crouch'
+      )
+    end
   end
 end
