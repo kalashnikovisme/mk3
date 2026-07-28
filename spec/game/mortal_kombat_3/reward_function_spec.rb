@@ -4,9 +4,11 @@ RSpec.describe FightingAI::Game::MortalKombat3::RewardFunction do
   REWARD_PLAYER_ONE = 1
   REWARD_PLAYER_TWO = 2
   PLAYER_ONE_X = 0
-  CLOSE_PLAYER_TWO_X = 50
-  MID_PLAYER_TWO_X = 120
+  TOO_CLOSE_PLAYER_TWO_X = FightingAI::Game::MortalKombat3::RewardFunction::TOO_CLOSE_DISTANCE.to_i
+  PREFERRED_RANGE_PLAYER_TWO_X = FightingAI::Game::MortalKombat3::RewardFunction::PREFERRED_RANGE_MIN_DISTANCE.to_i + 10
+  MID_PLAYER_TWO_X = FightingAI::Game::MortalKombat3::RewardFunction::APPROACH_RANGE_START_DISTANCE.to_i - 20
   FAR_PLAYER_TWO_X = FightingAI::Game::MortalKombat3::MemoryMap::MAX_FIGHT_DISTANCE
+  RESET_DISTANCE_PLAYER_TWO_X = FightingAI::Game::MortalKombat3::RewardFunction::TOO_CLOSE_DISTANCE.to_i + 30
   DEFAULT_Y = 40
   DEFAULT_FRAME_NUMBER = 1
   DEFAULT_ROUND_NUMBER = 1
@@ -20,7 +22,7 @@ RSpec.describe FightingAI::Game::MortalKombat3::RewardFunction do
   LOSER_HEALTH = 10
   ZERO_HEALTH = 0
 
-  def make_state(h1:, h2:, p1_x: PLAYER_ONE_X, p2_x: CLOSE_PLAYER_TWO_X, round_over: false, match_over: false)
+  def make_state(h1:, h2:, p1_x: PLAYER_ONE_X, p2_x: PREFERRED_RANGE_PLAYER_TWO_X, round_over: false, match_over: false)
     FightingAI::Core::GameState.new(
       frame_number:         DEFAULT_FRAME_NUMBER,
       fighter1:             FightingAI::Core::FighterState.new(player_index: REWARD_PLAYER_ONE, health: h1, max_health: DEFAULT_MAX_HEALTH, x: p1_x, y: DEFAULT_Y),
@@ -54,8 +56,8 @@ RSpec.describe FightingAI::Game::MortalKombat3::RewardFunction do
   end
 
   describe "close range" do
-    it "rewards being closer to the opponent" do
-      close_state = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: CLOSE_PLAYER_TWO_X)
+    it "rewards maintaining the preferred spacing band" do
+      close_state = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: PREFERRED_RANGE_PLAYER_TWO_X)
       far_state = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: FAR_PLAYER_TWO_X)
 
       close_reward = reward_fn.call(close_state, close_state, player_index: REWARD_PLAYER_ONE)
@@ -66,23 +68,43 @@ RSpec.describe FightingAI::Game::MortalKombat3::RewardFunction do
     end
   end
 
-  describe "distance progress" do
-    it "rewards moving closer from one frame to the next" do
+  describe "approach" do
+    it "rewards moving closer from long range" do
       prev = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: FAR_PLAYER_TWO_X)
       after = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: MID_PLAYER_TWO_X)
 
       reward = reward_fn.call(prev, after, player_index: REWARD_PLAYER_ONE)
 
-      expect(reward.components[:distance_progress]).to be > 0.0
+      expect(reward.components[:approach]).to be > 0.0
     end
 
-    it "penalizes moving away from the opponent" do
-      prev = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: MID_PLAYER_TWO_X)
+    it "does not reward closing distance when already inside the approach band" do
+      prev = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: PREFERRED_RANGE_PLAYER_TWO_X)
+      after = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: TOO_CLOSE_PLAYER_TWO_X)
+
+      reward = reward_fn.call(prev, after, player_index: REWARD_PLAYER_ONE)
+
+      expect(reward.components[:approach]).to eq(0.0)
+    end
+  end
+
+  describe "distance reset" do
+    it "rewards opening space after getting too close" do
+      prev = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: TOO_CLOSE_PLAYER_TWO_X)
+      after = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: RESET_DISTANCE_PLAYER_TWO_X)
+
+      reward = reward_fn.call(prev, after, player_index: REWARD_PLAYER_ONE)
+
+      expect(reward.components[:distance_reset]).to be > 0.0
+    end
+
+    it "does not reward walking farther away from long range" do
+      prev = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: FAR_PLAYER_TWO_X - 10)
       after = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: FAR_PLAYER_TWO_X)
 
       reward = reward_fn.call(prev, after, player_index: REWARD_PLAYER_ONE)
 
-      expect(reward.components[:distance_progress]).to be < 0.0
+      expect(reward.components[:distance_reset]).to eq(0.0)
     end
   end
 

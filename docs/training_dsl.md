@@ -38,7 +38,7 @@ The active training mode is PPO self-play via `dip learn`. See `docs/ppo_trainin
 
 If `models/latest` points at a checkpoint that no longer matches the current observation or action dimensions, `dip learn` skips that checkpoint, prints a warning, and starts fresh. Use `dip learn_from_ppo <path>` only when you want an explicit restore to fail if the checkpoint is incompatible.
 
-PPO stale-round handling is movement-aware: a round is truncated only after `stale_timeout` seconds with both unchanged HP and unchanged fighter spacing. Reward shaping also distinguishes between staying close (`close_range`) and actively reducing distance (`distance_progress`), so early training is not forced to discover damage before receiving any useful learning signal.
+PPO stale-round handling is movement-aware: a round is truncated only after `stale_timeout` seconds with both unchanged HP and unchanged fighter spacing. Reward shaping is also spacing-regime aware: `approach` rewards closing from long range, `close_range` rewards holding the preferred band, and `distance_reset` rewards opening space after the fighters get too close.
 
 Sub-Zero template recognition can be enabled during training after preparing
 templates:

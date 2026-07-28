@@ -89,14 +89,15 @@ Weights defined in `lib/fighting_ai/game/reward_calculator.rb`.
 |-----------|--------|---------|
 | `damage_dealt` | +10 | `(opp_prev.health − opp_next.health) × 10` per step |
 | `damage_taken` | −5 | `(me_prev.health − me_next.health) × 5` per step |
-| `close_range` | +8 | `(1 - distance / MAX_FIGHT_DISTANCE) × 8` per step |
-| `distance_progress` | ±20 | `((prev_distance - next_distance) / MAX_FIGHT_DISTANCE) × 20` per step |
+| `close_range` | +4 | positive only inside the preferred spacing band; peaks near the band midpoint |
+| `approach` | +18 | `((prev_distance - next_distance) / MAX_FIGHT_DISTANCE) × 18` only when `prev_distance` is in the far band |
+| `distance_reset` | +24 | `((next_distance - prev_distance) / MAX_FIGHT_DISTANCE) × 24` only when `prev_distance` is in the too-close band |
 | `round_win` | +200 | flat bonus on round win |
 | `round_loss` | −200 | flat penalty on round loss |
 | `round_draw` | −100 | flat penalty on draw |
 | `stale` | −25 | flat penalty when HP and fighter spacing are both unchanged for `STALL_TIMEOUT` seconds |
 
-The dense learning signal is now split across two components: `close_range` rewards sustained engagement, and `distance_progress` rewards actually moving toward the opponent. Both are computed per step and accumulated across the `FRAME_SKIP` window.
+The dense learning signal is now split across three spacing regimes. `approach` rewards closing distance only when the fighters are too far apart, `close_range` rewards maintaining a preferred neutral band, and `distance_reset` rewards backing out after the fighters become too close. This prevents the policy from learning a single always-rush or always-retreat objective.
 
 ## PPO Agent
 
