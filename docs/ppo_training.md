@@ -55,6 +55,10 @@ post-extraction fighter positions. When vision is enabled, these are the
 vision-detected positions after scaling into the MK3 coordinate range; when
 vision is disabled, they are the WRAM-derived positions.
 
+`dip learn_watch` refreshes that status line every frame and also writes the
+same line into `data/logs/*.log`, so the log file contains the live position
+graphic for each position detection.
+
 The `screen` segment draws a fixed-width horizontal line for the MK3 screen
 coordinate range (`PPODisplay::POSITION_MIN..MemoryMap::X_MAX`). The blue dot is
 the left detected character and the red dot is the right detected character, so

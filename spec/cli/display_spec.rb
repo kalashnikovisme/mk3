@@ -2,6 +2,7 @@
 
 require 'spec_helper'
 require 'stringio'
+require 'tempfile'
 require 'fighting_ai/cli/display'
 
 module PPODisplaySpecConstants
@@ -83,6 +84,28 @@ RSpec.describe FightingAI::CLI::PPODisplay do
       expect(fake_stdout.string).to start_with("\r\e[2K")
       expect(fake_stdout.string).not_to include("\n")
     ensure
+      $stdout = original_stdout
+    end
+
+    it 'writes the position graphic to the log file in real time' do
+      fake_stdout = FakeStdout.new(width: c::UPDATE_TEST_TERMINAL_WIDTH, height: c::UPDATE_TEST_TERMINAL_HEIGHT)
+      original_stdout = $stdout
+      $stdout = fake_stdout
+      temp_log = Tempfile.new("ppo_display")
+      display.log_file = temp_log
+
+      display.update(game_state: game_state, stage_name: 'The Rooftop')
+
+      temp_log.rewind
+      logged_line = temp_log.read.force_encoding("UTF-8")
+
+      expect(logged_line).to include("screen |")
+      expect(logged_line).to include("●")
+      expect(logged_line).to include("P1")
+      expect(logged_line).to include("P2")
+    ensure
+      temp_log&.close
+      temp_log&.unlink
       $stdout = original_stdout
     end
   end

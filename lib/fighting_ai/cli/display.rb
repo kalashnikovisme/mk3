@@ -88,6 +88,10 @@ module FightingAI
         @last_status = fit_to_terminal_width(line)
         $stdout.print "\r\e[2K#{@last_status}"
         $stdout.flush
+        return unless @log_file
+
+        @log_file.puts line.gsub(ANSI_ESCAPE_PATTERN, "")
+        @log_file.flush
       end
 
       def episode_done(episode:, winner:, stale: false, p1_reward:, p2_reward:, p1_components: {}, p2_components: {})
