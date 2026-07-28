@@ -7,6 +7,7 @@ module FightingAI
     class CheckpointManager
       LATEST_LINK = "latest"
       CHECKPOINT_ERROR_PREFIX = "checkpoint load failed"
+      CHECKPOINT_FILE_NAME = "policy.pt"
 
       def initialize(dir:)
         @dir = File.expand_path(dir)
@@ -36,7 +37,8 @@ module FightingAI
         expanded = File.expand_path(path)
         raise "Checkpoint not found: #{expanded}" unless File.exist?(expanded)
 
-        response = policy.load(expanded)
+        normalized = normalize_checkpoint_path(expanded)
+        response = policy.load(normalized)
         return true if response.is_a?(Hash) && response["ok"]
 
         raise format("%s: %s (%s)", CHECKPOINT_ERROR_PREFIX, expanded, checkpoint_error_message(response))
@@ -72,6 +74,12 @@ module FightingAI
         return response.fetch("error", "unknown error") if response.is_a?(Hash)
 
         response.inspect
+      end
+
+      def normalize_checkpoint_path(path)
+        return File.dirname(path) if File.file?(path) && File.basename(path) == CHECKPOINT_FILE_NAME
+
+        path
       end
     end
   end
