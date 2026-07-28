@@ -86,8 +86,9 @@ Fight screenshots are currently disabled during normal `dip learn` and
 training runtime, but the standard training entrypoints no longer create
 `data/fight_screenshots` or write per-frame PPMs.
 
-`dip learn_watch` keeps the live status bar on screen and writes the same line
-on every frame, including the position graphic, into `data/logs/*.log`.
+`dip learn_watch` keeps the live status block on screen and writes it on every
+frame. The position chart is rendered on its own line beneath the episode line,
+and the same two-line block is written into `data/logs/*.log`.
 
 Unlike normal real-time training, this diagnostic mode pauses RetroArch and uses
 one `FRAME_ADVANCE` command per logged frame. Detector latency affects wall-clock

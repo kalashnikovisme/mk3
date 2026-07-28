@@ -74,15 +74,18 @@ RSpec.describe FightingAI::CLI::PPODisplay do
   end
 
   describe '#update' do
-    it 'rewrites one status line without printing a newline' do
+    it 'renders the status block as separate status and chart lines' do
       fake_stdout = FakeStdout.new(width: c::UPDATE_TEST_TERMINAL_WIDTH, height: c::UPDATE_TEST_TERMINAL_HEIGHT)
       original_stdout = $stdout
       $stdout = fake_stdout
 
       display.update(game_state: game_state, stage_name: 'The Rooftop')
 
-      expect(fake_stdout.string).to start_with("\r\e[2K")
-      expect(fake_stdout.string).not_to include("\n")
+      plain_output = plain(fake_stdout.string)
+      expect(plain_output.lines.size).to eq(2)
+      expect(plain_output.lines[0]).to include("Ep")
+      expect(plain_output.lines[0]).not_to include("screen")
+      expect(plain_output.lines[1]).to include("screen |")
     ensure
       $stdout = original_stdout
     end
@@ -103,6 +106,7 @@ RSpec.describe FightingAI::CLI::PPODisplay do
       expect(logged_line).to include("●")
       expect(logged_line).to include("P1")
       expect(logged_line).to include("P2")
+      expect(logged_line.lines.count).to eq(2)
     ensure
       temp_log&.close
       temp_log&.unlink

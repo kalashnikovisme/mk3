@@ -9,6 +9,7 @@ module FightingAI
       MAX_HEALTH     = 0xA6  # 166
       P1_COL_WIDTH   = 55    # visible chars reserved for the P1 reward column
       SCREEN_TRACK_WIDTH = 32
+      STATUS_AREA_LINE_COUNT = 2
       SCREEN_LEFT_BOUNDARY = '|'.freeze
       SCREEN_RIGHT_BOUNDARY = '|'.freeze
       SCREEN_EMPTY_CELL = '-'.freeze
@@ -46,6 +47,7 @@ module FightingAI
         @buffer_size   = 0
         @buffer_cap    = 512
         @last_status   = ""
+        @last_status_lines = []
         @log_file      = nil
       end
 
@@ -70,27 +72,28 @@ module FightingAI
         buf_str = "#{@buffer_size}/#{@buffer_cap}"
         buf     = @buffer_size >= @buffer_cap ? buf_str.green : buf_str.yellow
 
-        line =
+        status_line =
           "Ep #{@episode.to_s.rjust(4)} ".cyan +
           (stage_name ? "│ #{stage_name} ".light_black : "") +
           "│ t:#{timer.to_s.rjust(2)} ".white +
           "│ P1 #{health_bar(f1.health).green} #{f1.health.to_s.rjust(3)} x:#{f1.x.to_s.rjust(3)} " +
           "│ P2 #{health_bar(f2.health).red} #{f2.health.to_s.rjust(3)} x:#{f2.x.to_s.rjust(3)} " +
-          "│ screen #{screen_track(f1.x, f2.x)} " +
           "│ [#{state_tag}] " +
           "│ buf #{buf}"
 
         unless watches.empty?
           watch_str = watches.map { |w| "#{w[:label]}:#{w[:value].to_s.rjust(3)}" }.join("  ")
-          line += " │ #{watch_str}".yellow
+          status_line += " │ #{watch_str}".yellow
         end
 
-        @last_status = fit_to_terminal_width(line)
-        $stdout.print "\r\e[2K#{@last_status}"
-        $stdout.flush
+        position_line = "│ screen #{screen_track(f1.x, f2.x)}"
+        render_status_area([status_line, position_line], replace_previous: !@last_status_lines.empty?)
+        @last_status_lines = [status_line, position_line].map { |line| fit_to_terminal_width(line) }
+        @last_status = @last_status_lines.join("\n")
+
         return unless @log_file
 
-        @log_file.puts line.gsub(ANSI_ESCAPE_PATTERN, "")
+        @last_status_lines.each { |line| @log_file.puts line.gsub(ANSI_ESCAPE_PATTERN, "") }
         @log_file.flush
       end
 
@@ -218,12 +221,28 @@ module FightingAI
           rendered_line = fit_to_terminal_width(line)
           index.zero? ? "\r\e[2K#{rendered_line}" : "\n\e[2K#{rendered_line}"
         end.join
-        $stdout.print "#{body}\n\r\e[2K#{@last_status}"
+        $stdout.print "#{body}\n\r\e[2K"
+        render_status_area(@last_status_lines, replace_previous: false) unless @last_status_lines.empty?
         $stdout.flush
         if @log_file
           lines.each { |l| @log_file.puts l.gsub(ANSI_ESCAPE_PATTERN, "") }
           @log_file.flush
         end
+      end
+
+      def render_status_area(lines, replace_previous:)
+        rendered_lines = lines.map { |line| fit_to_terminal_width(line) }
+        output = +""
+
+        if replace_previous
+          output << "\r\e[2K"
+          output << "\e[1A\r\e[2K" if STATUS_AREA_LINE_COUNT > 1
+        end
+
+        output << rendered_lines[0]
+        output << "\n\e[2K#{rendered_lines[1]}"
+        $stdout.print(output)
+        $stdout.flush
       end
     end
 
