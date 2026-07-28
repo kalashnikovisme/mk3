@@ -10,6 +10,7 @@ module FightingAI
           approach:          config.reward_approach,
           distance_reset:    config.reward_distance_reset,
           distance_escape:   config.reward_distance_escape,
+          too_close:         config.reward_too_close,
           round_win:         config.reward_win,
           round_loss:        config.reward_loss,
           round_draw:        config.reward_draw,

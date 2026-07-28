@@ -128,6 +128,24 @@ RSpec.describe FightingAI::Game::MortalKombat3::RewardFunction do
     end
   end
 
+  describe "too close" do
+    it "penalizes remaining in the too-close band" do
+      close_state = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: TOO_CLOSE_PLAYER_TWO_X)
+
+      reward = reward_fn.call(close_state, close_state, player_index: REWARD_PLAYER_ONE)
+
+      expect(reward.components[:too_close]).to eq(FightingAI.config.reward_too_close)
+    end
+
+    it "does not penalize preferred spacing" do
+      preferred_state = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: PREFERRED_RANGE_PLAYER_TWO_X)
+
+      reward = reward_fn.call(preferred_state, preferred_state, player_index: REWARD_PLAYER_ONE)
+
+      expect(reward.components[:too_close]).to eq(0.0)
+    end
+  end
+
   describe "round win" do
     it "gives large positive reward for winning the round" do
       prev  = make_state(h1: WINNER_HEALTH, h2: LOSER_HEALTH)

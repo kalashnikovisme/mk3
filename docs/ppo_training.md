@@ -93,12 +93,13 @@ Weights defined in `lib/fighting_ai/game/reward_calculator.rb`.
 | `approach` | +14 | `((prev_distance - next_distance) / MAX_FIGHT_DISTANCE) × 14` only when `prev_distance` is in the far band |
 | `distance_reset` | +20 | `((next_distance - prev_distance) / MAX_FIGHT_DISTANCE) × 20` only when `prev_distance` is in the too-close band |
 | `distance_escape` | +16 | flat bonus when the fighters move from the too-close band back into the preferred spacing band |
+| `too_close` | −8 | flat penalty whenever the fighters stay inside the too-close band |
 | `round_win` | +200 | flat bonus on round win |
 | `round_loss` | −200 | flat penalty on round loss |
 | `round_draw` | −100 | flat penalty on draw |
 | `stale` | −25 | flat penalty when HP and fighter spacing are both unchanged for `STALL_TIMEOUT` seconds |
 
-The dense learning signal is now split across four spacing regimes. `approach` rewards closing distance only when the fighters are too far apart, `close_range` rewards maintaining a preferred neutral band, `distance_reset` rewards backing out after the fighters become too close, and `distance_escape` gives a discrete bonus for actually returning from point-blank range into the neutral band. This prevents the policy from learning a single always-rush or always-retreat objective and makes disengagement easier to learn.
+The dense learning signal is now split across five spacing regimes. `approach` rewards closing distance only when the fighters are too far apart, `close_range` rewards maintaining a preferred neutral band, `too_close` penalizes lingering in point-blank range, `distance_reset` rewards backing out after the fighters become too close, and `distance_escape` gives a discrete bonus for actually returning from point-blank range into the neutral band. This prevents the policy from learning a single always-rush or always-retreat objective and makes disengagement easier to learn.
 
 Before PPO sees a transition, `Agent::PPOAgent` clips each accumulated reward to `±15` and scales it by `0.1`. The reward components in the logs remain raw, but the training signal is intentionally compressed to reduce variance and early entropy collapse.
 

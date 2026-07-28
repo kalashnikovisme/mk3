@@ -33,7 +33,8 @@ module FightingAI
             close_range:       close_range_reward(me_next, opp_next),
             approach:          approach_reward(me_prev, opp_prev, me_next, opp_next),
             distance_reset:    distance_reset_reward(me_prev, opp_prev, me_next, opp_next),
-            distance_escape:   distance_escape_reward(me_prev, opp_prev, me_next, opp_next)
+            distance_escape:   distance_escape_reward(me_prev, opp_prev, me_next, opp_next),
+            too_close:         too_close_penalty_reward(me_next, opp_next)
           }
 
           if stale
@@ -86,6 +87,13 @@ module FightingAI
           return DISTANCE_REWARD_FLOOR unless preferred_range?(next_distance)
 
           @weights[:distance_escape]
+        end
+
+        def too_close_penalty_reward(me, opponent)
+          distance = clamped_distance(me, opponent)
+          return DISTANCE_REWARD_FLOOR unless too_close_range?(distance)
+
+          @weights[:too_close]
         end
 
         def preferred_range_ratio(distance)

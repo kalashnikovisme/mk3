@@ -6,6 +6,7 @@ reward_close_range: 2.0
 reward_approach: 14.0
 reward_distance_reset: 20.0
 reward_distance_escape: 16.0
+reward_too_close: -8.0
 reward_win: 200.0
 reward_loss: -200.0
 reward_draw: -100.0
