@@ -89,13 +89,14 @@ Weights defined in `lib/fighting_ai/game/reward_calculator.rb`.
 |-----------|--------|---------|
 | `damage_dealt` | +10 | `(opp_prev.health − opp_next.health) × 10` per step |
 | `damage_taken` | −5 | `(me_prev.health − me_next.health) × 5` per step |
-| `distance` | ±25 | `+25` when fighter distance is ≤ `RewardFunction::VERY_CLOSE_DISTANCE`; `-25` otherwise |
+| `close_range` | +8 | `(1 - distance / MAX_FIGHT_DISTANCE) × 8` per step |
+| `distance_progress` | ±20 | `((prev_distance - next_distance) / MAX_FIGHT_DISTANCE) × 20` per step |
 | `round_win` | +200 | flat bonus on round win |
 | `round_loss` | −200 | flat penalty on round loss |
 | `round_draw` | −100 | flat penalty on draw |
-| `stale` | −100 | flat penalty when HP unchanged for `STALL_TIMEOUT` seconds |
+| `stale` | −25 | flat penalty when HP and fighter spacing are both unchanged for `STALL_TIMEOUT` seconds |
 
-The distance component is the main dense learning reward. It is computed per `next_frame_snapshot` step and accumulated across the FRAME_SKIP window.
+The dense learning signal is now split across two components: `close_range` rewards sustained engagement, and `distance_progress` rewards actually moving toward the opponent. Both are computed per step and accumulated across the `FRAME_SKIP` window.
 
 ## PPO Agent
 
@@ -127,7 +128,8 @@ File: `lib/fighting_ai/runtime/match_runner.rb`
 
 | Parameter | Value | Description |
 |-----------|-------|-------------|
-| `STALL_TIMEOUT` | 5.0 s | Round ends as stale if HP is unchanged for this duration |
+| `STALL_TIMEOUT` | 8.0 s | Round ends as stale only if HP and spacing are both unchanged for this duration |
+| `stale_distance_reset_threshold` | 10 | Any fighter-spacing change at or above this threshold resets the stale timer |
 
 ### Per-frame timing logs
 

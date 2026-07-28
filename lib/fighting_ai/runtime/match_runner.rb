@@ -78,6 +78,7 @@ module FightingAI
         last_status_at  = Time.now - 1
         last_ui_at      = Time.now - UI_UPDATE_INTERVAL
         stall_hp        = nil
+        stall_distance  = nil
         stall_since     = nil
         loop do
           iteration_started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
@@ -132,11 +133,13 @@ module FightingAI
 
           if game_state.fight_active?
             current_hp = [game_state.fighter1.health, game_state.fighter2.health]
-            if current_hp != stall_hp
+            current_distance = fighters_distance(game_state)
+            if current_hp != stall_hp || meaningful_movement_since_stall?(stall_distance, current_distance)
               stall_hp    = current_hp
+              stall_distance = current_distance
               stall_since = Time.now
             elsif stall_since && Time.now - stall_since >= FightingAI.config.stale_timeout
-              log "Round #{round.number} stalled (HP unchanged for #{FightingAI.config.stale_timeout}s). Restarting."
+              log "Round #{round.number} stalled (HP and spacing unchanged for #{FightingAI.config.stale_timeout}s). Restarting."
               notify_agents_terminal_reward(game_state, prev_game_state, stale: true) if prev_game_state
               round.finish!(winner: nil, stale: true)
               log_frame.call
@@ -230,6 +233,16 @@ module FightingAI
         return 1 if h1 > h2
         return 2 if h2 > h1
         nil
+      end
+
+      def fighters_distance(game_state)
+        game_state.fighter1.distance_to(game_state.fighter2).to_f
+      end
+
+      def meaningful_movement_since_stall?(stall_distance, current_distance)
+        return true if stall_distance.nil?
+
+        (stall_distance - current_distance).abs >= FightingAI.config.stale_distance_reset_threshold
       end
 
       def match_should_end?(match)

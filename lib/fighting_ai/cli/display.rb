@@ -25,13 +25,14 @@ module FightingAI
       ANSI_RESET = "\e[0m"
 
       COMPONENT_LABELS = {
-        damage_dealt: "dmg",
-        damage_taken: "tkn",
-        distance:     "dst",
-        round_win:    "win",
-        round_loss:   "loss",
-        round_draw:   "draw",
-        stale:        "stl"
+        damage_dealt:      "dmg",
+        damage_taken:      "tkn",
+        close_range:       "rng",
+        distance_progress: "app",
+        round_win:         "win",
+        round_loss:        "loss",
+        round_draw:        "draw",
+        stale:             "stl"
       }.freeze
 
       attr_writer :log_file
@@ -222,7 +223,7 @@ module FightingAI
     # Machine-readable display for AI-driven log analysis.
     # Emits one JSON line per event; suppresses the live status bar entirely.
     class PPOAIDisplay
-      COMPONENT_KEYS = %i[damage_dealt damage_taken distance round_win round_loss round_draw stale].freeze
+      COMPONENT_KEYS = %i[damage_dealt damage_taken close_range distance_progress round_win round_loss round_draw stale].freeze
 
       attr_writer :log_file
 

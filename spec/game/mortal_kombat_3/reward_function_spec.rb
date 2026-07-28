@@ -4,8 +4,8 @@ RSpec.describe FightingAI::Game::MortalKombat3::RewardFunction do
   REWARD_PLAYER_ONE = 1
   REWARD_PLAYER_TWO = 2
   PLAYER_ONE_X = 0
-  VERY_CLOSE_PLAYER_TWO_X = FightingAI::Game::MortalKombat3::RewardFunction::VERY_CLOSE_DISTANCE
-  OUTSIDE_VERY_CLOSE_PLAYER_TWO_X = VERY_CLOSE_PLAYER_TWO_X + 1
+  CLOSE_PLAYER_TWO_X = 50
+  MID_PLAYER_TWO_X = 120
   FAR_PLAYER_TWO_X = FightingAI::Game::MortalKombat3::MemoryMap::MAX_FIGHT_DISTANCE
   DEFAULT_Y = 40
   DEFAULT_FRAME_NUMBER = 1
@@ -20,7 +20,7 @@ RSpec.describe FightingAI::Game::MortalKombat3::RewardFunction do
   LOSER_HEALTH = 10
   ZERO_HEALTH = 0
 
-  def make_state(h1:, h2:, p1_x: PLAYER_ONE_X, p2_x: VERY_CLOSE_PLAYER_TWO_X, round_over: false, match_over: false)
+  def make_state(h1:, h2:, p1_x: PLAYER_ONE_X, p2_x: CLOSE_PLAYER_TWO_X, round_over: false, match_over: false)
     FightingAI::Core::GameState.new(
       frame_number:         DEFAULT_FRAME_NUMBER,
       fighter1:             FightingAI::Core::FighterState.new(player_index: REWARD_PLAYER_ONE, health: h1, max_health: DEFAULT_MAX_HEALTH, x: p1_x, y: DEFAULT_Y),
@@ -53,30 +53,36 @@ RSpec.describe FightingAI::Game::MortalKombat3::RewardFunction do
     end
   end
 
-  describe "distance" do
-    it "uses the largest dense per-step reward weight" do
-      distance_weight = FightingAI.config.reward_distance
+  describe "close range" do
+    it "rewards being closer to the opponent" do
+      close_state = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: CLOSE_PLAYER_TWO_X)
+      far_state = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: FAR_PLAYER_TWO_X)
 
-      expect(distance_weight).to be > FightingAI.config.reward_damage_dealt
-      expect(distance_weight).to be > FightingAI.config.reward_damage_taken.abs
+      close_reward = reward_fn.call(close_state, close_state, player_index: REWARD_PLAYER_ONE)
+      far_reward = reward_fn.call(far_state, far_state, player_index: REWARD_PLAYER_ONE)
+
+      expect(close_reward.components[:close_range]).to be > far_reward.components[:close_range]
+      expect(far_reward.components[:close_range]).to eq(0.0)
     end
+  end
 
-    it "rewards very close distance between fighters" do
+  describe "distance progress" do
+    it "rewards moving closer from one frame to the next" do
       prev = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: FAR_PLAYER_TWO_X)
-      after = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: VERY_CLOSE_PLAYER_TWO_X)
+      after = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: MID_PLAYER_TWO_X)
 
       reward = reward_fn.call(prev, after, player_index: REWARD_PLAYER_ONE)
 
-      expect(reward.components[:distance]).to eq(FightingAI.config.reward_distance)
+      expect(reward.components[:distance_progress]).to be > 0.0
     end
 
-    it "punishes distance outside the very close range" do
-      prev = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: VERY_CLOSE_PLAYER_TWO_X)
-      after = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: OUTSIDE_VERY_CLOSE_PLAYER_TWO_X)
+    it "penalizes moving away from the opponent" do
+      prev = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: MID_PLAYER_TWO_X)
+      after = make_state(h1: INITIAL_HEALTH, h2: INITIAL_HEALTH, p2_x: FAR_PLAYER_TWO_X)
 
       reward = reward_fn.call(prev, after, player_index: REWARD_PLAYER_ONE)
 
-      expect(reward.components[:distance]).to eq(-FightingAI.config.reward_distance)
+      expect(reward.components[:distance_progress]).to be < 0.0
     end
   end
 
