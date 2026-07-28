@@ -40,6 +40,8 @@ If `models/latest` points at a checkpoint that no longer matches the current obs
 
 PPO stale-round handling is movement-aware: a round is truncated only after `stale_timeout` seconds with both unchanged HP and unchanged fighter spacing. Reward shaping is also spacing-regime aware: `approach` rewards closing from long range, `close_range` rewards holding the preferred band, and `distance_reset` rewards opening space after the fighters get too close.
 
+The PPO transition reward is clipped to `±15` and scaled by `0.1` before it reaches the policy update step. This keeps large damage or spacing spikes from collapsing exploration too early.
+
 Sub-Zero template recognition can be enabled during training after preparing
 templates:
 

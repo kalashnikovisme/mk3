@@ -22,6 +22,8 @@ module FightingAI
     #   Frame SKIP:           observe_reward(r)  → window done → push accumulated transition  |  act → new decision
     class PPOAgent < Base
       FRAME_SKIP = 2
+      TRAINING_REWARD_CLIP_MAGNITUDE = 15.0
+      TRAINING_REWARD_SCALE = 0.1
 
       attr_reader :episode_reward, :episode_components
 
@@ -63,8 +65,9 @@ module FightingAI
       # preceding transition. Rewards are summed across the frame-skip window;
       # the accumulated total is pushed when the window closes.
       def observe_reward(reward, done: false)
-        @accumulated_reward += reward.to_f
-        @episode_reward     += reward.to_f
+        training_reward = training_reward_value(reward.to_f)
+        @accumulated_reward += training_reward
+        @episode_reward     += training_reward
         reward.components.each do |key, val|
           @episode_components[key] = (@episode_components[key] || 0.0) + val
         end
@@ -86,6 +89,11 @@ module FightingAI
         @buffer.push(**@pending, reward: @accumulated_reward, done: done)
         @accumulated_reward = 0.0
         @pending            = nil
+      end
+
+      def training_reward_value(raw_reward)
+        clipped_reward = [[raw_reward, -TRAINING_REWARD_CLIP_MAGNITUDE].max, TRAINING_REWARD_CLIP_MAGNITUDE].min
+        clipped_reward * TRAINING_REWARD_SCALE
       end
 
       def reset_state

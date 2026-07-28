@@ -99,6 +99,8 @@ Weights defined in `lib/fighting_ai/game/reward_calculator.rb`.
 
 The dense learning signal is now split across three spacing regimes. `approach` rewards closing distance only when the fighters are too far apart, `close_range` rewards maintaining a preferred neutral band, and `distance_reset` rewards backing out after the fighters become too close. This prevents the policy from learning a single always-rush or always-retreat objective.
 
+Before PPO sees a transition, `Agent::PPOAgent` clips each accumulated reward to `±15` and scales it by `0.1`. The reward components in the logs remain raw, but the training signal is intentionally compressed to reduce variance and early entropy collapse.
+
 ## PPO Agent
 
 File: `lib/fighting_ai/agent/ppo_agent.rb`
@@ -117,7 +119,7 @@ File: `bin/ppo_server.py`
 | `LEARNING_RATE` | 3e-4 | Adam optimiser learning rate |
 | `CLIP_EPS` | 0.3 | PPO clipping range for policy ratio |
 | `VALUE_COEF` | 0.5 | Value loss coefficient |
-| `ENTROPY_COEF` | 0.30 | Entropy bonus coefficient — higher values force more exploration |
+| `ENTROPY_COEF` | 0.50 | Entropy bonus coefficient — higher values force more exploration |
 | `GAE_LAMBDA` | 0.95 | GAE λ for advantage estimation |
 | `GAMMA` | 0.99 | Discount factor |
 | `PPO_EPOCHS` | 8 | Gradient passes per collected batch |
@@ -130,7 +132,7 @@ File: `lib/fighting_ai/runtime/match_runner.rb`
 | Parameter | Value | Description |
 |-----------|-------|-------------|
 | `STALL_TIMEOUT` | 8.0 s | Round ends as stale only if HP and spacing are both unchanged for this duration |
-| `stale_distance_reset_threshold` | 10 | Any fighter-spacing change at or above this threshold resets the stale timer |
+| `stale_distance_reset_threshold` | 6 | Any fighter-spacing change at or above this threshold resets the stale timer |
 
 ### Per-frame timing logs
 

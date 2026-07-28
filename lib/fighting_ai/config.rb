@@ -6,7 +6,7 @@ module FightingAI
 
     attr_config(
       stale_timeout:                  8.0,
-      stale_distance_reset_threshold: 10.0,
+      stale_distance_reset_threshold: 6.0,
       reward_damage_dealt:            10.0,
       reward_damage_taken:           -5.0,
       reward_close_range:             4.0,
