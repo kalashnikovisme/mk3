@@ -6,6 +6,7 @@ module FightingAI
     # Maintains a `latest` symlink so training can resume automatically.
     class CheckpointManager
       LATEST_LINK = "latest"
+      CHECKPOINT_ERROR_PREFIX = "checkpoint load failed"
 
       def initialize(dir:)
         @dir = File.expand_path(dir)
@@ -24,16 +25,21 @@ module FightingAI
         path = latest_path
         return false unless path
 
-        policy.load(path)
-        true
+        response = policy.load(path)
+        return true if response.is_a?(Hash) && response["ok"]
+
+        warn format("%s: skipping %s (%s)", CHECKPOINT_ERROR_PREFIX, path, checkpoint_error_message(response))
+        false
       end
 
       def load(path:, policy:)
         expanded = File.expand_path(path)
         raise "Checkpoint not found: #{expanded}" unless File.exist?(expanded)
 
-        policy.load(expanded)
-        true
+        response = policy.load(expanded)
+        return true if response.is_a?(Hash) && response["ok"]
+
+        raise format("%s: %s (%s)", CHECKPOINT_ERROR_PREFIX, expanded, checkpoint_error_message(response))
       end
 
       def latest_path
@@ -60,6 +66,12 @@ module FightingAI
         link = File.join(@dir, LATEST_LINK)
         File.unlink(link) if File.symlink?(link)
         File.symlink(path, link)
+      end
+
+      def checkpoint_error_message(response)
+        return response.fetch("error", "unknown error") if response.is_a?(Hash)
+
+        response.inspect
       end
     end
   end

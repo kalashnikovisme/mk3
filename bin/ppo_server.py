@@ -229,10 +229,14 @@ def main():
         elif cmd == "load":
             pt_path = os.path.join(req["path"], "policy.pt")
             if os.path.exists(pt_path):
-                ckpt = torch.load(pt_path, weights_only=True, map_location=device)
-                model.load_state_dict(ckpt["model"])
-                optimizer.load_state_dict(ckpt["optimizer"])
-                _respond({"ok": True})
+                try:
+                    ckpt = torch.load(pt_path, weights_only=True, map_location=device)
+                    model.load_state_dict(ckpt["model"])
+                    optimizer.load_state_dict(ckpt["optimizer"])
+                except Exception as exc:
+                    _respond({"ok": False, "error": f"incompatible checkpoint: {exc}"})
+                else:
+                    _respond({"ok": True})
             else:
                 _respond({"ok": False, "error": f"not found: {pt_path}"})
 

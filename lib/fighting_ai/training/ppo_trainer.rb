@@ -88,11 +88,13 @@ module FightingAI
 
       def resume_from_checkpoint
         if @initial_checkpoint
-          @checkpoint_manager.load(path: @initial_checkpoint, policy: @policy)
-          log "Loaded checkpoint: #{@initial_checkpoint}"
+          if @checkpoint_manager.load(path: @initial_checkpoint, policy: @policy)
+            log "Loaded checkpoint: #{@initial_checkpoint}"
+          end
         elsif @checkpoint_manager.exists?
-          @checkpoint_manager.load_latest(policy: @policy)
-          log "Resumed from checkpoint: #{@checkpoint_manager.latest_path}"
+          if @checkpoint_manager.load_latest(policy: @policy)
+            log "Resumed from checkpoint: #{@checkpoint_manager.latest_path}"
+          end
         end
       end
 

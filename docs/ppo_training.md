@@ -192,3 +192,5 @@ All values come from vision only (health bar pixel scan + template matching). WR
 
 Saved to `models/` after every PPO update. Resumed automatically on the next `dip learn` run.
 Manual path: `dip learn_from_ppo <path>`.
+
+Automatic resume only loads checkpoints whose saved model state matches the current observation and action dimensions. If `models/latest` points at an older incompatible checkpoint, `dip learn` prints a warning and starts a fresh policy instead of crashing. Manual restore still raises an error for an incompatible checkpoint so the mismatch is visible immediately.

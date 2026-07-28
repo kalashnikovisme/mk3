@@ -36,6 +36,8 @@ end
 
 The active training mode is PPO self-play via `dip learn`. See `docs/ppo_training.md` for the full configuration reference including reward weights, hyperparameters, action space, and entropy collapse detection.
 
+If `models/latest` points at a checkpoint that no longer matches the current observation or action dimensions, `dip learn` skips that checkpoint, prints a warning, and starts fresh. Use `dip learn_from_ppo <path>` only when you want an explicit restore to fail if the checkpoint is incompatible.
+
 Sub-Zero template recognition can be enabled during training after preparing
 templates:
 
