@@ -12,13 +12,9 @@ module FightingAI
       DEFAULT_WINDOW_LEFT = FightingAI::Emulator::RetroArch::ConfigBuilder::RETROARCH_WINDOW_WIDTH + WINDOW_GAP_PIXELS
       PIXEL_BYTES = FightingAI::Observation::FrameObservation::RGB_CHANNELS
       DEFAULT_WINDOW_Y = 0
-      DEFAULT_WINDOW_X = 0
       RETROARCH_DISPLAY = ":99"
-      XWININFO_BIN = "xwininfo"
-      XWININFO_NAME_ARG = "-name"
       FFPLAY_AUTOEXIT_ARG = "-autoexit"
       FFPLAY_NOBORDER_ARG = "-noborder"
-      FFPLAY_ALWAYS_ON_TOP_ARG = "-alwaysontop"
       FFPLAY_WINDOW_TITLE_ARG = "-window_title"
       FFPLAY_VIDEO_SIZE_ARG = "-video_size"
       FFPLAY_PIXEL_FORMAT_ARG = "-pixel_format"
@@ -159,9 +155,8 @@ module FightingAI
           FFPLAY_LOG_LEVEL_ARG, FFPLAY_LOG_LEVEL_VALUE,
           FFPLAY_AUTOEXIT_ARG,
           FFPLAY_NOBORDER_ARG,
-          FFPLAY_ALWAYS_ON_TOP_ARG,
-          FFPLAY_LEFT_ARG, window_left.to_s,
-          FFPLAY_TOP_ARG, window_top.to_s,
+          FFPLAY_LEFT_ARG, DEFAULT_WINDOW_LEFT.to_s,
+          FFPLAY_TOP_ARG, DEFAULT_WINDOW_Y.to_s,
           FFPLAY_WIDTH_ARG, @width.to_s,
           FFPLAY_HEIGHT_ARG, @height.to_s,
           FFPLAY_VIDEO_SIZE_ARG, "#{@width}x#{@height}",
@@ -171,58 +166,6 @@ module FightingAI
           FFPLAY_FORMAT_ARG, FFPLAY_RAWVIDEO,
           FFPLAY_INPUT_ARG, FFPLAY_INPUT_STDIN
         ]
-      end
-
-      def window_left
-        geometry = retroarch_geometry
-        return DEFAULT_WINDOW_LEFT unless geometry
-
-        geometry[:x] + geometry[:width] + WINDOW_GAP_PIXELS
-      end
-
-      def window_top
-        geometry = retroarch_geometry
-        return DEFAULT_WINDOW_Y unless geometry
-
-        geometry[:y]
-      end
-
-      def retroarch_geometry
-        output, status = Open3.capture2(
-          { "DISPLAY" => RETROARCH_DISPLAY },
-          XWININFO_BIN,
-          XWININFO_NAME_ARG,
-          "RetroArch"
-        )
-        return nil unless status.success?
-
-        parse_geometry(output)
-      rescue StandardError
-        nil
-      end
-
-      def parse_geometry(output)
-        x = nil
-        y = nil
-        width = nil
-        height = nil
-
-        output.each_line do |line|
-          stripped = line.strip
-          if (match = stripped.match(/\AAbsolute upper-left X:\s*(\d+)\z/))
-            x = match[1].to_i
-          elsif (match = stripped.match(/\AAbsolute upper-left Y:\s*(\d+)\z/))
-            y = match[1].to_i
-          elsif (match = stripped.match(/\AWidth:\s*(\d+)\z/))
-            width = match[1].to_i
-          elsif (match = stripped.match(/\AHeight:\s*(\d+)\z/))
-            height = match[1].to_i
-          end
-        end
-
-        return nil if [x, y, width, height].any?(&:nil?)
-
-        { x: x, y: y, width: width, height: height }
       end
 
       def compose_frame(frame_observation, vision_snapshot)

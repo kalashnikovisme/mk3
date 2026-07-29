@@ -98,8 +98,6 @@ a separate `ffplay` window titled
 blank frame at the same coordinates, so you can compare the detector output
 against a reconstructed visual scene frame by frame. That viewer shows a
 placeholder frame immediately, even before the first vision snapshot is ready.
-It is launched on top of the RetroArch window so it stays visible inside the
-Xephyr session.
 If `ffplay` is not available in the watch container, the reconstruction window
 will not open.
 The compact watch display stays active whenever the Xephyr watch scene is

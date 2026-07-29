@@ -67,8 +67,6 @@ opens a second `ffplay` window named
 `Reconstructed Scene` next to RetroArch and renders the detected sprite
 rectangles at their current coordinates. The window also shows a visible
 placeholder frame immediately, even before the first vision snapshot is ready.
-It is launched on top of the RetroArch window so it stays visible inside the
-Xephyr session.
 If `ffplay` is missing from the watch image, that reconstruction window will
 not appear.
 The live block shows:

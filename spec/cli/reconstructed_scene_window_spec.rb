@@ -102,12 +102,6 @@ RSpec.describe FightingAI::CLI::ReconstructedSceneWindow do
         described_class::FFPLAY_LOG_LEVEL_VALUE
       )
     end
-
-    it 'keeps the reconstruction window on top of the RetroArch window' do
-      command = window.send(:ffplay_command)
-
-      expect(command).to include(described_class::FFPLAY_ALWAYS_ON_TOP_ARG)
-    end
   end
 
   describe '#compose_frame' do
