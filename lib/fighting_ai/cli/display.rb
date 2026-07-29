@@ -102,7 +102,8 @@ module FightingAI
 
         return unless @log_file
 
-        @last_status_lines.each { |line| @log_file.puts line.gsub(ANSI_ESCAPE_PATTERN, "") }
+        log_lines = compact_watch_log? ? [@last_status_lines.first] : @last_status_lines
+        log_lines.each { |line| @log_file.puts line.gsub(ANSI_ESCAPE_PATTERN, "") }
         @log_file.flush
       end
 
@@ -394,6 +395,10 @@ module FightingAI
         )
       rescue StandardError
         nil
+      end
+
+      def compact_watch_log?
+        ENV["WATCH_LOG_COMPACT"] == "1"
       end
     end
 

@@ -106,13 +106,17 @@ module FightingAI
 
       def render(frame_observation:, vision_snapshot:)
         return if @disabled
-        return if frame_observation.nil?
         return unless @available
 
         ensure_started
         return unless @stdin
 
-        frame_bytes = compose_frame(frame_observation, vision_snapshot || {})
+        frame_bytes =
+          if frame_observation.nil?
+            placeholder_frame
+          else
+            compose_frame(frame_observation, vision_snapshot || {})
+          end
         @stdin.write(frame_bytes)
         @stdin.flush
       rescue StandardError
@@ -220,7 +224,7 @@ module FightingAI
 
       def compose_frame(frame_observation, vision_snapshot)
         source = frame_observation.raw_bytes
-        return source if source.nil?
+        return placeholder_frame if source.nil?
 
         width = frame_observation.width
         height = frame_observation.height
@@ -234,6 +238,13 @@ module FightingAI
           copy_detection!(canvas, source, width, height, detection)
           draw_border!(canvas, width, height, detection, border_color_for(player_index))
         end
+        canvas
+      end
+
+      def placeholder_frame
+        canvas = background_canvas(@width, @height)
+        draw_canvas_border!(canvas, @width, @height)
+        draw_test_label!(canvas, @width, @height)
         canvas
       end
 

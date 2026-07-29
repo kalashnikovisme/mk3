@@ -90,6 +90,7 @@ interaction:
     service: app_watch
     command: bundle exec ruby bin/learn
     environment:
+      WATCH_LOG_COMPACT: "1"
       MATCH: sub-zero-vs-sub-zero
 
   learn_watch_ai:

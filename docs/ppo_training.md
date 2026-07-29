@@ -58,8 +58,9 @@ vision is disabled, they are the WRAM-derived positions.
 `dip learn_watch` refreshes the status display every frame and writes the live
 position charts beneath the episode line. In watch mode the UI also opens a
 second `ffplay` window named `Reconstructed Scene` next to RetroArch and
-renders the detected sprite rectangles at their current coordinates. The live
-block shows:
+renders the detected sprite rectangles at their current coordinates. The window
+also shows a visible placeholder frame immediately, even before the first
+vision snapshot is ready. The live block shows:
 
 ```text
 Ep 0012 │ The Rooftop │ t:87 │ P1 ... │ P2 ... │ [fight] │ buf 128/512
@@ -68,9 +69,9 @@ mk3 │ ... scaled MK3 coordinates and distance ...
 roi │ ... detector search regions for the frame ...
 ```
 
-The same four-line status block is also written into `data/logs/*.log`, so each
-frame logs the raw detector view, the scaled game-state view, and the active ROI
-bands together.
+In `dip learn_watch`, the on-screen block still includes the three chart lines,
+but `data/logs/*.log` keeps only the main status line so the logs stay compact
+while the watch window remains detailed.
 
 The `screen` segment draws a fixed-width horizontal line for the MK3 screen
 coordinate range (`PPODisplay::POSITION_MIN..MemoryMap::X_MAX`). The blue dot is

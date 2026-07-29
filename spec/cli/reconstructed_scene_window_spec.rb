@@ -64,6 +64,24 @@ RSpec.describe FightingAI::CLI::ReconstructedSceneWindow do
       expect(pixel_at(composed, 3, 3)).to eq(BORDER_COLOR)
       expect(pixel_at(composed, 4, 4)).to eq([255, 255, 255])
     end
+
+    it 'falls back to a visible placeholder frame when the raw frame is unavailable' do
+      placeholder_window = described_class.new(
+        width: TEXT_FRAME_WIDTH,
+        height: TEXT_FRAME_HEIGHT
+      )
+      frame_observation = instance_double(
+        FightingAI::Observation::FrameObservation,
+        raw_bytes: nil,
+        width: TEXT_FRAME_WIDTH,
+        height: TEXT_FRAME_HEIGHT
+      )
+
+      composed = placeholder_window.send(:compose_frame, frame_observation, { player_detections: {} })
+
+      expect(pixel_at(composed, 0, 0)).to eq([255, 255, 255])
+      expect(pixel_at(composed, TEXT_LEFT_MARGIN, TEXT_TOP_MARGIN, frame_width: TEXT_FRAME_WIDTH)).to eq(WHITE)
+    end
   end
 
   describe '#ffplay_command' do

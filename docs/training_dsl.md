@@ -89,12 +89,13 @@ training runtime, but the standard training entrypoints no longer create
 `dip learn_watch` keeps the live status block on screen and writes it on every
 frame. The position view now has three chart lines beneath the episode line:
 `raw` for the detector image-space coordinates, `mk3` for the scaled game-state
-coordinates, and `roi` for the active detector search regions. The same
-four-line block is written into `data/logs/*.log`.
-Watch mode also opens a separate `ffplay` window titled `Reconstructed Scene`
-that pastes the detected sprite rectangles back into a blank frame at the same
-coordinates, so you can compare the detector output against a reconstructed
-visual scene frame by frame.
+coordinates, and `roi` for the active detector search regions. The watch log
+file keeps only the main status line, while the live terminal view keeps the
+full three-line chart. Watch mode also opens a separate `ffplay` window titled
+`Reconstructed Scene` that pastes the detected sprite rectangles back into a
+blank frame at the same coordinates, so you can compare the detector output
+against a reconstructed visual scene frame by frame. That viewer shows a
+placeholder frame immediately, even before the first vision snapshot is ready.
 
 Unlike normal real-time training, this diagnostic mode pauses RetroArch and uses
 one `FRAME_ADVANCE` command per logged frame. Detector latency affects wall-clock

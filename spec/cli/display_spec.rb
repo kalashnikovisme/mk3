@@ -144,6 +144,30 @@ RSpec.describe FightingAI::CLI::PPODisplay do
       temp_log&.unlink
       $stdout = original_stdout
     end
+
+    it 'writes only the status line to the watch log when compact watch logging is enabled' do
+      fake_stdout = FakeStdout.new(width: c::UPDATE_TEST_TERMINAL_WIDTH, height: c::UPDATE_TEST_TERMINAL_HEIGHT)
+      original_stdout = $stdout
+      $stdout = fake_stdout
+      temp_log = Tempfile.new("ppo_display")
+      display.log_file = temp_log
+      allow(ENV).to receive(:[]).with("WATCH_LOG_COMPACT").and_return("1")
+
+      display.update(game_state: game_state, stage_name: 'The Rooftop')
+
+      temp_log.rewind
+      logged_line = temp_log.read.force_encoding("UTF-8")
+
+      expect(logged_line).to include("Ep")
+      expect(logged_line).not_to include("raw")
+      expect(logged_line).not_to include("mk3")
+      expect(logged_line).not_to include("roi")
+      expect(logged_line.lines.count).to eq(1)
+    ensure
+      temp_log&.close
+      temp_log&.unlink
+      $stdout = original_stdout
+    end
   end
 
   def plain(text)
