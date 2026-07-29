@@ -11,7 +11,7 @@ A `SideNormalizer` flips the observation so the policy always sees itself on the
 
 ```bash
 dip learn                          # headless
-dip learn_watch                    # with Xephyr window on host desktop
+dip learn_watch [--fight-screenshots]  # watch mode on host desktop
 dip learn sub-zero-vs-sindel       # specific match state
 dip learn sub-zero-vs-sindel debug # verbose + per-second WRAM dump to data/memory/
 ```
@@ -57,18 +57,15 @@ vision is disabled, they are the WRAM-derived positions.
 
 `dip learn_watch` refreshes the status display every frame. In watch mode the
 position chart is suppressed, so both the on-screen block and the log file keep
-only the main episode/status line. In watch mode the status line is shortened
-to the episode, timer, health, position, and fight state fields that fit on one
-row. The status block is cursor-anchored so other terminal messages do not push
-it downward, and Ctrl+C clears the current line before printing `Stopped.`. The
-watch display is detected from the host watch scene, so the compact view stays
-active whenever the Xephyr watch window is running. The UI also
-opens a second `ffplay` window named
-`Reconstructed Scene` next to RetroArch and renders the detected sprite
-rectangles at their current coordinates. The window also shows a visible
-placeholder frame immediately, even before the first vision snapshot is ready.
-If `ffplay` is missing from the watch image, that reconstruction window will
-not appear.
+only the main episode/status line. The status line is shortened to the episode,
+timer, health, position, and fight state fields that fit on one row. The
+status block is cursor-anchored so other terminal messages do not push it
+downward, and Ctrl+C clears the current line before printing `Stopped.`. The
+watch display stays compact regardless of whether `--fight-screenshots` is
+enabled. When that flag is present, the runtime writes per-frame `screen/`,
+`fighter1/`, `fighter2/`, and `reconstruction/` PPMs under
+`data/fight_screenshots/episode_%05d/` so you can compare the real capture with
+the reconstructed scene on disk.
 The live block shows:
 
 ```text

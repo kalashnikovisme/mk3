@@ -1,8 +1,8 @@
 #!/usr/bin/env ruby
 # PPO self-play training resumed from a specific checkpoint.
 # Usage:
-#   bundle exec ruby bin/learn_from_ppo <ppo_path> [match-name] [debug]
-#   e.g. bin/learn_from_ppo models/ppo_5 sub-zero-vs-sub-zero debug
+#   bundle exec ruby bin/learn_from_ppo <ppo_path> [--fight-screenshots] [match-name] [debug]
+#   e.g. bin/learn_from_ppo models/ppo_5 --fight-screenshots sub-zero-vs-sub-zero debug
 #
 # Environment variables:
 #   ROM_PATH, CORE_PATH   override ROM / libretro core paths
@@ -20,7 +20,7 @@ end
 require "fighting_ai/cli/bootstrap"
 require_relative "../config/mk3"
 
-abort "Usage: bin/learn_from_ppo <ppo_path> [match-name] [debug]" if ARGV.empty?
+abort "Usage: bin/learn_from_ppo <ppo_path> [--fight-screenshots] [match-name] [debug]" if ARGV.empty?
 
 PPO_PATH    = ARGV[0]
 REST_ARGS   = ARGV[1..]
@@ -30,7 +30,10 @@ MATCHES_DIR    = File.expand_path("../data/matches", __dir__)
 MODELS_DIR     = File.expand_path("../models", __dir__)
 MEMORY_DIR     = File.expand_path("../data/memory", __dir__)
 FIGHT_LOGS_DIR        = File.expand_path("../data/fight_logs", __dir__)
+FIGHT_SCREENSHOTS_DIR = File.expand_path("../data/fight_screenshots", __dir__)
+FIGHT_SCREENSHOTS_FLAG = "--fight-screenshots"
 DEBUG        = REST_ARGS.include?("debug")
+SCREENSHOTS_ENABLED = REST_ARGS.delete(FIGHT_SCREENSHOTS_FLAG)
 WRAM_DEBUG   = DEBUG
 VISION_ENABLED = ENV.fetch(FightingAI::VISION_ENV_KEY, FightingAI::VISION_LEARN_DEFAULT_VALUE) == FightingAI::VISION_ENABLED_VALUE
 VISION_ACTION = ENV.fetch("VISION_ACTION", FightingAI::Vision::CharacterPositionDetector::DEFAULT_ACTION_MODE)
@@ -56,6 +59,11 @@ if WRAM_DEBUG
   FileUtils.rm_f(Dir.glob("#{MEMORY_DIR}/*"))
 end
 
+if SCREENSHOTS_ENABLED
+  FileUtils.rm_rf(FIGHT_SCREENSHOTS_DIR)
+  FileUtils.mkdir_p(FIGHT_SCREENSHOTS_DIR)
+end
+
 match_states = Dir.glob(File.join(MATCHES_DIR, "*.state")).sort.map { |f| parse_match_file(f) }
 match_states.select! { |m| File.basename(m[:path], ".state") == MATCH_FILTER } if MATCH_FILTER
 raise "No .state files found in #{MATCHES_DIR}" if match_states.empty?
@@ -75,6 +83,7 @@ puts "Models     → #{MODELS_DIR}"
 puts "Obs dim: #{OBS_DIM}  |  Actions: #{ACTION_DIM}"
 puts "Vision: #{VISION_ENABLED ? "ON" : "off"}"
 puts "Vision action: #{VISION_ACTION}  |  areas: #{VISION_AREAS}  |  full-screen: #{VISION_FULL_SCREEN}" if VISION_ENABLED
+puts "Fight screenshots: ON → #{FIGHT_SCREENSHOTS_DIR}" if SCREENSHOTS_ENABLED
 puts
 
 trainer_ref = nil
@@ -116,7 +125,8 @@ trainer = FightingAI::Training::PPOTrainer.new(
   wram_dump:           WRAM_DEBUG,
   max_rounds:          1,
   initial_checkpoint:  PPO_PATH,
-  fight_logs_dir:      FIGHT_LOGS_DIR
+  fight_logs_dir:      FIGHT_LOGS_DIR,
+  screenshots_dir:     SCREENSHOTS_ENABLED ? FIGHT_SCREENSHOTS_DIR : nil
 )
 trainer_ref = trainer
 

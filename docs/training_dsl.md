@@ -84,7 +84,8 @@ that frame.
 Fight screenshots are currently disabled during normal `dip learn` and
 `dip learn_from_ppo` runs. The screenshot saver code remains available in the
 training runtime, but the standard training entrypoints no longer create
-`data/fight_screenshots` or write per-frame PPMs.
+`data/fight_screenshots` or write per-frame PPMs unless the watch flag is
+enabled.
 
 `dip learn_watch` keeps the live status block on screen and writes it on every
 frame. In watch mode the position chart is suppressed entirely, so both the
@@ -92,16 +93,10 @@ terminal and the log file keep only the main status line. The watch variant is
 shortened so it stays on one row and does not corrupt the status bar. The
 status block is cursor-anchored, so other terminal messages do not shove it
 down the screen, and Ctrl+C clears the current line before `Stopped.` is
-printed. Watch mode also opens
-a separate `ffplay` window titled
-`Reconstructed Scene` that pastes the detected sprite rectangles back into a
-blank frame at the same coordinates, so you can compare the detector output
-against a reconstructed visual scene frame by frame. That viewer shows a
-placeholder frame immediately, even before the first vision snapshot is ready.
-If `ffplay` is not available in the watch container, the reconstruction window
-will not open.
-The compact watch display stays active whenever the Xephyr watch scene is
-running.
+printed. When `--fight-screenshots` is passed, the runtime writes a per-frame
+comparison set under `data/fight_screenshots/episode_%05d/`, including
+`screen/` plus the `fighter1/`, `fighter2/`, and `reconstruction/` PPMs. The
+watch display stays compact regardless of whether that flag is enabled.
 
 All per-frame fight logs now stay on the single-line status format and do not
 include the `raw`, `mk3`, or `roi` chart lines.

@@ -144,7 +144,7 @@ See `docs/ppo_training.md` for full hyperparameter reference.
 - `FrameCaptureRunner` — frame diagnostic loop used by `dip learn_empty`; advances the paused emulator by exactly one frame, then writes the PNG size and optional detector metadata without training.
 - `HumanVsAI` — human keyboard passthrough (VirtualInput for P1) + AI agent injection (P2).
 - `AIVsAI` — autonomous series of matches.
-- `CLI::PPODisplay` — live terminal status for training and watch mode; in watch mode it can also stream a reconstructed scene into a second `ffplay` window.
+- `CLI::PPODisplay` — live terminal status for training and watch mode.
 
 ## Memory Analysis Tools
 

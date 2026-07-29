@@ -101,7 +101,7 @@ RetroArch always runs on an isolated internal display `DISPLAY=:99`. Two backend
 | Mode | Class | Display | Host socket needed |
 |------|-------|---------|-------------------|
 | Headless (default) | `XvfbServer` | `Xvfb :99` inside container | No |
-| Watch | `XephyrServer` | `Xephyr :99` inside container, renders a wide enough host-side desktop for RetroArch plus the reconstructed scene | Yes (`/tmp/.X11-unix`) |
+| Watch | `XephyrServer` | `Xephyr :99` inside container, sized to the RetroArch window on the host desktop | Yes (`/tmp/.X11-unix`) |
 
 `CLI.start_retro_arch` selects the backend: if `DISPLAY_HOST` is set in the environment it creates an `XephyrServer`; otherwise it creates an `XvfbServer`. The selected server is passed to `Adapter` as `display_server:` — its lifecycle is tied to `adapter.start` / `adapter.stop`.
 
@@ -110,21 +110,16 @@ RetroArch always runs on an isolated internal display `DISPLAY=:99`. Two backend
 ### Watching live training
 
 ```bash
-dip learn-watch [match-name]
+dip learn_watch [match-name]
 ```
 
-`dip learn-watch` merges `.dockerdev/compose.watch.yml` on top of the base compose config, which mounts `/tmp/.X11-unix` and sets `DISPLAY_HOST`. Xephyr opens a host-side desktop sized to fit the RetroArch window and the reconstructed-scene window side by side.
-In watch mode the CLI also opens a second host-side `ffplay` window titled
-`Reconstructed Scene`. It uses the same `297x216` capture size as the vision
-frame grabber output,
-but only paints the detected sprite rectangles back onto a blank canvas at
-their detected coordinates. This viewer is diagnostic only; it does not change
-the emulator input or the game-state extraction path.
-The reconstruction uses a dark diagnostic background and keeps rendering even
-when no players are detected on a frame, so the second window stays visible
-instead of disappearing into a pure black rectangle.
-For a quick live check, the viewer also paints a white `TEST` label in the
-upper-left corner of the reconstructed frame.
+`dip learn_watch` merges `.dockerdev/compose.watch.yml` on top of the base compose
+config, which mounts `/tmp/.X11-unix` and sets `DISPLAY_HOST`. Xephyr now uses
+the same size as the RetroArch window itself; the reconstruction path is file
+based instead of a second live window. When
+`dip learn_watch --fight-screenshots` is used, the runtime writes the regular
+screen capture plus a matching `reconstruction/` PPM for each frame under
+`data/fight_screenshots/episode_%05d/`.
 
 ## Game Speed Throttling
 
@@ -171,6 +166,6 @@ TrueColor PNG with no scanline filters (`-type TrueColor -depth 8
 `screenshot` method both use this X-server screenshot path.
 
 The headless `XvfbServer` runs at `320x240` (was `1024x768`), reducing each
-`xwd` capture from ~3 MB to ~300 KB. The watch-mode `XephyrServer` uses a
-shared desktop width large enough to keep RetroArch and the reconstructed scene
-visible side by side, so the watch display no longer clips the second window.
+`xwd` capture from ~3 MB to ~300 KB. The watch-mode `XephyrServer` now matches
+the RetroArch window size directly; reconstructed comparison frames are written
+to disk instead of being shown in a second live window.

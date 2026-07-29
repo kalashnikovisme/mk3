@@ -2,8 +2,6 @@ require "colorize"
 require "io/console"
 require "json"
 require "unicode/display_width"
-require_relative "../emulator/retro_arch/config_builder"
-require_relative "reconstructed_scene_window"
 
 module FightingAI
   module CLI
@@ -12,11 +10,8 @@ module FightingAI
       MAX_HEALTH     = 0xA6  # 166
       P1_COL_WIDTH   = 55    # visible chars reserved for the P1 reward column
       SCREEN_TRACK_WIDTH = 32
-      STATUS_AREA_LINE_COUNT = 4
       POSITION_CHART_LABEL_WIDTH = 4
       POSITION_COORD_DIGITS = 3
-      RECONSTRUCTED_SCENE_WIDTH = FightingAI::Emulator::RetroArch::ConfigBuilder::RETROARCH_WINDOW_WIDTH
-      RECONSTRUCTED_SCENE_HEIGHT = FightingAI::Emulator::RetroArch::ConfigBuilder::RETROARCH_WINDOW_HEIGHT
       SCREEN_LEFT_BOUNDARY = '|'.freeze
       SCREEN_RIGHT_BOUNDARY = '|'.freeze
       SCREEN_EMPTY_CELL = '-'.freeze
@@ -62,7 +57,7 @@ module FightingAI
         @status_cursor_saved = false
         @status_line_count = 0
         @log_file      = nil
-        @scene_window  = scene_window || build_scene_window
+        @scene_window  = nil
       end
 
       def set_context(episode:, training_step:, buffer_size:, buffer_capacity:)
@@ -101,7 +96,6 @@ module FightingAI
 
         chart_lines = position_chart_lines(game_state:, vision_snapshot: vision_snapshot)
         block_lines = compact_watch ? [status_line] : [status_line, *chart_lines]
-        @scene_window&.render(frame_observation: frame_observation, vision_snapshot: vision_snapshot)
         render_status_area(block_lines, replace_previous: !@last_status_lines.empty?)
         @last_status_lines = block_lines.map { |line| fit_to_terminal_width(line) }
         @last_status = @last_status_lines.join("\n")
@@ -429,19 +423,8 @@ module FightingAI
         (clamped_x.to_f * TRACK_LAST_INDEX / axis_max).round
       end
 
-      def build_scene_window
-        return nil unless ENV["DISPLAY_HOST"]
-
-        ReconstructedSceneWindow.new(
-          width:  RECONSTRUCTED_SCENE_WIDTH,
-          height: RECONSTRUCTED_SCENE_HEIGHT
-        )
-      rescue StandardError
-        nil
-      end
-
       def compact_watch_output?
-        !@scene_window.nil? || ENV["WATCH_LOG_COMPACT"] == "1"
+        ENV["WATCH_LOG_COMPACT"] == "1"
       end
     end
 

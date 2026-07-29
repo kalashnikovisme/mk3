@@ -177,11 +177,12 @@ x = round(center_x * 255 / max(image_width - 1, 1))
 y = round(bottom_y * 255 / max(image_height - 1, 1))
 ```
 
-Runtime watch mode now renders the raw image-space chart, the MK3-scaled chart,
-and the active ROI bands on separate lines so you can see the detector input and
-the final game-state positions together. In watch mode, the same frame data also
-drives a second `ffplay` window that reconstructs the scene by pasting each
-detected sprite crop back onto a blank canvas at its detected coordinates.
+Runtime watch mode keeps the compact status line on screen and writes the
+detector summary to the log, but it no longer opens a second live reconstruction
+window. When `dip learn_watch --fight-screenshots` is enabled, the same frame
+data is also written to `data/fight_screenshots/episode_%05d/reconstruction/`
+as a PPM file that pastes each detected sprite crop back onto a blank canvas at
+its detected coordinates.
 
 Round over is detected when either fighter's health reaches zero or when the timer reaches zero. WRAM screen/round/animation state is not used.
 
@@ -217,14 +218,16 @@ see the search regions the detector used on that frame. When the detector scans
 full-screen, the log writes `full-screen` for both fields.
 
 Normal `dip learn` and `dip learn_from_ppo` runs no longer enable fight
-screenshot saving. When the screenshot saver is enabled by a runtime, each
-episode directory under `data/fight_screenshots` contains three subdirectories:
+screenshot saving. When the screenshot saver is enabled by `--fight-screenshots`,
+each episode directory under `data/fight_screenshots` contains four
+subdirectories:
 
 | Directory | Contents |
 |-----------|----------|
 | `screen/` | Whole captured frame PPMs named `frame_%05d.ppm` |
 | `fighter1/` | PPM crops for the first detector ROI, using the same frame filename |
 | `fighter2/` | PPM crops for the second detector ROI, using the same frame filename |
+| `reconstruction/` | Reconstructed-scene PPMs using the same frame filename |
 
 ## Character Tracking (`Vision::CharacterTracker`)
 

@@ -52,13 +52,15 @@ This builds the Docker image (Ruby 4.0 + RetroArch + xdotool + X screenshot tool
 | `dip rspec` | Run RSpec tests |
 | `dip rubocop` | Run RuboCop linter |
 | `dip learn` | Record AI vs AI self-play to `data/recordings/mk3/` |
+| `dip learn_watch [--fight-screenshots] [match-name]` | Run watch-mode PPO training on the host desktop; `--fight-screenshots` also writes `data/fight_screenshots/` |
 | `dip learn_empty [health] [time] [positions] [match-name]` | Write frame sizes and selected detector values to per-episode logs |
 | `dip watch-match` | Replay a recorded match |
 | `dip play-vs-ai` | Play against the trained AI |
 
 ### Notes
 
-- `dip learn`, `dip watch-match`, and `dip play-vs-ai` open a RetroArch window on your host display via X11 forwarding. Run `xhost +local:docker` if the window fails to appear.
+- `dip learn`, `dip learn_watch`, `dip watch-match`, and `dip play-vs-ai` open a RetroArch window on your host display via X11 forwarding. Run `xhost +local:docker` if the window fails to appear.
+- `dip learn_watch --fight-screenshots` saves per-frame `screen/`, `fighter1/`, `fighter2/`, and `reconstruction/` PPMs under `data/fight_screenshots/episode_*/`.
 - Match save states live in `data/matches/`. At least one `.state` file is required before running `dip learn`.
 - ROM (`mk3.sfc`) and the snes9x libretro core are expected at their default paths inside the container.
 

@@ -90,7 +90,12 @@ module FightingAI
           vision_areas = @game.respond_to?(:latest_vision_areas) ? @game.latest_vision_areas : nil
           vision_snapshot = @game.respond_to?(:latest_vision_snapshot) ? @game.latest_vision_snapshot : nil
           detection_finished_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-          @screenshot_saver&.save(frame_observation, frame_number, areas: vision_areas)
+          @screenshot_saver&.save(
+            frame_observation,
+            frame_number,
+            areas: vision_areas,
+            vision_snapshot: vision_snapshot
+          )
           log_frame = lambda do
             work_finished_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
             @fight_logger&.log_frame(

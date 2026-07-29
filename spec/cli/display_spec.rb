@@ -101,8 +101,8 @@ RSpec.describe FightingAI::CLI::PPODisplay do
       $stdout = original_stdout
     end
 
-    it 'forwards the current frame to the reconstructed scene window' do
-      scene_window = instance_double(FightingAI::CLI::ReconstructedSceneWindow, render: nil)
+    it 'does not forward the current frame to a reconstructed scene window' do
+      scene_window = spy("ReconstructedSceneWindow")
       display = described_class.new(scene_window: scene_window)
       frame_observation = FightingAI::Observation::FrameObservation.from_raw_rgb(
         ("\x00" * 12).b,
@@ -126,10 +126,7 @@ RSpec.describe FightingAI::CLI::PPODisplay do
         frame_observation: frame_observation
       )
 
-      expect(scene_window).to have_received(:render).with(
-        frame_observation: frame_observation,
-        vision_snapshot: vision_snapshot
-      )
+      expect(scene_window).not_to have_received(:render)
     end
 
     it 'writes only the status line to the log file in real time' do
@@ -158,9 +155,11 @@ RSpec.describe FightingAI::CLI::PPODisplay do
     it 'renders only the status line and writes only the status line to the watch log when compact watch logging is enabled' do
       fake_stdout = FakeStdout.new(width: c::UPDATE_TEST_TERMINAL_WIDTH, height: c::UPDATE_TEST_TERMINAL_HEIGHT)
       original_stdout = $stdout
+      original_compact = ENV["WATCH_LOG_COMPACT"]
+      ENV["WATCH_LOG_COMPACT"] = "1"
       $stdout = fake_stdout
       temp_log = Tempfile.new("ppo_display")
-      scene_window = instance_double(FightingAI::CLI::ReconstructedSceneWindow, render: nil)
+      scene_window = spy("ReconstructedSceneWindow")
       display = described_class.new(scene_window: scene_window)
       display.log_file = temp_log
 
@@ -187,6 +186,11 @@ RSpec.describe FightingAI::CLI::PPODisplay do
       temp_log&.close
       temp_log&.unlink
       $stdout = original_stdout
+      if original_compact.nil?
+        ENV.delete("WATCH_LOG_COMPACT")
+      else
+        ENV["WATCH_LOG_COMPACT"] = original_compact
+      end
     end
   end
 
