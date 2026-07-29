@@ -57,9 +57,11 @@ vision is disabled, they are the WRAM-derived positions.
 
 `dip learn_watch` refreshes the status display every frame. In watch mode the
 position chart is suppressed, so both the on-screen block and the log file keep
-only the main episode/status line. The watch display is detected from the host
-watch scene, so the compact view stays active whenever the Xephyr watch
-window is running. The UI also opens a second `ffplay` window named
+only the main episode/status line. The line is truncated by terminal display
+width, so wide glyphs such as the health bars do not wrap and corrupt the
+status bar. The watch display is detected from the host watch scene, so the
+compact view stays active whenever the Xephyr watch window is running. The UI
+also opens a second `ffplay` window named
 `Reconstructed Scene` next to RetroArch and renders the detected sprite
 rectangles at their current coordinates. The window also shows a visible
 placeholder frame immediately, even before the first vision snapshot is ready.

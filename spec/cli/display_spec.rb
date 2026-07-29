@@ -3,6 +3,7 @@
 require 'spec_helper'
 require 'stringio'
 require 'tempfile'
+require 'unicode/display_width'
 require 'fighting_ai/cli/display'
 
 module PPODisplaySpecConstants
@@ -70,6 +71,14 @@ RSpec.describe FightingAI::CLI::PPODisplay do
       fitted = display.send(:fit_to_terminal_width, 'abcdefghijklmnopqrstuvwxyz'.green)
 
       expect(plain(fitted).length).to eq(c::FIT_TEST_VISIBLE_WIDTH)
+    end
+
+    it 'truncates wide glyphs by terminal cell width' do
+      allow(display).to receive(:terminal_width).and_return(c::FIT_TEST_TERMINAL_WIDTH)
+
+      fitted = display.send(:fit_to_terminal_width, ("\u2588" * 40).green)
+
+      expect(Unicode::DisplayWidth.of(plain(fitted))).to eq(c::FIT_TEST_VISIBLE_WIDTH)
     end
   end
 

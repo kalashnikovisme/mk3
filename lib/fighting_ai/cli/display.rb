@@ -1,6 +1,7 @@
 require "colorize"
 require "io/console"
 require "json"
+require "unicode/display_width"
 require_relative "../emulator/retro_arch/config_builder"
 require_relative "reconstructed_scene_window"
 
@@ -169,13 +170,13 @@ module FightingAI
       end
 
       def pad_col(str, width)
-        visible = visible_length(str)
+        visible = visible_width(str)
         str + " " * [width - visible, 0].max
       end
 
       def fit_to_terminal_width(line)
         max_visible_width = [terminal_width - TERMINAL_WIDTH_PADDING, MIN_TERMINAL_WIDTH].max
-        return line if visible_length(line) <= max_visible_width
+        return line if visible_width(line) <= max_visible_width
 
         truncate_ansi(line, max_visible_width)
       end
@@ -187,8 +188,8 @@ module FightingAI
         DEFAULT_TERMINAL_WIDTH
       end
 
-      def visible_length(str)
-        str.gsub(ANSI_ESCAPE_PATTERN, '').length
+      def visible_width(str)
+        Unicode::DisplayWidth.of(str.gsub(ANSI_ESCAPE_PATTERN, ""))
       end
 
       def truncate_ansi(str, max_visible_width)
@@ -202,8 +203,12 @@ module FightingAI
             output << escape[0]
             index += escape[0].length
           else
-            output << str[index]
-            visible += 1
+            char = str[index]
+            char_width = Unicode::DisplayWidth.of(char)
+            break if visible + char_width > max_visible_width
+
+            output << char
+            visible += char_width
             index += 1
           end
         end
@@ -252,11 +257,6 @@ module FightingAI
         output << "\r\e[2K#{rendered_lines[0]}"
         rendered_lines[1..].each do |line|
           output << "\n\e[2K#{line}"
-        end
-
-        extra_line_count = [previous_line_count - rendered_lines.size, 0].max
-        extra_line_count.times do
-          output << "\n\e[2K"
         end
 
         $stdout.print(output)
