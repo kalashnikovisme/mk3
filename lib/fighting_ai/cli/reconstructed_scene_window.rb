@@ -8,9 +8,11 @@ module FightingAI
       FFPLAY_LOG_LEVEL = "quiet"
       WINDOW_TITLE = "Reconstructed Scene"
       WINDOW_GAP_PIXELS = 12
+      DEFAULT_WINDOW_LEFT = FightingAI::Emulator::RetroArch::ConfigBuilder::RETROARCH_WINDOW_WIDTH + WINDOW_GAP_PIXELS
       PIXEL_BYTES = FightingAI::Observation::FrameObservation::RGB_CHANNELS
       DEFAULT_WINDOW_Y = 0
       DEFAULT_WINDOW_X = 0
+      RETROARCH_DISPLAY = ":99"
       XWININFO_BIN = "xwininfo"
       XWININFO_NAME_ARG = "-name"
       FFPLAY_AUTOEXIT_ARG = "-autoexit"
@@ -104,13 +106,13 @@ module FightingAI
 
       def render(frame_observation:, vision_snapshot:)
         return if @disabled
-        return if frame_observation.nil? || vision_snapshot.nil?
+        return if frame_observation.nil?
         return unless @available
 
         ensure_started
         return unless @stdin
 
-        frame_bytes = compose_frame(frame_observation, vision_snapshot)
+        frame_bytes = compose_frame(frame_observation, vision_snapshot || {})
         @stdin.write(frame_bytes)
         @stdin.flush
       rescue StandardError
@@ -139,7 +141,7 @@ module FightingAI
         return if @process && @wait_thread&.alive?
 
         close
-        @stdin, @stdout, @stderr, @wait_thread = Open3.popen3({ "DISPLAY" => ENV["DISPLAY"] }, *ffplay_command)
+        @stdin, @stdout, @stderr, @wait_thread = Open3.popen3({ "DISPLAY" => RETROARCH_DISPLAY }, *ffplay_command)
         @process = @wait_thread
         @stdout.close rescue nil
         @stderr.close rescue nil
@@ -166,7 +168,7 @@ module FightingAI
 
       def window_left
         geometry = retroarch_geometry
-        return DEFAULT_WINDOW_X unless geometry
+        return DEFAULT_WINDOW_LEFT unless geometry
 
         geometry[:x] + geometry[:width] + WINDOW_GAP_PIXELS
       end
@@ -180,7 +182,7 @@ module FightingAI
 
       def retroarch_geometry
         output, status = Open3.capture2(
-          { "DISPLAY" => ENV["DISPLAY"] },
+          { "DISPLAY" => RETROARCH_DISPLAY },
           XWININFO_BIN,
           XWININFO_NAME_ARG,
           "RetroArch"
