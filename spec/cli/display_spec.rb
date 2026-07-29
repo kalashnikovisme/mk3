@@ -177,9 +177,12 @@ RSpec.describe FightingAI::CLI::PPODisplay do
       expect(logged_line.lines.count).to eq(1)
       expect(plain_output.lines.count).to eq(1)
       expect(plain_output.lines[0]).to include("Ep")
+      expect(plain_output.lines[0]).not_to include("The Rooftop")
+      expect(plain_output.lines[0]).not_to include("buf")
       expect(plain_output).not_to include("raw")
       expect(plain_output).not_to include("mk3")
       expect(plain_output).not_to include("roi")
+      expect(Unicode::DisplayWidth.of(plain_output.lines[0])).to be <= c::UPDATE_TEST_TERMINAL_WIDTH - FightingAI::CLI::PPODisplay::TERMINAL_WIDTH_PADDING
     ensure
       temp_log&.close
       temp_log&.unlink

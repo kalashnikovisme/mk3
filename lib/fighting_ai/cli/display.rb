@@ -77,17 +77,16 @@ module FightingAI
           else "idle".light_black
           end
 
-        buf_str = "#{@buffer_size}/#{@buffer_cap}"
-        buf     = @buffer_size >= @buffer_cap ? buf_str.green : buf_str.yellow
-
-        status_line =
-          "Ep #{@episode.to_s.rjust(4)} ".cyan +
-          (stage_name ? "│ #{stage_name} ".light_black : "") +
-          "│ t:#{timer.to_s.rjust(2)} ".white +
-          "│ P1 #{health_bar(f1.health).green} #{f1.health.to_s.rjust(3)} x:#{f1.x.to_s.rjust(3)} " +
-          "│ P2 #{health_bar(f2.health).red} #{f2.health.to_s.rjust(3)} x:#{f2.x.to_s.rjust(3)} " +
-          "│ [#{state_tag}] " +
-          "│ buf #{buf}"
+        compact_watch = compact_watch_output?
+        status_line = build_status_line(
+          episode: @episode,
+          stage_name: stage_name,
+          timer: timer,
+          fighter1: f1,
+          fighter2: f2,
+          state_tag: state_tag,
+          compact: compact_watch
+        )
 
         unless watches.empty?
           watch_str = watches.map { |w| "#{w[:label]}:#{w[:value].to_s.rjust(3)}" }.join("  ")
@@ -95,7 +94,7 @@ module FightingAI
         end
 
         chart_lines = position_chart_lines(game_state:, vision_snapshot: vision_snapshot)
-        block_lines = compact_watch_output? ? [status_line] : [status_line, *chart_lines]
+        block_lines = compact_watch ? [status_line] : [status_line, *chart_lines]
         @scene_window&.render(frame_observation: frame_observation, vision_snapshot: vision_snapshot)
         render_status_area(block_lines, replace_previous: !@last_status_lines.empty?)
         @last_status_lines = block_lines.map { |line| fit_to_terminal_width(line) }
@@ -146,6 +145,28 @@ module FightingAI
       def health_bar(hp)
         filled = [(hp.to_f / MAX_HEALTH * BAR_WIDTH).round, BAR_WIDTH].min
         "█" * filled + "░" * (BAR_WIDTH - filled)
+      end
+
+      def build_status_line(episode:, stage_name:, timer:, fighter1:, fighter2:, state_tag:, compact:)
+        episode_part = "Ep #{episode.to_s.rjust(4)} ".cyan
+        timer_part = "│ t:#{timer.to_s.rjust(2)} ".white
+        state_part = "│ [#{state_tag}] ".dup
+
+        if compact
+          "#{episode_part}#{timer_part}│ P1 #{fighter1.health.to_s.rjust(3)} x:#{fighter1.x.to_s.rjust(3)} " \
+            "│ P2 #{fighter2.health.to_s.rjust(3)} x:#{fighter2.x.to_s.rjust(3)} #{state_part}"
+        else
+          buf_str = "#{@buffer_size}/#{@buffer_cap}"
+          buf     = @buffer_size >= @buffer_cap ? buf_str.green : buf_str.yellow
+
+          "#{episode_part}" \
+            "#{stage_name ? "│ #{stage_name} ".light_black : ""}" \
+            "#{timer_part}" \
+            "│ P1 #{health_bar(fighter1.health).green} #{fighter1.health.to_s.rjust(3)} x:#{fighter1.x.to_s.rjust(3)} " \
+            "│ P2 #{health_bar(fighter2.health).red} #{fighter2.health.to_s.rjust(3)} x:#{fighter2.x.to_s.rjust(3)} " \
+            "#{state_part}" \
+            "│ buf #{buf}"
+        end
       end
 
       def screen_track(p1_x, p2_x)
