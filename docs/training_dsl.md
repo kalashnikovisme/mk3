@@ -94,6 +94,8 @@ a separate `ffplay` window titled
 blank frame at the same coordinates, so you can compare the detector output
 against a reconstructed visual scene frame by frame. That viewer shows a
 placeholder frame immediately, even before the first vision snapshot is ready.
+The compact watch display stays active whenever the Xephyr watch scene is
+running.
 
 All per-frame fight logs now stay on the single-line status format and do not
 include the `raw`, `mk3`, or `roi` chart lines.

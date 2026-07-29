@@ -405,7 +405,7 @@ module FightingAI
       end
 
       def compact_watch_output?
-        ENV["WATCH_LOG_COMPACT"] == "1"
+        !@scene_window.nil? || ENV["WATCH_LOG_COMPACT"] == "1"
       end
     end
 

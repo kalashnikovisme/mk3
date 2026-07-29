@@ -151,8 +151,9 @@ RSpec.describe FightingAI::CLI::PPODisplay do
       original_stdout = $stdout
       $stdout = fake_stdout
       temp_log = Tempfile.new("ppo_display")
+      scene_window = instance_double(FightingAI::CLI::ReconstructedSceneWindow, render: nil)
+      display = described_class.new(scene_window: scene_window)
       display.log_file = temp_log
-      allow(ENV).to receive(:[]).with("WATCH_LOG_COMPACT").and_return("1")
 
       display.update(game_state: game_state, stage_name: 'The Rooftop')
 
