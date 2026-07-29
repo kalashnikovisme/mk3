@@ -243,15 +243,22 @@ module FightingAI
       def render_status_area(lines, replace_previous:)
         rendered_lines = lines.map { |line| fit_to_terminal_width(line) }
         output = +""
+        previous_line_count = @last_status_lines.size
 
         if replace_previous
-          output << "\e[#{@last_status_lines.size}A" if @last_status_lines.any?
+          output << "\e[#{previous_line_count}A" if previous_line_count.positive?
         end
 
         output << "\r\e[2K#{rendered_lines[0]}"
         rendered_lines[1..].each do |line|
           output << "\n\e[2K#{line}"
         end
+
+        extra_line_count = [previous_line_count - rendered_lines.size, 0].max
+        extra_line_count.times do
+          output << "\n\e[2K"
+        end
+
         $stdout.print(output)
         $stdout.flush
       end
