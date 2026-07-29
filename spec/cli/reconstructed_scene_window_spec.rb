@@ -92,6 +92,7 @@ RSpec.describe FightingAI::CLI::ReconstructedSceneWindow do
         described_class::FFPLAY_VIDEO_SIZE_ARG,
         "#{IMAGE_WIDTH}x#{IMAGE_HEIGHT}"
       )
+      expect(command).to include(described_class::FFPLAY_ALWAYS_ONTOP_ARG)
     end
   end
 
