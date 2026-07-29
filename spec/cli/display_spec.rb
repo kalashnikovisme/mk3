@@ -82,10 +82,12 @@ RSpec.describe FightingAI::CLI::PPODisplay do
       display.update(game_state: game_state, stage_name: 'The Rooftop')
 
       plain_output = plain(fake_stdout.string)
-      expect(plain_output.lines.size).to eq(2)
+      expect(plain_output.lines.size).to eq(4)
       expect(plain_output.lines[0]).to include("Ep")
-      expect(plain_output.lines[0]).not_to include("screen")
-      expect(plain_output.lines[1]).to include("screen |")
+      expect(plain_output.lines[1]).to include("raw")
+      expect(plain_output.lines[1]).to include("vision miss")
+      expect(plain_output.lines[2]).to include("mk3")
+      expect(plain_output.lines[3]).to include("roi")
     ensure
       $stdout = original_stdout
     end
@@ -102,11 +104,10 @@ RSpec.describe FightingAI::CLI::PPODisplay do
       temp_log.rewind
       logged_line = temp_log.read.force_encoding("UTF-8")
 
-      expect(logged_line).to include("screen |")
-      expect(logged_line).to include("●")
-      expect(logged_line).to include("P1")
-      expect(logged_line).to include("P2")
-      expect(logged_line.lines.count).to eq(2)
+      expect(logged_line).to include("raw")
+      expect(logged_line).to include("mk3")
+      expect(logged_line).to include("roi")
+      expect(logged_line.lines.count).to eq(4)
     ensure
       temp_log&.close
       temp_log&.unlink

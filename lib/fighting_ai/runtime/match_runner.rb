@@ -88,6 +88,7 @@ module FightingAI
           game_state = @game.extract_game_state(frame_number, frame_observation: frame_observation)
           vision_actions = @game.respond_to?(:latest_vision_actions) ? @game.latest_vision_actions : {}
           vision_areas = @game.respond_to?(:latest_vision_areas) ? @game.latest_vision_areas : nil
+          vision_snapshot = @game.respond_to?(:latest_vision_snapshot) ? @game.latest_vision_snapshot : nil
           detection_finished_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
           @screenshot_saver&.save(frame_observation, frame_number, areas: vision_areas)
           log_frame = lambda do
@@ -103,7 +104,7 @@ module FightingAI
           end
 
           if @ui
-            @ui.update(game_state: game_state)
+            @ui.update(game_state: game_state, vision_snapshot: vision_snapshot)
           elsif Time.now - last_status_at >= 1.0
             state = if game_state.fight_active?  then "fight"
                     elsif game_state.round_over? then "round_over"

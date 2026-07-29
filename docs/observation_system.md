@@ -154,6 +154,33 @@ The three observable quantities and their sources:
 | Fighter x/y position | Template matching via persistent Python CUDA detector (`bin/vision_detect.py --server`) |
 | Round timer | Digit templates compared at a fixed crop position; `nil` when no template passes threshold |
 
+The detector reports image-space coordinates first and the game adapter scales
+them into MK3 space before building `Core::GameState`. The position mapping is:
+
+```text
+raw image frame (x: 0 .. image_width-1)
+┌─────────────────────────────────────────────────────────┐
+│  p1 raw center_x / bottom_y         p2 raw center_x ... │
+└─────────────────────────────────────────────────────────┘
+             ↓ scale_position(center_x, bottom_y)
+MK3 space (x: 0 .. 255, y: 0 .. 255)
+┌─────────────────────────────────────────────────────────┐
+│  p1 x/y                               p2 x/y            │
+└─────────────────────────────────────────────────────────┘
+```
+
+`scale_position` uses the detected image width and height to normalize the
+player coordinates into `0..255`:
+
+```ruby
+x = round(center_x * 255 / max(image_width - 1, 1))
+y = round(bottom_y * 255 / max(image_height - 1, 1))
+```
+
+Runtime watch mode now renders the raw image-space chart, the MK3-scaled chart,
+and the active ROI bands on separate lines so you can see the detector input and
+the final game-state positions together.
+
 Round over is detected when either fighter's health reaches zero or when the timer reaches zero. WRAM screen/round/animation state is not used.
 
 When enabled, `Runtime::MatchRunner` captures a `FrameObservation` and passes it to `Game::MortalKombat3::Adapter#extract_game_state`. The adapter runs `Vision::CharacterPositionDetector`, which keeps a persistent `python3 bin/vision_detect.py --server` process alive. Runtime vision therefore uses the same Python CUDA detector, action modes, ROI defaults, and early-stop rules as `dip vision:detect`.

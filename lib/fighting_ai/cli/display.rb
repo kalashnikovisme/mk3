@@ -9,7 +9,9 @@ module FightingAI
       MAX_HEALTH     = 0xA6  # 166
       P1_COL_WIDTH   = 55    # visible chars reserved for the P1 reward column
       SCREEN_TRACK_WIDTH = 32
-      STATUS_AREA_LINE_COUNT = 2
+      STATUS_AREA_LINE_COUNT = 4
+      POSITION_CHART_LABEL_WIDTH = 4
+      POSITION_COORD_DIGITS = 3
       SCREEN_LEFT_BOUNDARY = '|'.freeze
       SCREEN_RIGHT_BOUNDARY = '|'.freeze
       SCREEN_EMPTY_CELL = '-'.freeze
@@ -58,7 +60,7 @@ module FightingAI
         @buffer_cap    = buffer_capacity
       end
 
-      def update(game_state:, stage_name: nil, watches: [])
+      def update(game_state:, stage_name: nil, watches: [], vision_snapshot: nil)
         f1    = game_state.fighter1
         f2    = game_state.fighter2
         timer = game_state.round_time_remaining
@@ -86,9 +88,10 @@ module FightingAI
           status_line += " │ #{watch_str}".yellow
         end
 
-        position_line = "│ screen #{screen_track(f1.x, f2.x)}"
-        render_status_area([status_line, position_line], replace_previous: !@last_status_lines.empty?)
-        @last_status_lines = [status_line, position_line].map { |line| fit_to_terminal_width(line) }
+        chart_lines = position_chart_lines(game_state:, vision_snapshot: vision_snapshot)
+        block_lines = [status_line, *chart_lines]
+        render_status_area(block_lines, replace_previous: !@last_status_lines.empty?)
+        @last_status_lines = block_lines.map { |line| fit_to_terminal_width(line) }
         @last_status = @last_status_lines.join("\n")
 
         return unless @log_file
@@ -235,14 +238,145 @@ module FightingAI
         output = +""
 
         if replace_previous
-          output << "\r\e[2K"
-          output << "\e[1A\r\e[2K" if STATUS_AREA_LINE_COUNT > 1
+          output << "\e[#{@last_status_lines.size}A" if @last_status_lines.any?
         end
 
-        output << rendered_lines[0]
-        output << "\n\e[2K#{rendered_lines[1]}"
+        output << "\r\e[2K#{rendered_lines[0]}"
+        rendered_lines[1..].each do |line|
+          output << "\n\e[2K#{line}"
+        end
         $stdout.print(output)
         $stdout.flush
+      end
+
+      def position_chart_lines(game_state:, vision_snapshot:)
+        raw_line = raw_position_line(vision_snapshot)
+        mk3_line = mk3_position_line(game_state, vision_snapshot)
+        roi_line = roi_position_line(vision_snapshot)
+
+        [raw_line, mk3_line, roi_line]
+      end
+
+      def raw_position_line(vision_snapshot)
+        return format_chart_line(label: "raw", chart: "n/a", suffix: "vision miss") if vision_snapshot.nil?
+
+        raw_positions = vision_snapshot[:raw_positions] || {}
+        image_width   = vision_snapshot[:image_width]
+        image_height  = vision_snapshot[:image_height]
+        chart         = position_track(
+          axis_max: image_axis_max(image_width),
+          positions: raw_positions.transform_values { |point| point[:x] },
+          labels: { 1 => "1", 2 => "2" }
+        )
+        suffix = format_point_suffix(raw_positions, image_width, image_height)
+        format_chart_line(label: "raw", chart: chart, suffix: suffix)
+      end
+
+      def mk3_position_line(game_state, vision_snapshot)
+        positions = {
+          1 => game_state.fighter1.x,
+          2 => game_state.fighter2.x
+        }
+        chart = position_track(
+          axis_max: POSITION_MAX,
+          positions: positions,
+          labels: { 1 => "1", 2 => "2" }
+        )
+        suffix = format_mk3_suffix(game_state, vision_snapshot)
+        format_chart_line(label: "mk3", chart: chart, suffix: suffix)
+      end
+
+      def roi_position_line(vision_snapshot)
+        return format_chart_line(label: "roi", chart: "n/a", suffix: "vision miss") if vision_snapshot.nil?
+
+        areas = Array(vision_snapshot[:areas])
+        image_width = vision_snapshot[:image_width]
+        chart = roi_track(areas, axis_max: image_axis_max(image_width))
+        suffix = areas.empty? ? "full-screen" : "areas: #{format_areas(areas)}"
+        format_chart_line(label: "roi", chart: chart, suffix: suffix)
+      end
+
+      def format_chart_line(label:, chart:, suffix:)
+        "#{label.ljust(POSITION_CHART_LABEL_WIDTH)}│#{chart}│ #{suffix}"
+      end
+
+      def format_point_suffix(points, image_width, image_height)
+        p1 = points[1]
+        p2 = points[2]
+        return "vision miss" if p1.nil? && p2.nil?
+
+        "img #{image_width.to_i}x#{image_height.to_i} " \
+          "p1 #{format_point(p1)} " \
+          "p2 #{format_point(p2)}"
+      end
+
+      def format_mk3_suffix(game_state, vision_snapshot)
+        dx = (game_state.fighter1.x - game_state.fighter2.x).abs
+        raw_part = if vision_snapshot && vision_snapshot[:scaled_positions]
+          scaled = vision_snapshot[:scaled_positions]
+          p1 = scaled[1]
+          p2 = scaled[2]
+          p1_text = p1 ? format_mk3_point(p1) : "n/a"
+          p2_text = p2 ? format_mk3_point(p2) : "n/a"
+          "scaled #{p1_text} #{p2_text}"
+        else
+          "scaled n/a"
+        end
+
+        "#{raw_part} dx=#{dx}"
+      end
+
+      def format_point(point)
+        return "n/a" if point.nil?
+
+        "#{point[:x].to_i.to_s.rjust(POSITION_COORD_DIGITS)},#{point[:y].to_i.to_s.rjust(POSITION_COORD_DIGITS)}"
+      end
+
+      def format_mk3_point(point)
+        "#{point[:x].to_i.to_s.rjust(POSITION_COORD_DIGITS)},#{point[:y].to_i.to_s.rjust(POSITION_COORD_DIGITS)}"
+      end
+
+      def format_areas(areas)
+        areas.map { |area| "#{area.fetch("x")},#{area.fetch("y")},#{area.fetch("width")},#{area.fetch("height")}" }.join(";")
+      end
+
+      def image_axis_max(image_width)
+        [image_width.to_i - 1, 1].max
+      end
+
+      def position_track(axis_max:, positions:, labels:)
+        cells = Array.new(SCREEN_TRACK_WIDTH, SCREEN_EMPTY_CELL)
+        positions.each do |player_index, position|
+          next if position.nil?
+
+          marker_index = track_index(position, axis_max)
+          marker_char  = labels.fetch(player_index, player_index.to_s).to_s[0]
+          cells[marker_index] = marker_char
+        end
+        "#{SCREEN_LEFT_BOUNDARY}#{cells.join}#{SCREEN_RIGHT_BOUNDARY}"
+      end
+
+      def roi_track(areas, axis_max:)
+        cells = Array.new(SCREEN_TRACK_WIDTH, SCREEN_EMPTY_CELL)
+        areas.each do |area|
+          start_index = track_index(area.fetch("x"), axis_max)
+          end_position = area.fetch("x") + area.fetch("width")
+          end_index = track_index(end_position, axis_max)
+          range_start = [start_index, end_index].min
+          range_end = [start_index, end_index].max
+
+          (range_start..range_end).each do |index|
+            cells[index] = '='
+          end
+          cells[range_start] = '['
+          cells[range_end] = ']'
+        end
+        "#{SCREEN_LEFT_BOUNDARY}#{cells.join}#{SCREEN_RIGHT_BOUNDARY}"
+      end
+
+      def track_index(position, axis_max)
+        clamped_x = [[position.to_i, POSITION_MIN].max, axis_max].min
+        (clamped_x.to_f * TRACK_LAST_INDEX / axis_max).round
       end
     end
 

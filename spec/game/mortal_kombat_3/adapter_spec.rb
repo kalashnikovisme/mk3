@@ -76,6 +76,10 @@ RSpec.describe FightingAI::Game::MortalKombat3::Adapter do
       expect(state.round_time_remaining).to eq(timer_ninety_nine)
       expect(state.fighter1.x).not_to eq(0)
       expect(state.fighter2.x).not_to eq(0)
+      expect(adapter.latest_vision_snapshot[:image_width]).to eq(vision_image_width)
+      expect(adapter.latest_vision_snapshot[:image_height]).to eq(vision_image_height)
+      expect(adapter.latest_vision_snapshot[:raw_positions][1][:x]).to eq(player_one_detection.center_x)
+      expect(adapter.latest_vision_snapshot[:raw_positions][2][:y]).to eq(player_two_detection.bottom_y)
       expect(vision_detector).to have_received(:detect).with(frame_observation)
       expect(scanner).not_to have_received(:submit)
     end

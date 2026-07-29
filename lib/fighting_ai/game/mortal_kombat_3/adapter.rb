@@ -45,6 +45,7 @@ module FightingAI
           @vision_characters      = {}
           @latest_vision_actions  = {}
           @bootstrap_done         = false
+          @latest_vision_snapshot = nil
           @cached_positions       = nil
           @cached_timer           = nil
         end
@@ -61,6 +62,10 @@ module FightingAI
           @latest_vision_areas
         end
 
+        def latest_vision_snapshot
+          @latest_vision_snapshot
+        end
+
         def configure_vision_characters(player1_character:, player2_character:)
           @vision_characters = {
             PLAYER_ONE => player1_character.to_sym,
@@ -68,6 +73,7 @@ module FightingAI
           }
           @latest_vision_actions = {}
           @latest_vision_areas = nil
+          @latest_vision_snapshot = nil
           @cached_positions = nil
           @cached_timer = nil
           @bootstrap_done = false
@@ -201,10 +207,45 @@ module FightingAI
               image_height: raw[:image_height]
             )
             @latest_vision_actions = extract_vision_actions(player_detections)
-            @cached_positions = (@cached_positions || {}).merge(scale_vision_positions(player_detections, raw[:image_width], raw[:image_height])) if player_detections
+            scaled_positions = scale_vision_positions(player_detections, raw[:image_width], raw[:image_height]) if player_detections
+            @cached_positions = (@cached_positions || {}).merge(scaled_positions) if scaled_positions
+            @latest_vision_snapshot = build_vision_snapshot(
+              raw: raw,
+              player_detections: player_detections,
+              scaled_positions: scaled_positions
+            )
             @cached_timer = raw[:timer] unless raw[:timer].nil?
+          else
+            @latest_vision_snapshot = nil
           end
           { positions: @cached_positions, timer: @cached_timer }
+        end
+
+        def build_vision_snapshot(raw:, player_detections:, scaled_positions:)
+          return nil if player_detections.nil? || player_detections.empty?
+
+          {
+            image_width:       raw[:image_width],
+            image_height:      raw[:image_height],
+            areas:             raw[:areas],
+            player_detections:  player_detections,
+            raw_positions:     raw_positions_for(player_detections),
+            scaled_positions:  scaled_positions || {},
+            timer:             raw[:timer]
+          }
+        end
+
+        def raw_positions_for(player_detections)
+          player_detections.each_with_object({}) do |(player_index, detection), positions|
+            next unless detection
+
+            positions[player_index] = {
+              x: detection.center_x,
+              y: detection.bottom_y,
+              template_name: detection.template_name,
+              confidence: detection.confidence
+            }
+          end
         end
 
         def extract_vision_actions(player_detections)

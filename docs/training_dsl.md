@@ -87,8 +87,10 @@ training runtime, but the standard training entrypoints no longer create
 `data/fight_screenshots` or write per-frame PPMs.
 
 `dip learn_watch` keeps the live status block on screen and writes it on every
-frame. The position chart is rendered on its own line beneath the episode line,
-and the same two-line block is written into `data/logs/*.log`.
+frame. The position view now has three chart lines beneath the episode line:
+`raw` for the detector image-space coordinates, `mk3` for the scaled game-state
+coordinates, and `roi` for the active detector search regions. The same
+four-line block is written into `data/logs/*.log`.
 
 Unlike normal real-time training, this diagnostic mode pauses RetroArch and uses
 one `FRAME_ADVANCE` command per logged frame. Detector latency affects wall-clock
