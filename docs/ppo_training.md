@@ -59,8 +59,10 @@ vision is disabled, they are the WRAM-derived positions.
 position chart is suppressed, so both the on-screen block and the log file keep
 only the main episode/status line. In watch mode the status line is shortened
 to the episode, timer, health, position, and fight state fields that fit on one
-row. The watch display is detected from the host watch scene, so the compact
-view stays active whenever the Xephyr watch window is running. The UI also
+row. The status block is cursor-anchored so other terminal messages do not push
+it downward, and Ctrl+C clears the current line before printing `Stopped.`. The
+watch display is detected from the host watch scene, so the compact view stays
+active whenever the Xephyr watch window is running. The UI also
 opens a second `ffplay` window named
 `Reconstructed Scene` next to RetroArch and renders the detected sprite
 rectangles at their current coordinates. The window also shows a visible

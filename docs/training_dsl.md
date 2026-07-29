@@ -89,8 +89,10 @@ training runtime, but the standard training entrypoints no longer create
 `dip learn_watch` keeps the live status block on screen and writes it on every
 frame. In watch mode the position chart is suppressed entirely, so both the
 terminal and the log file keep only the main status line. The watch variant is
-shortened so it stays on one row and does not corrupt the status bar. Watch
-mode also opens
+shortened so it stays on one row and does not corrupt the status bar. The
+status block is cursor-anchored, so other terminal messages do not shove it
+down the screen, and Ctrl+C clears the current line before `Stopped.` is
+printed. Watch mode also opens
 a separate `ffplay` window titled
 `Reconstructed Scene` that pastes the detected sprite rectangles back into a
 blank frame at the same coordinates, so you can compare the detector output

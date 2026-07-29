@@ -31,6 +31,10 @@ module FightingAI
       TERMINAL_WIDTH_PADDING = 1
       ANSI_ESCAPE_PATTERN = /\e\[[0-9;]*m/
       ANSI_RESET = "\e[0m"
+      CURSOR_SAVE = "\e[s"
+      CURSOR_RESTORE = "\e[u"
+      LINE_CLEAR = "\e[2K"
+      CARRIAGE_RETURN = "\r"
 
       COMPONENT_LABELS = {
         damage_dealt:      "dmg",
@@ -55,6 +59,8 @@ module FightingAI
         @buffer_cap    = 512
         @last_status   = ""
         @last_status_lines = []
+        @status_cursor_saved = false
+        @status_line_count = 0
         @log_file      = nil
         @scene_window  = scene_window || build_scene_window
       end
@@ -269,16 +275,25 @@ module FightingAI
       def render_status_area(lines, replace_previous:)
         rendered_lines = lines.map { |line| fit_to_terminal_width(line) }
         output = +""
-        previous_line_count = @last_status_lines.size
-
-        if replace_previous
-          output << "\e[#{previous_line_count}A" if previous_line_count.positive?
+        if @status_cursor_saved
+          output << CURSOR_RESTORE
+        else
+          output << CURSOR_SAVE
+          @status_cursor_saved = true
         end
 
-        output << "\r\e[2K#{rendered_lines[0]}"
+        output << CARRIAGE_RETURN << LINE_CLEAR << rendered_lines[0]
         rendered_lines[1..].each do |line|
-          output << "\n\e[2K#{line}"
+          output << "\n#{LINE_CLEAR}#{line}"
         end
+
+        if @status_line_count > rendered_lines.size
+          (@status_line_count - rendered_lines.size).times do
+            output << "\n#{LINE_CLEAR}"
+          end
+        end
+
+        @status_line_count = rendered_lines.size
 
         $stdout.print(output)
         $stdout.flush

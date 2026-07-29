@@ -3,6 +3,8 @@ require_relative "display"
 
 module FightingAI
   module CLI
+    STATUS_LINE_CLEAR = "\r\e[2K".freeze
+
     BANNER = <<~TEXT
       ┌─────────────────────────────────────────┐
       │         FightingAI Framework            │
@@ -63,6 +65,7 @@ module FightingAI
 
     def self.trap_sigint(cleanup: nil)
       Signal.trap("INT") do
+        $stdout.print STATUS_LINE_CLEAR
         puts "\n\nStopped."
         cleanup&.call
         exit 0
