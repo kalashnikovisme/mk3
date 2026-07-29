@@ -222,14 +222,12 @@ module FightingAI
         end
 
         def build_vision_snapshot(raw:, player_detections:, scaled_positions:)
-          return nil if player_detections.nil? || player_detections.empty?
-
           {
             image_width:       raw[:image_width],
             image_height:      raw[:image_height],
             areas:             raw[:areas],
-            player_detections:  player_detections,
-            raw_positions:     raw_positions_for(player_detections),
+            player_detections:  player_detections || {},
+            raw_positions:     raw_positions_for(player_detections || {}),
             scaled_positions:  scaled_positions || {},
             timer:             raw[:timer]
           }

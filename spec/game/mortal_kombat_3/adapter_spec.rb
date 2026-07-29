@@ -168,5 +168,24 @@ RSpec.describe FightingAI::Game::MortalKombat3::Adapter do
         2 => 'ice_clone_crouch'
       )
     end
+
+    it 'keeps a vision snapshot even when no players are detected' do
+      empty_result = {
+        detections: [],
+        areas: [],
+        image_width: vision_image_width,
+        image_height: vision_image_height,
+        timer: timer_ninety_nine
+      }
+      allow(vision_detector).to receive(:detect).with(frame_observation).and_return(empty_result)
+
+      adapter.extract_game_state(frame_number_one, frame_observation: frame_observation)
+
+      expect(adapter.latest_vision_snapshot).to include(
+        image_width: vision_image_width,
+        image_height: vision_image_height
+      )
+      expect(adapter.latest_vision_snapshot[:player_detections]).to eq({})
+    end
   end
 end

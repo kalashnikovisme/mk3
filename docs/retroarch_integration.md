@@ -101,7 +101,7 @@ RetroArch always runs on an isolated internal display `DISPLAY=:99`. Two backend
 | Mode | Class | Display | Host socket needed |
 |------|-------|---------|-------------------|
 | Headless (default) | `XvfbServer` | `Xvfb :99` inside container | No |
-| Watch | `XephyrServer` | `Xephyr :99` inside container, renders into a window on the host desktop | Yes (`/tmp/.X11-unix`) |
+| Watch | `XephyrServer` | `Xephyr :99` inside container, renders a wide enough host-side desktop for RetroArch plus the reconstructed scene | Yes (`/tmp/.X11-unix`) |
 
 `CLI.start_retro_arch` selects the backend: if `DISPLAY_HOST` is set in the environment it creates an `XephyrServer`; otherwise it creates an `XvfbServer`. The selected server is passed to `Adapter` as `display_server:` — its lifecycle is tied to `adapter.start` / `adapter.stop`.
 
@@ -113,7 +113,18 @@ RetroArch always runs on an isolated internal display `DISPLAY=:99`. Two backend
 dip learn-watch [match-name]
 ```
 
-`dip learn-watch` merges `.dockerdev/compose.watch.yml` on top of the base compose config, which mounts `/tmp/.X11-unix` and sets `DISPLAY_HOST`. Xephyr opens a `1024×768` window on the host desktop showing the live game.
+`dip learn-watch` merges `.dockerdev/compose.watch.yml` on top of the base compose config, which mounts `/tmp/.X11-unix` and sets `DISPLAY_HOST`. Xephyr opens a host-side desktop sized to fit the RetroArch window and the reconstructed-scene window side by side.
+In watch mode the CLI also opens a second host-side `ffplay` window titled
+`Reconstructed Scene`. It uses the same `297x216` capture size as the vision
+frame grabber output,
+but only paints the detected sprite rectangles back onto a blank canvas at
+their detected coordinates. This viewer is diagnostic only; it does not change
+the emulator input or the game-state extraction path.
+The reconstruction uses a dark diagnostic background and keeps rendering even
+when no players are detected on a frame, so the second window stays visible
+instead of disappearing into a pure black rectangle.
+For a quick live check, the viewer also paints a white `TEST` label in the
+upper-left corner of the reconstructed frame.
 
 ## Game Speed Throttling
 
@@ -160,6 +171,6 @@ TrueColor PNG with no scanline filters (`-type TrueColor -depth 8
 `screenshot` method both use this X-server screenshot path.
 
 The headless `XvfbServer` runs at `320x240` (was `1024x768`), reducing each
-`xwd` capture from ~3 MB to ~300 KB. The watch-mode `XephyrServer` remains at
-`1024x768` for human readability — in watch mode the larger capture is
-acceptable.
+`xwd` capture from ~3 MB to ~300 KB. The watch-mode `XephyrServer` uses a
+shared desktop width large enough to keep RetroArch and the reconstructed scene
+visible side by side, so the watch display no longer clips the second window.

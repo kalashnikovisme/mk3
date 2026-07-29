@@ -104,7 +104,11 @@ module FightingAI
           end
 
           if @ui
-            @ui.update(game_state: game_state, vision_snapshot: vision_snapshot)
+            @ui.update(
+              game_state:        game_state,
+              vision_snapshot:   vision_snapshot,
+              frame_observation: frame_observation
+            )
           elsif Time.now - last_status_at >= 1.0
             state = if game_state.fight_active?  then "fight"
                     elsif game_state.round_over? then "round_over"

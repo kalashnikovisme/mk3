@@ -179,7 +179,9 @@ y = round(bottom_y * 255 / max(image_height - 1, 1))
 
 Runtime watch mode now renders the raw image-space chart, the MK3-scaled chart,
 and the active ROI bands on separate lines so you can see the detector input and
-the final game-state positions together.
+the final game-state positions together. In watch mode, the same frame data also
+drives a second `ffplay` window that reconstructs the scene by pasting each
+detected sprite crop back onto a blank canvas at its detected coordinates.
 
 Round over is detected when either fighter's health reaches zero or when the timer reaches zero. WRAM screen/round/animation state is not used.
 

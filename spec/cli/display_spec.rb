@@ -92,6 +92,37 @@ RSpec.describe FightingAI::CLI::PPODisplay do
       $stdout = original_stdout
     end
 
+    it 'forwards the current frame to the reconstructed scene window' do
+      scene_window = instance_double(FightingAI::CLI::ReconstructedSceneWindow, render: nil)
+      display = described_class.new(scene_window: scene_window)
+      frame_observation = FightingAI::Observation::FrameObservation.from_raw_rgb(
+        ("\x00" * 12).b,
+        width: 2,
+        height: 2
+      )
+      vision_snapshot = {
+        raw_positions: { 1 => { x: 0, y: 0 }, 2 => { x: 1, y: 1 } },
+        image_width: 2,
+        image_height: 2,
+        areas: [],
+        player_detections: {},
+        scaled_positions: {},
+        timer: 99
+      }
+
+      display.update(
+        game_state: game_state,
+        stage_name: 'The Rooftop',
+        vision_snapshot: vision_snapshot,
+        frame_observation: frame_observation
+      )
+
+      expect(scene_window).to have_received(:render).with(
+        frame_observation: frame_observation,
+        vision_snapshot: vision_snapshot
+      )
+    end
+
     it 'writes the position graphic to the log file in real time' do
       fake_stdout = FakeStdout.new(width: c::UPDATE_TEST_TERMINAL_WIDTH, height: c::UPDATE_TEST_TERMINAL_HEIGHT)
       original_stdout = $stdout

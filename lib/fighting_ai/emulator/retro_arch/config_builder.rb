@@ -10,10 +10,14 @@ module FightingAI
         SNES_NATIVE_WIDTH   = 256
         SNES_NATIVE_HEIGHT  = 224
         NATIVE_VIDEO_SCALE  = 1.0
+        WATCH_WINDOW_COUNT = 2
+        WATCH_WINDOW_GAP_PIXELS = 12
         # RetroArch applies 4:3 aspect-ratio correction to the 256×224 SNES output,
         # expanding the width to ~297px. Pin the window to this size so Xephyr matches.
         RETROARCH_WINDOW_WIDTH  = 297
         RETROARCH_WINDOW_HEIGHT = SNES_NATIVE_HEIGHT
+        WATCH_SCREEN_WIDTH  = (RETROARCH_WINDOW_WIDTH * WATCH_WINDOW_COUNT) + WATCH_WINDOW_GAP_PIXELS
+        WATCH_SCREEN_HEIGHT = RETROARCH_WINDOW_HEIGHT
         AUDIO_DRIVER        = "pulse"
         AUDIO_LATENCY_MS    = 10
         VIDEO_FRAME_DELAY_MS = 15  # software throttle: (1000/60fps) - ~2ms render ≈ 15ms

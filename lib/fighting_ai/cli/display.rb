@@ -1,6 +1,8 @@
 require "colorize"
 require "io/console"
 require "json"
+require_relative "../emulator/retro_arch/config_builder"
+require_relative "reconstructed_scene_window"
 
 module FightingAI
   module CLI
@@ -12,6 +14,8 @@ module FightingAI
       STATUS_AREA_LINE_COUNT = 4
       POSITION_CHART_LABEL_WIDTH = 4
       POSITION_COORD_DIGITS = 3
+      RECONSTRUCTED_SCENE_WIDTH = FightingAI::Emulator::RetroArch::ConfigBuilder::RETROARCH_WINDOW_WIDTH
+      RECONSTRUCTED_SCENE_HEIGHT = FightingAI::Emulator::RetroArch::ConfigBuilder::RETROARCH_WINDOW_HEIGHT
       SCREEN_LEFT_BOUNDARY = '|'.freeze
       SCREEN_RIGHT_BOUNDARY = '|'.freeze
       SCREEN_EMPTY_CELL = '-'.freeze
@@ -43,7 +47,7 @@ module FightingAI
 
       attr_writer :log_file
 
-      def initialize
+      def initialize(scene_window: nil)
         @episode       = 0
         @training_step = 0
         @buffer_size   = 0
@@ -51,6 +55,7 @@ module FightingAI
         @last_status   = ""
         @last_status_lines = []
         @log_file      = nil
+        @scene_window  = scene_window || build_scene_window
       end
 
       def set_context(episode:, training_step:, buffer_size:, buffer_capacity:)
@@ -60,7 +65,7 @@ module FightingAI
         @buffer_cap    = buffer_capacity
       end
 
-      def update(game_state:, stage_name: nil, watches: [], vision_snapshot: nil)
+      def update(game_state:, stage_name: nil, watches: [], vision_snapshot: nil, frame_observation: nil)
         f1    = game_state.fighter1
         f2    = game_state.fighter2
         timer = game_state.round_time_remaining
@@ -90,6 +95,7 @@ module FightingAI
 
         chart_lines = position_chart_lines(game_state:, vision_snapshot: vision_snapshot)
         block_lines = [status_line, *chart_lines]
+        @scene_window&.render(frame_observation: frame_observation, vision_snapshot: vision_snapshot)
         render_status_area(block_lines, replace_previous: !@last_status_lines.empty?)
         @last_status_lines = block_lines.map { |line| fit_to_terminal_width(line) }
         @last_status = @last_status_lines.join("\n")
@@ -377,6 +383,17 @@ module FightingAI
       def track_index(position, axis_max)
         clamped_x = [[position.to_i, POSITION_MIN].max, axis_max].min
         (clamped_x.to_f * TRACK_LAST_INDEX / axis_max).round
+      end
+
+      def build_scene_window
+        return nil unless ENV["DISPLAY_HOST"]
+
+        ReconstructedSceneWindow.new(
+          width:  RECONSTRUCTED_SCENE_WIDTH,
+          height: RECONSTRUCTED_SCENE_HEIGHT
+        )
+      rescue StandardError
+        nil
       end
     end
 
