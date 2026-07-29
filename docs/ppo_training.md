@@ -60,8 +60,7 @@ position charts beneath the episode line. In watch mode the UI also opens a
 second `ffplay` window named `Reconstructed Scene` next to RetroArch and
 renders the detected sprite rectangles at their current coordinates. The window
 also shows a visible placeholder frame immediately, even before the first
-vision snapshot is ready, and is raised above RetroArch so it is easy to see.
-The live block shows:
+vision snapshot is ready. The live block shows:
 
 ```text
 Ep 0012 │ The Rooftop │ t:87 │ P1 ... │ P2 ... │ [fight] │ buf 128/512

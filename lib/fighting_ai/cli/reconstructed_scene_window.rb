@@ -13,12 +13,10 @@ module FightingAI
       DEFAULT_WINDOW_Y = 0
       DEFAULT_WINDOW_X = 0
       RETROARCH_DISPLAY = ":99"
-      XDOTOOL_BIN = "xdotool"
       XWININFO_BIN = "xwininfo"
       XWININFO_NAME_ARG = "-name"
       FFPLAY_AUTOEXIT_ARG = "-autoexit"
       FFPLAY_NOBORDER_ARG = "-noborder"
-      FFPLAY_ALWAYS_ONTOP_ARG = "-alwaysontop"
       FFPLAY_WINDOW_TITLE_ARG = "-window_title"
       FFPLAY_VIDEO_SIZE_ARG = "-video_size"
       FFPLAY_PIXEL_FORMAT_ARG = "-pixel_format"
@@ -151,27 +149,6 @@ module FightingAI
         @process = @wait_thread
         @stdout.close rescue nil
         @stderr.close rescue nil
-        promote_window!
-      end
-
-      def promote_window!
-        system(
-          { "DISPLAY" => RETROARCH_DISPLAY },
-          XDOTOOL_BIN,
-          "search",
-          "--sync",
-          "--name",
-          WINDOW_TITLE,
-          "windowmove",
-          window_left.to_s,
-          window_top.to_s,
-          "windowraise",
-          "windowactivate",
-          out: File::NULL,
-          err: File::NULL
-        )
-      rescue StandardError
-        nil
       end
 
       def ffplay_command
@@ -180,7 +157,6 @@ module FightingAI
           FFPLAY_LOG_LEVEL,
           FFPLAY_AUTOEXIT_ARG,
           FFPLAY_NOBORDER_ARG,
-          FFPLAY_ALWAYS_ONTOP_ARG,
           FFPLAY_LEFT_ARG, window_left.to_s,
           FFPLAY_TOP_ARG, window_top.to_s,
           FFPLAY_WIDTH_ARG, @width.to_s,

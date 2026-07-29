@@ -95,8 +95,7 @@ full three-line chart. Watch mode also opens a separate `ffplay` window titled
 `Reconstructed Scene` that pastes the detected sprite rectangles back into a
 blank frame at the same coordinates, so you can compare the detector output
 against a reconstructed visual scene frame by frame. That viewer shows a
-placeholder frame immediately, even before the first vision snapshot is ready,
-and is raised above RetroArch so it is easy to see.
+placeholder frame immediately, even before the first vision snapshot is ready.
 
 Unlike normal real-time training, this diagnostic mode pauses RetroArch and uses
 one `FRAME_ADVANCE` command per logged frame. Detector latency affects wall-clock

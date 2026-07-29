@@ -120,8 +120,6 @@ frame grabber output,
 but only paints the detected sprite rectangles back onto a blank canvas at
 their detected coordinates. This viewer is diagnostic only; it does not change
 the emulator input or the game-state extraction path.
-The window is raised above RetroArch and kept on top so it is visible as soon
-as it opens.
 The reconstruction uses a dark diagnostic background and keeps rendering even
 when no players are detected on a frame, so the second window stays visible
 instead of disappearing into a pure black rectangle.
