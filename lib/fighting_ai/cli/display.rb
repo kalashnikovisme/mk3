@@ -94,7 +94,7 @@ module FightingAI
         end
 
         chart_lines = position_chart_lines(game_state:, vision_snapshot: vision_snapshot)
-        block_lines = [status_line, *chart_lines]
+        block_lines = compact_watch_output? ? [status_line] : [status_line, *chart_lines]
         @scene_window&.render(frame_observation: frame_observation, vision_snapshot: vision_snapshot)
         render_status_area(block_lines, replace_previous: !@last_status_lines.empty?)
         @last_status_lines = block_lines.map { |line| fit_to_terminal_width(line) }
@@ -102,7 +102,7 @@ module FightingAI
 
         return unless @log_file
 
-        log_lines = compact_watch_log? ? [@last_status_lines.first] : @last_status_lines
+        log_lines = compact_watch_output? ? [@last_status_lines.first] : @last_status_lines
         log_lines.each { |line| @log_file.puts line.gsub(ANSI_ESCAPE_PATTERN, "") }
         @log_file.flush
       end
@@ -397,7 +397,7 @@ module FightingAI
         nil
       end
 
-      def compact_watch_log?
+      def compact_watch_output?
         ENV["WATCH_LOG_COMPACT"] == "1"
       end
     end
