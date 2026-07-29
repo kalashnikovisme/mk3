@@ -5,7 +5,8 @@ module FightingAI
   module CLI
     class ReconstructedSceneWindow
       FFPLAY_BIN = "ffplay"
-      FFPLAY_LOG_LEVEL = "quiet"
+      FFPLAY_LOG_LEVEL_ARG = "-loglevel"
+      FFPLAY_LOG_LEVEL_VALUE = "quiet"
       WINDOW_TITLE = "Reconstructed Scene"
       WINDOW_GAP_PIXELS = 12
       DEFAULT_WINDOW_LEFT = FightingAI::Emulator::RetroArch::ConfigBuilder::RETROARCH_WINDOW_WIDTH + WINDOW_GAP_PIXELS
@@ -17,6 +18,7 @@ module FightingAI
       XWININFO_NAME_ARG = "-name"
       FFPLAY_AUTOEXIT_ARG = "-autoexit"
       FFPLAY_NOBORDER_ARG = "-noborder"
+      FFPLAY_ALWAYS_ON_TOP_ARG = "-alwaysontop"
       FFPLAY_WINDOW_TITLE_ARG = "-window_title"
       FFPLAY_VIDEO_SIZE_ARG = "-video_size"
       FFPLAY_PIXEL_FORMAT_ARG = "-pixel_format"
@@ -154,9 +156,10 @@ module FightingAI
       def ffplay_command
         [
           FFPLAY_BIN,
-          FFPLAY_LOG_LEVEL,
+          FFPLAY_LOG_LEVEL_ARG, FFPLAY_LOG_LEVEL_VALUE,
           FFPLAY_AUTOEXIT_ARG,
           FFPLAY_NOBORDER_ARG,
+          FFPLAY_ALWAYS_ON_TOP_ARG,
           FFPLAY_LEFT_ARG, window_left.to_s,
           FFPLAY_TOP_ARG, window_top.to_s,
           FFPLAY_WIDTH_ARG, @width.to_s,
