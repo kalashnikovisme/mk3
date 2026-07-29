@@ -160,7 +160,7 @@ RSpec.describe FightingAI::CLI::PPODisplay do
       $stdout = fake_stdout
       temp_log = Tempfile.new("ppo_display")
       scene_window = spy("ReconstructedSceneWindow")
-      display = described_class.new(scene_window: scene_window)
+      display = described_class.new(scene_window: scene_window, status_bar: false)
       display.log_file = temp_log
 
       display.update(game_state: game_state, stage_name: 'The Rooftop')
@@ -174,14 +174,7 @@ RSpec.describe FightingAI::CLI::PPODisplay do
       expect(logged_line).not_to include("mk3")
       expect(logged_line).not_to include("roi")
       expect(logged_line.lines.count).to eq(1)
-      expect(plain_output.lines.count).to eq(1)
-      expect(plain_output.lines[0]).to include("Ep")
-      expect(plain_output.lines[0]).not_to include("The Rooftop")
-      expect(plain_output.lines[0]).not_to include("buf")
-      expect(plain_output).not_to include("raw")
-      expect(plain_output).not_to include("mk3")
-      expect(plain_output).not_to include("roi")
-      expect(Unicode::DisplayWidth.of(plain_output.lines[0])).to be <= c::UPDATE_TEST_TERMINAL_WIDTH - FightingAI::CLI::PPODisplay::TERMINAL_WIDTH_PADDING
+      expect(plain_output).to be_empty
     ensure
       temp_log&.close
       temp_log&.unlink

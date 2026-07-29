@@ -202,7 +202,7 @@ or evaluation. Action and area settings are controlled by environment variables:
 
 ```bash
 dip learn sub-zero-vs-sub-zero
-VISION_ACTION=front_kick VISION_AREAS="36,96,96,120;164,96,96,120" dip learn sub-zero-vs-sub-zero
+VISION_ACTION=front_kick VISION_AREAS="24,88,128,128;145,88,128,128" dip learn sub-zero-vs-sub-zero
 VISION_ACTION=idle dip learn sub-zero-vs-sub-zero
 VISION=0 dip learn sub-zero-vs-sub-zero
 VISION=0 dip fight data/matches/sub-zero-vs-sub-zero.state models/ppo_10 models/ppo_5
@@ -211,7 +211,8 @@ VISION=0 dip fight data/matches/sub-zero-vs-sub-zero.state models/ppo_10 models/
 If `VISION_ACTION` is omitted, runtime vision uses `all`, so learning scans every
 non-reference action template inside the active ROIs. Use `VISION_ACTION=idle`
 for the faster startup-stance-only workflow. If `VISION_AREAS` is omitted, the
-runtime detector uses the same two default initial stance ROIs as before.
+runtime detector uses the larger default initial stance ROIs defined in
+`bin/vision_detect.py`.
 
 The per-frame fight log records `fighter1_area` and `fighter2_area` so you can
 see the search regions the detector used on that frame. When the detector scans
@@ -258,9 +259,9 @@ bottom = min(bbox.y + bbox.height + pad, image_height)
 
 where `pad = max_movement_per_frame`. The clamping prevents search areas from extending outside the captured frame.
 After padding, regional search areas are expanded around the tracked box center
-to at least `96x120` pixels when the frame bounds allow it. This keeps the next
-scan covering a full standing/crouching fighter even if the previous selected
-template was a small partial match.
+to at least `128x128` pixels when the frame bounds allow it. This keeps the
+next scan covering a full standing/crouching fighter even if the previous
+selected template was a small partial match.
 
 ### Configuration
 
@@ -269,8 +270,8 @@ template was a small partial match.
 | `max_movement_per_frame` | 15 px | Padding added to each side of a track bounding box to form the search area |
 | `max_lost_frames` | 5 | Frames without a match before a track is discarded |
 | `full_screen_interval` | 60 | Frames between forced full-screen recovery scans (0 disables) |
-| `min_search_region_width` | 96 px | Minimum regional ROI width after padding |
-| `min_search_region_height` | 120 px | Minimum regional ROI height after padding |
+| `min_search_region_width` | 128 px | Minimum regional ROI width after padding |
+| `min_search_region_height` | 128 px | Minimum regional ROI height after padding |
 
 ### Usage
 
@@ -304,7 +305,7 @@ container has GPU access:
 ```bash
 dip vision:detect data/screenshots/example.png
 dip vision:detect idle data/screenshots/example.png
-dip vision:detect idle --area 36,96,96,120 --area 164,96,96,120 data/screenshots/example.png
+dip vision:detect idle --area 24,88,128,128 --area 145,88,128,128 data/screenshots/example.png
 ```
 
 `dip vision:detect` runs through the `app_gpu` Compose service, which requests
@@ -393,7 +394,7 @@ that area is skipped for the remaining templates. Use `--full-screen` to make
 the default explicit:
 
 ```bash
-dip vision:detect idle --area 36,96,96,120 --area 164,96,96,120 data/screenshots/example.png
+dip vision:detect idle --area 24,88,128,128 --area 145,88,128,128 data/screenshots/example.png
 dip vision:detect idle --roi 32,96,88,128 --roi 144,96,88,128 data/screenshots/example.png
 dip vision:detect idle --full-screen data/screenshots/example.png
 ```

@@ -33,6 +33,7 @@ FIGHT_SCREENSHOTS_DIR = File.expand_path("../data/fight_screenshots", __dir__)
 FIGHT_SCREENSHOTS_FLAG = "--fight-screenshots"
 DEBUG        = ARGV.include?("debug")
 SCREENSHOTS_ENABLED = ARGV.delete(FIGHT_SCREENSHOTS_FLAG)
+STATUS_BAR_ENABLED = ENV.fetch("STATUS_BAR", "1") == "1"
 AI_LOG       = ENV["AI_LOG"] == "1"
 WRAM_DEBUG   = DEBUG
 VISION_ENABLED = ENV.fetch(FightingAI::VISION_ENV_KEY, FightingAI::VISION_LEARN_DEFAULT_VALUE) == FightingAI::VISION_ENABLED_VALUE
@@ -102,7 +103,7 @@ FightingAI::CLI.trap_sigint(cleanup: -> { trainer_ref&.stop })
 
 ppo_ui = if DEBUG    then nil
            elsif AI_LOG then FightingAI::CLI::PPOAIDisplay.new
-           else              FightingAI::CLI::PPODisplay.new
+           else              FightingAI::CLI::PPODisplay.new(status_bar: STATUS_BAR_ENABLED)
            end
 log_file = nil
 unless DEBUG

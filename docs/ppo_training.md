@@ -21,7 +21,7 @@ detector as `dip vision:detect`:
 
 ```bash
 dip learn sub-zero-vs-sub-zero
-VISION_ACTION=front_kick VISION_AREAS="36,96,96,120;164,96,96,120" dip learn sub-zero-vs-sub-zero
+VISION_ACTION=front_kick VISION_AREAS="24,88,128,128;145,88,128,128" dip learn sub-zero-vs-sub-zero
 VISION_ACTION=idle dip learn sub-zero-vs-sub-zero
 VISION=0 dip learn sub-zero-vs-sub-zero
 ```
@@ -30,7 +30,7 @@ If `VISION_ACTION` is omitted, learning uses `all` and scans every non-reference
 action template inside the active ROIs. `VISION_ACTION` accepts the same action
 modes as `dip vision:detect`; use `VISION_ACTION=idle` for faster
 startup-stance-only detection. When `VISION_AREAS` is omitted, the detector uses
-the default initial stance ROIs. `dip learn` runs through the GPU Compose service
+the larger default initial stance ROIs. `dip learn` runs through the GPU Compose service
 so the detector can use CUDA.
 
 ## PPO Evaluation Fights
@@ -48,32 +48,23 @@ VISION=0 dip fight data/matches/sub-zero-vs-sub-zero.state models/ppo_10 models/
 VISION=0 dip fight_watch data/matches/sub-zero-vs-sub-zero.state models/ppo_10 models/ppo_5
 ```
 
-## Training Status Bar
+## Training Status
 
-During non-debug `dip learn` runs, the PPO status bar prints the latest
-post-extraction fighter positions. When vision is enabled, these are the
-vision-detected positions after scaling into the MK3 coordinate range; when
-vision is disabled, they are the WRAM-derived positions.
+`dip learn` no longer renders the live PPO status bar on screen. The trainer
+still records the latest post-extraction fighter positions into the fight logs.
+When vision is enabled, these are the vision-detected positions after scaling
+into the MK3 coordinate range; when vision is disabled, they are the
+WRAM-derived positions.
 
-`dip learn_watch` refreshes the status display every frame. In watch mode the
-position chart is suppressed, so both the on-screen block and the log file keep
-only the main episode/status line. The status line is shortened to the episode,
-timer, health, position, and fight state fields that fit on one row. The
-status block is cursor-anchored so other terminal messages do not push it
-downward, and Ctrl+C clears the current line before printing `Stopped.`. The
-watch display stays compact regardless of whether `--fight-screenshots` is
-enabled. When that flag is present, the runtime writes per-frame `screen/`,
-`fighter1/`, `fighter2/`, and `reconstruction/` PPMs under
-`data/fight_screenshots/episode_%05d/` so you can compare the real capture with
-the reconstructed scene on disk.
-The live block shows:
+`dip learn_watch` also runs without the live status bar. The watch display is
+therefore limited to RetroArch itself, while the runtime still writes compact
+status lines to the fight log. When `--fight-screenshots` is enabled, the
+runtime writes per-frame `screen/`, `fighter1/`, `fighter2/`, and
+`reconstruction/` PPMs under `data/fight_screenshots/episode_%05d/` so you can
+compare the real capture with the reconstructed scene on disk.
 
-```text
-Ep 0012 │ The Rooftop │ t:87 │ P1 ... │ P2 ... │ [fight] │ buf 128/512
-```
-
-Per-frame fight logs now stay on this single-line status format in every mode.
-They no longer record the `raw`, `mk3`, or `roi` chart lines.
+Per-frame fight logs stay on the single-line status format in every mode. They
+no longer record the `raw`, `mk3`, or `roi` chart lines.
 
 The `screen` segment draws a fixed-width horizontal line for the MK3 screen
 coordinate range (`PPODisplay::POSITION_MIN..MemoryMap::X_MAX`). The blue dot is

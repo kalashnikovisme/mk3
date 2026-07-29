@@ -34,6 +34,7 @@ FIGHT_SCREENSHOTS_DIR = File.expand_path("../data/fight_screenshots", __dir__)
 FIGHT_SCREENSHOTS_FLAG = "--fight-screenshots"
 DEBUG        = REST_ARGS.include?("debug")
 SCREENSHOTS_ENABLED = REST_ARGS.delete(FIGHT_SCREENSHOTS_FLAG)
+STATUS_BAR_ENABLED = ENV.fetch("STATUS_BAR", "1") == "1"
 WRAM_DEBUG   = DEBUG
 VISION_ENABLED = ENV.fetch(FightingAI::VISION_ENV_KEY, FightingAI::VISION_LEARN_DEFAULT_VALUE) == FightingAI::VISION_ENABLED_VALUE
 VISION_ACTION = ENV.fetch("VISION_ACTION", FightingAI::Vision::CharacterPositionDetector::DEFAULT_ACTION_MODE)
@@ -89,7 +90,7 @@ puts
 trainer_ref = nil
 FightingAI::CLI.trap_sigint(cleanup: -> { trainer_ref&.stop })
 
-ppo_ui   = DEBUG ? nil : FightingAI::CLI::PPODisplay.new
+ppo_ui   = DEBUG ? nil : FightingAI::CLI::PPODisplay.new(status_bar: STATUS_BAR_ENABLED)
 emulator = FightingAI::CLI.start_retro_arch(
   rom_path:         ROM_PATH,
   core_path:        CORE_PATH,

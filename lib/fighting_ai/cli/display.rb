@@ -47,7 +47,7 @@ module FightingAI
 
       attr_writer :log_file
 
-      def initialize(scene_window: nil)
+      def initialize(scene_window: nil, status_bar: true)
         @episode       = 0
         @training_step = 0
         @buffer_size   = 0
@@ -58,6 +58,7 @@ module FightingAI
         @status_line_count = 0
         @log_file      = nil
         @scene_window  = nil
+        @status_bar_enabled = status_bar
       end
 
       def set_context(episode:, training_step:, buffer_size:, buffer_capacity:)
@@ -96,9 +97,9 @@ module FightingAI
 
         chart_lines = position_chart_lines(game_state:, vision_snapshot: vision_snapshot)
         block_lines = compact_watch ? [status_line] : [status_line, *chart_lines]
-        render_status_area(block_lines, replace_previous: !@last_status_lines.empty?)
         @last_status_lines = block_lines.map { |line| fit_to_terminal_width(line) }
         @last_status = @last_status_lines.join("\n")
+        render_status_area(block_lines, replace_previous: !@last_status_lines.empty?) if @status_bar_enabled
 
         return unless @log_file
 
@@ -258,7 +259,7 @@ module FightingAI
           index.zero? ? "\r\e[2K#{rendered_line}" : "\n\e[2K#{rendered_line}"
         end.join
         $stdout.print "#{body}\n\r\e[2K"
-        render_status_area(@last_status_lines, replace_previous: false) unless @last_status_lines.empty?
+        render_status_area(@last_status_lines, replace_previous: false) if @status_bar_enabled && !@last_status_lines.empty?
         $stdout.flush
         if @log_file
           lines.each { |l| @log_file.puts l.gsub(ANSI_ESCAPE_PATTERN, "") }
