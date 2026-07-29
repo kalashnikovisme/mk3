@@ -95,6 +95,9 @@ blank frame at the same coordinates, so you can compare the detector output
 against a reconstructed visual scene frame by frame. That viewer shows a
 placeholder frame immediately, even before the first vision snapshot is ready.
 
+All per-frame fight logs now stay on the single-line status format and do not
+include the `raw`, `mk3`, or `roi` chart lines.
+
 Unlike normal real-time training, this diagnostic mode pauses RetroArch and uses
 one `FRAME_ADVANCE` command per logged frame. Detector latency affects wall-clock
 throughput but does not skip game frames.

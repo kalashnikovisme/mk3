@@ -65,10 +65,10 @@ The live block shows:
 
 ```text
 Ep 0012 │ The Rooftop │ t:87 │ P1 ... │ P2 ... │ [fight] │ buf 128/512
-raw │ ... raw detector coordinates and image size ...
-mk3 │ ... scaled MK3 coordinates and distance ...
-roi │ ... detector search regions for the frame ...
 ```
+
+Per-frame fight logs now stay on this single-line status format in every mode.
+They no longer record the `raw`, `mk3`, or `roi` chart lines.
 
 The `screen` segment draws a fixed-width horizontal line for the MK3 screen
 coordinate range (`PPODisplay::POSITION_MIN..MemoryMap::X_MAX`). The blue dot is

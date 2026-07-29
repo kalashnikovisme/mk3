@@ -102,7 +102,7 @@ module FightingAI
 
         return unless @log_file
 
-        log_lines = compact_watch_output? ? [@last_status_lines.first] : @last_status_lines
+        log_lines = [@last_status_lines.first]
         log_lines.each { |line| @log_file.puts line.gsub(ANSI_ESCAPE_PATTERN, "") }
         @log_file.flush
       end

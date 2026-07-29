@@ -123,7 +123,7 @@ RSpec.describe FightingAI::CLI::PPODisplay do
       )
     end
 
-    it 'writes the position graphic to the log file in real time' do
+    it 'writes only the status line to the log file in real time' do
       fake_stdout = FakeStdout.new(width: c::UPDATE_TEST_TERMINAL_WIDTH, height: c::UPDATE_TEST_TERMINAL_HEIGHT)
       original_stdout = $stdout
       $stdout = fake_stdout
@@ -135,10 +135,11 @@ RSpec.describe FightingAI::CLI::PPODisplay do
       temp_log.rewind
       logged_line = temp_log.read.force_encoding("UTF-8")
 
-      expect(logged_line).to include("raw")
-      expect(logged_line).to include("mk3")
-      expect(logged_line).to include("roi")
-      expect(logged_line.lines.count).to eq(4)
+      expect(logged_line).to include("Ep")
+      expect(logged_line).not_to include("raw")
+      expect(logged_line).not_to include("mk3")
+      expect(logged_line).not_to include("roi")
+      expect(logged_line.lines.count).to eq(1)
     ensure
       temp_log&.close
       temp_log&.unlink
