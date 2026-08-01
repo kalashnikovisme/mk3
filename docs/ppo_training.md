@@ -21,7 +21,7 @@ detector as `dip vision:detect`:
 
 ```bash
 dip learn sub-zero-vs-sub-zero
-VISION_ACTION=front_kick VISION_AREAS="24,88,128,128;145,88,128,128" dip learn sub-zero-vs-sub-zero
+VISION_ACTION=front_kick VISION_AREAS="0,0,256,256;41,0,256,256" dip learn sub-zero-vs-sub-zero
 VISION_ACTION=idle dip learn sub-zero-vs-sub-zero
 VISION=0 dip learn sub-zero-vs-sub-zero
 ```
@@ -30,8 +30,9 @@ If `VISION_ACTION` is omitted, learning uses `all` and scans every non-reference
 action template inside the active ROIs. `VISION_ACTION` accepts the same action
 modes as `dip vision:detect`; use `VISION_ACTION=idle` for faster
 startup-stance-only detection. When `VISION_AREAS` is omitted, the detector uses
-the larger default initial stance ROIs. `dip learn` runs through the GPU Compose service
-so the detector can use CUDA.
+the larger default initial stance ROIs (`256x256` requested per player; the
+current `297x216` capture clips the vertical extent to `216`). `dip learn` runs
+through the GPU Compose service so the detector can use CUDA.
 
 ## PPO Evaluation Fights
 

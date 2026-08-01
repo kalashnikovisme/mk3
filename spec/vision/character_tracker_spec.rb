@@ -14,10 +14,11 @@ RSpec.describe FightingAI::Vision::CharacterTracker do
   TRACKER_PAD      = 10
   TRACKER_MAX_LOST = 3
   TRACKER_INTERVAL = 5
-  TRACKER_MIN_REGION_WIDTH = 128
-  TRACKER_MIN_REGION_HEIGHT = 128
-  TRACKER_MIN_REGION_P1_X = 1
-  TRACKER_MIN_REGION_P1_Y = 76
+  TRACKER_MIN_REGION_WIDTH = 256
+  TRACKER_MIN_REGION_HEIGHT = 256
+  TRACKER_MIN_REGION_CLAMPED_HEIGHT = TRACKER_IMAGE_HEIGHT
+  TRACKER_MIN_REGION_P1_X = 0
+  TRACKER_MIN_REGION_P1_Y = 0
   PARTIAL_BBOX_W = 27
   PARTIAL_BBOX_H = 51
   CROSS_STEP_ONE_P1_BBOX_X = 90
@@ -122,7 +123,7 @@ RSpec.describe FightingAI::Vision::CharacterTracker do
           x:      TRACKER_MIN_REGION_P1_X,
           y:      TRACKER_MIN_REGION_P1_Y,
           width:  TRACKER_MIN_REGION_WIDTH,
-          height: TRACKER_MIN_REGION_HEIGHT
+          height: TRACKER_MIN_REGION_CLAMPED_HEIGHT
         }
         captured_areas = nil
         allow(inner_detector).to receive(:detect) do |_, areas:|
@@ -148,7 +149,7 @@ RSpec.describe FightingAI::Vision::CharacterTracker do
         tracker.detect(frame)
 
         expect(captured_areas.first[:width]).to be >= TRACKER_MIN_REGION_WIDTH
-        expect(captured_areas.first[:height]).to be >= TRACKER_MIN_REGION_HEIGHT
+        expect(captured_areas.first[:height]).to eq(TRACKER_MIN_REGION_CLAMPED_HEIGHT)
       end
 
       it "updates the track bounding box when a detection lands in the search area" do
